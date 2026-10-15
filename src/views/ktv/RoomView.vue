@@ -21,7 +21,7 @@
     </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="dialogVisible" :title="editingRoomId === '' ? '新建包厢' : '编辑包厢'" width="480px">
-      <el-form label-width="80px">
+      <el-form label-position="top">
         <el-form-item label="编号"><el-input v-model="roomForm.roomNo" /></el-form-item>
         <el-form-item label="名称"><el-input v-model="roomForm.roomName" /></el-form-item>
         <el-form-item label="类型">

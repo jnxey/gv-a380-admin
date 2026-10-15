@@ -32,7 +32,7 @@
     </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="consumeVisible" title="店内消费" width="420px">
-      <el-form label-width="80px">
+      <el-form label-position="top">
         <el-form-item label="金额"><el-input v-model="consumeAmount" /></el-form-item>
         <el-form-item label="备注"><el-input v-model="consumeRemark" /></el-form-item>
       </el-form>

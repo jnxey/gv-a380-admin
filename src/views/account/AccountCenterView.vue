@@ -11,7 +11,7 @@
     <el-button class="account-password-button" type="primary" @click="openPasswordDialog">修改密码</el-button>
 
     <el-dialog v-model="passwordDialogVisible" title="修改密码" width="420px">
-      <el-form label-width="88px">
+      <el-form label-position="top">
         <el-form-item label="旧密码">
           <el-input v-model="oldPassword" type="password" show-password placeholder="请输入旧密码" />
         </el-form-item>

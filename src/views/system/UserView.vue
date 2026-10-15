@@ -20,7 +20,7 @@
       </RecordCard>
     </div>
     <el-dialog v-model="dialogVisible" :title="editingUserId === '' ? '新建账号' : '编辑账号'" width="520px">
-      <el-form label-width="88px">
+      <el-form label-position="top">
         <el-form-item label="登录名">
           <el-input v-model="userForm.username" :disabled="editingUserId !== ''" />
         </el-form-item>

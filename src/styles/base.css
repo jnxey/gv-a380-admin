@@ -61,6 +61,14 @@ label {
   --el-card-padding: 12px;
 }
 
+.el-dialog {
+  --el-dialog-border-radius: 12px;
+}
+
+.el-dialog__footer .el-button {
+  border-radius: var(--el-border-radius-round);
+}
+
 .el-dialog .el-select,
 .el-dialog .el-date-editor {
   width: 100%;

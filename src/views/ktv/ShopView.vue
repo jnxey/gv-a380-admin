@@ -19,7 +19,7 @@
       </RecordCard>
     </div>
     <el-dialog v-model="dialogVisible" :title="editingShopId === '' ? '新建门店' : '编辑门店'" width="480px">
-      <el-form label-width="80px">
+      <el-form label-position="top">
         <el-form-item label="编码"><el-input v-model="shopForm.shopCode" /></el-form-item>
         <el-form-item label="名称"><el-input v-model="shopForm.shopName" /></el-form-item>
         <el-form-item label="地址"><el-input v-model="shopForm.address" /></el-form-item>

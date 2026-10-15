@@ -19,7 +19,7 @@
     </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="dialogVisible" :title="editingId === '' ? '新建房型' : '编辑房型'" width="480px">
-      <el-form label-width="90px">
+      <el-form label-position="top">
         <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
         <el-form-item label="床型">
           <el-select v-model="roomTypeForm.bedType">
