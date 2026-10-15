@@ -1,22 +1,26 @@
 <template>
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建房型</el-button>
-    <el-table :data="roomTypeList" border class="table">
-      <el-table-column prop="typeName" label="房型" />
-      <el-table-column label="床型">
+    <el-table :data="roomTypeList" stripe class="table">
+      <el-table-column prop="typeName" label="房型" min-width="160" />
+      <el-table-column label="床型" min-width="100">
         <template #default="scope">{{ scope.row.bedType === HotelBedType.TWIN ? '双床' : '大床' }}</template>
       </el-table-column>
-      <el-table-column prop="price" label="每晚价格" />
-      <el-table-column label="状态">
-        <template #default="scope">{{ statusLabel(scope.row.status) }}</template>
+      <el-table-column prop="price" label="每晚价格" min-width="120" />
+      <el-table-column label="状态" min-width="100">
+        <template #default="scope">
+          <el-tag :type="scope.row.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
+            {{ statusLabel(scope.row.status) }}
+          </el-tag>
+        </template>
       </el-table-column>
-      <el-table-column v-if="canSave" label="操作">
+      <el-table-column v-if="canSave" label="操作" min-width="100">
         <template #default="scope">
           <el-button link type="primary" @click="openEdit(scope.row)">编辑</el-button>
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination class="pager" layout="total, prev, pager, next" :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
+    <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="dialogVisible" :title="editingId === '' ? '新建房型' : '编辑房型'" width="480px">
       <el-form label-width="90px">
         <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
@@ -45,6 +49,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import ListPager from '../../components/ListPager.vue';
 import { HotelBedType, PageSetting, PermissionCode, RecordStatus, statusLabel } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import { useSessionStore } from '../../stores/session';
@@ -136,8 +141,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.table,
-.pager {
+.table {
   margin-top: 16px;
 }
 </style>

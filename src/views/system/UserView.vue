@@ -1,18 +1,22 @@
 <template>
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建账号</el-button>
-    <el-table :data="userList" border class="table">
-      <el-table-column prop="username" label="登录名" />
-      <el-table-column prop="realName" label="姓名" />
-      <el-table-column prop="mobile" label="手机" />
-      <el-table-column label="状态">
-        <template #default="scope">{{ statusLabel(scope.row.status) }}</template>
+    <el-table :data="userList" stripe class="table">
+      <el-table-column prop="username" label="登录名" min-width="140" />
+      <el-table-column prop="realName" label="姓名" min-width="120" />
+      <el-table-column prop="mobile" label="手机" min-width="140" />
+      <el-table-column label="状态" min-width="100">
+        <template #default="scope">
+          <el-tag :type="scope.row.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
+            {{ statusLabel(scope.row.status) }}
+          </el-tag>
+        </template>
       </el-table-column>
-      <el-table-column prop="roleName" label="角色" />
-      <el-table-column label="门店">
+      <el-table-column prop="roleName" label="角色" min-width="140" />
+      <el-table-column label="门店" min-width="160">
         <template #default="scope">{{ shopNameText(scope.row) }}</template>
       </el-table-column>
-      <el-table-column v-if="canSave" label="操作">
+      <el-table-column v-if="canSave" label="操作" min-width="100">
         <template #default="scope">
           <el-button link type="primary" @click="openEdit(scope.row)">编辑</el-button>
         </template>

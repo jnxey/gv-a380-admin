@@ -1,24 +1,21 @@
 <template>
   <el-card>
-    <el-form inline @submit.prevent="loadOrders">
+    <QueryBar @search="searchOrders" @reset="resetQuery">
       <el-form-item label="核销码">
-        <el-input v-model="verifyCode" clearable />
+        <el-input v-model="verifyCode" class="query-keyword" clearable />
       </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="loadOrders">查询</el-button>
-      </el-form-item>
-    </el-form>
-    <el-table :data="orderList" border>
+    </QueryBar>
+    <el-table :data="orderList" stripe>
       <el-table-column prop="orderNo" label="订单号" min-width="180" />
-      <el-table-column prop="memberName" label="会员" />
-      <el-table-column prop="mobile" label="手机号" />
-      <el-table-column prop="roomName" label="包厢" />
-      <el-table-column prop="bookingDate" label="日期" />
-      <el-table-column prop="startTime" label="开始" />
-      <el-table-column prop="endTime" label="结束" />
-      <el-table-column prop="amount" label="包厢费" />
-      <el-table-column prop="verifyCode" label="核销码" />
-      <el-table-column label="状态">
+      <el-table-column prop="memberName" label="会员" min-width="120" />
+      <el-table-column prop="mobile" label="手机号" min-width="140" />
+      <el-table-column prop="roomName" label="包厢" min-width="120" />
+      <el-table-column prop="bookingDate" label="日期" min-width="120" />
+      <el-table-column prop="startTime" label="开始" min-width="100" />
+      <el-table-column prop="endTime" label="结束" min-width="100" />
+      <el-table-column prop="amount" label="包厢费" min-width="100" />
+      <el-table-column prop="verifyCode" label="核销码" min-width="120" />
+      <el-table-column label="状态" min-width="120">
         <template #default="scope">{{ statusLabel(scope.row.orderStatus) }}</template>
       </el-table-column>
       <el-table-column label="操作" min-width="220">
@@ -34,7 +31,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination class="pager" layout="total, prev, pager, next" :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
+    <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="consumeVisible" title="店内消费" width="420px">
       <el-form label-width="80px">
         <el-form-item label="金额"><el-input v-model="consumeAmount" /></el-form-item>
@@ -51,6 +48,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import ListPager from '../../components/ListPager.vue';
+import QueryBar from '../../components/QueryBar.vue';
 import { KtvOrderStatus, PageSetting, PermissionCode, statusLabel } from '../../utils/constants';
 import { useSessionStore } from '../../stores/session';
 import http from '../../utils/request';
@@ -137,6 +136,23 @@ async function cancelOrder(bookingOrderId: string): Promise<void> {
 }
 
 /**
+ * 从第一页重新查询。
+ */
+function searchOrders(): void {
+  page.value = PageSetting.DEFAULT_PAGE;
+  void loadOrders();
+}
+
+/**
+ * 清空核销码并回到第一页。
+ */
+function resetQuery(): void {
+  verifyCode.value = '';
+  page.value = PageSetting.DEFAULT_PAGE;
+  void loadOrders();
+}
+
+/**
  * 翻页。
  */
 function onPageChange(nextPage: number): void {
@@ -149,8 +165,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.pager {
-  margin-top: 16px;
-}
-</style>

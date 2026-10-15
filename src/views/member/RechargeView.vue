@@ -1,18 +1,15 @@
 <template>
   <el-card>
-    <el-form inline @submit.prevent="searchMember">
+    <QueryBar @search="searchMember" @reset="resetQuery">
       <el-form-item label="会员">
-        <el-input v-model="keyword" placeholder="手机号 / 会员号 / 姓名" />
+        <el-input v-model="keyword" class="query-keyword" placeholder="手机号 / 会员号 / 姓名" clearable />
       </el-form-item>
-      <el-form-item>
-        <el-button @click="searchMember">查找</el-button>
-      </el-form-item>
-    </el-form>
-    <el-table :data="memberList" border highlight-current-row @current-change="onSelectMember">
-      <el-table-column prop="memberNo" label="会员号" />
-      <el-table-column prop="memberName" label="姓名" />
-      <el-table-column prop="mobile" label="手机号" />
-      <el-table-column prop="balance" label="当前余额" />
+    </QueryBar>
+    <el-table :data="memberList" stripe highlight-current-row @current-change="onSelectMember">
+      <el-table-column prop="memberNo" label="会员号" min-width="160" />
+      <el-table-column prop="memberName" label="姓名" min-width="120" />
+      <el-table-column prop="mobile" label="手机号" min-width="140" />
+      <el-table-column prop="balance" label="当前余额" min-width="120" />
     </el-table>
     <el-form class="recharge-form" label-width="80px">
       <el-form-item label="充值金额">
@@ -31,6 +28,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import QueryBar from '../../components/QueryBar.vue';
 import { PageSetting } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import http from '../../utils/request';
@@ -48,6 +46,14 @@ const memberList = ref<MemberRow[]>([]);
 const selectedMemberId = ref('');
 const amount = ref('');
 const remark = ref('');
+
+/**
+ * 清空关键字并重新查找。
+ */
+function resetQuery(): void {
+  keyword.value = '';
+  void searchMember();
+}
 
 /**
  * 按关键字查找可充值的会员。

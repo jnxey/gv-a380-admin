@@ -1,12 +1,12 @@
 <template>
   <el-card>
-    <el-table :data="roleList" border>
-      <el-table-column prop="roleName" label="角色" />
-      <el-table-column prop="roleCode" label="编码" />
-      <el-table-column label="范围">
+    <el-table :data="roleList" stripe>
+      <el-table-column prop="roleName" label="角色" min-width="160" />
+      <el-table-column prop="roleCode" label="编码" min-width="180" />
+      <el-table-column label="范围" min-width="120">
         <template #default="scope">{{ statusLabel(scope.row.roleScope) }}</template>
       </el-table-column>
-      <el-table-column v-if="canSave" label="操作">
+      <el-table-column v-if="canSave" label="操作" min-width="120">
         <template #default="scope">
           <el-button link type="primary" @click="openEdit(scope.row)">分配权限</el-button>
         </template>

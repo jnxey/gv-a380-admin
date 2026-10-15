@@ -1,20 +1,20 @@
 <template>
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建房间</el-button>
-    <el-table :data="roomList" border class="table">
-      <el-table-column prop="roomNo" label="房号" />
-      <el-table-column prop="floorNo" label="楼层" />
-      <el-table-column prop="roomTypeId" label="房型ID" />
-      <el-table-column label="房态">
+    <el-table :data="roomList" stripe class="table">
+      <el-table-column prop="roomNo" label="房号" min-width="120" />
+      <el-table-column prop="floorNo" label="楼层" min-width="100" />
+      <el-table-column prop="roomTypeId" label="房型ID" min-width="120" />
+      <el-table-column label="房态" min-width="120">
         <template #default="scope">{{ statusLabel(scope.row.roomStatus) }}</template>
       </el-table-column>
-      <el-table-column v-if="canSave" label="操作">
+      <el-table-column v-if="canSave" label="操作" min-width="100">
         <template #default="scope">
           <el-button link type="primary" @click="openEdit(scope.row)">编辑</el-button>
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination class="pager" layout="total, prev, pager, next" :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
+    <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="dialogVisible" :title="editingRoomId === '' ? '新建房间' : '编辑房间'" width="480px">
       <el-form label-width="80px">
         <el-form-item label="房型">
@@ -43,6 +43,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import ListPager from '../../components/ListPager.vue';
 import { HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import { useSessionStore } from '../../stores/session';
@@ -145,8 +146,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.table,
-.pager {
+.table {
   margin-top: 16px;
 }
 </style>

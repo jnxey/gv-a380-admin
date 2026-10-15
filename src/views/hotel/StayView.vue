@@ -1,18 +1,18 @@
 <template>
   <el-card>
-    <el-table :data="orderList" border>
+    <el-table :data="orderList" stripe>
       <el-table-column prop="orderNo" label="订单号" min-width="180" />
-      <el-table-column prop="memberName" label="会员" />
-      <el-table-column prop="mobile" label="手机号" />
-      <el-table-column prop="typeName" label="房型" />
-      <el-table-column prop="roomNo" label="房号" />
-      <el-table-column prop="checkInDate" label="入住" />
-      <el-table-column prop="checkOutDate" label="离店" />
-      <el-table-column prop="amount" label="房费" />
-      <el-table-column label="订单状态">
+      <el-table-column prop="memberName" label="会员" min-width="120" />
+      <el-table-column prop="mobile" label="手机号" min-width="140" />
+      <el-table-column prop="typeName" label="房型" min-width="120" />
+      <el-table-column prop="roomNo" label="房号" min-width="100" />
+      <el-table-column prop="checkInDate" label="入住" min-width="120" />
+      <el-table-column prop="checkOutDate" label="离店" min-width="120" />
+      <el-table-column prop="amount" label="房费" min-width="100" />
+      <el-table-column label="订单状态" min-width="120">
         <template #default="scope">{{ statusLabel(scope.row.orderStatus) }}</template>
       </el-table-column>
-      <el-table-column label="入住状态">
+      <el-table-column label="入住状态" min-width="120">
         <template #default="scope">{{ statusLabel(scope.row.stayStatus) }}</template>
       </el-table-column>
       <el-table-column label="操作" min-width="240">
@@ -24,7 +24,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination class="pager" layout="total, prev, pager, next" :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
+    <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="checkInVisible" title="办理入住" width="420px">
       <el-select v-model="selectedRoomId" placeholder="选择空闲房间" style="width: 100%">
         <el-option v-for="room in idleRoomList" :key="room.id" :label="room.roomNo" :value="room.id" />
@@ -47,6 +47,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import ListPager from '../../components/ListPager.vue';
 import { HotelOrderStatus, HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../utils/constants';
 import { useSessionStore } from '../../stores/session';
 import http from '../../utils/request';
@@ -180,8 +181,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.pager {
-  margin-top: 16px;
-}
-</style>

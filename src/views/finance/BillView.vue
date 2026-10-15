@@ -1,44 +1,36 @@
 <template>
   <el-card>
-    <el-form inline>
+    <QueryBar @search="searchBills" @reset="resetQuery">
       <el-form-item label="流水类型">
-        <el-select v-model="bizType" clearable placeholder="全部" style="width: 180px">
+        <el-select v-model="bizType" class="query-keyword" clearable placeholder="全部">
           <el-option v-for="item in bizTypeOptions" :key="item" :label="statusLabel(item)" :value="item" />
         </el-select>
       </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="loadBills">查询</el-button>
-      </el-form-item>
-    </el-form>
-    <el-table :data="billList" border>
+    </QueryBar>
+    <el-table :data="billList" stripe>
       <el-table-column prop="billNo" label="账单号" min-width="180" />
-      <el-table-column prop="memberId" label="会员ID" />
-      <el-table-column label="类型">
+      <el-table-column prop="memberId" label="会员ID" min-width="120" />
+      <el-table-column label="类型" min-width="120">
         <template #default="scope">{{ statusLabel(scope.row.bizType) }}</template>
       </el-table-column>
-      <el-table-column label="方向">
+      <el-table-column label="方向" min-width="100">
         <template #default="scope">{{ statusLabel(scope.row.direction) }}</template>
       </el-table-column>
-      <el-table-column prop="amount" label="金额" />
-      <el-table-column prop="balanceBefore" label="变动前" />
-      <el-table-column prop="balanceAfter" label="变动后" />
+      <el-table-column prop="amount" label="金额" min-width="120" />
+      <el-table-column prop="balanceBefore" label="变动前" min-width="120" />
+      <el-table-column prop="balanceAfter" label="变动后" min-width="120" />
       <el-table-column prop="bizOrderNo" label="业务单号" min-width="160" />
-      <el-table-column prop="remark" label="备注" />
+      <el-table-column prop="remark" label="备注" min-width="160" />
       <el-table-column prop="createdAt" label="时间" min-width="160" />
     </el-table>
-    <el-pagination
-      class="pager"
-      layout="total, prev, pager, next"
-      :total="total"
-      :current-page="page"
-      :page-size="pageSize"
-      @current-change="onPageChange"
-    />
+    <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import ListPager from '../../components/ListPager.vue';
+import QueryBar from '../../components/QueryBar.vue';
 import { FinanceBizType, PageSetting, statusLabel } from '../../utils/constants';
 import http from '../../utils/request';
 
@@ -74,6 +66,23 @@ async function loadBills(): Promise<void> {
 }
 
 /**
+ * 从第一页重新查询。
+ */
+function searchBills(): void {
+  page.value = PageSetting.DEFAULT_PAGE;
+  void loadBills();
+}
+
+/**
+ * 清空流水类型并回到第一页。
+ */
+function resetQuery(): void {
+  bizType.value = '';
+  page.value = PageSetting.DEFAULT_PAGE;
+  void loadBills();
+}
+
+/**
  * 翻页。
  */
 function onPageChange(nextPage: number): void {
@@ -86,8 +95,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.pager {
-  margin-top: 16px;
-}
-</style>

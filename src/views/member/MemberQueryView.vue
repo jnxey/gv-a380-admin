@@ -1,6 +1,6 @@
 <template>
   <el-card>
-    <el-form class="query-bar" inline @submit.prevent="searchMembers">
+    <QueryBar @search="searchMembers" @reset="resetQuery">
       <el-form-item label="关键字">
         <el-input v-model="keyword" class="query-keyword" placeholder="手机号 / 会员号 / 姓名" clearable>
           <template #prefix>
@@ -8,11 +8,7 @@
           </template>
         </el-input>
       </el-form-item>
-      <el-form-item class="query-actions">
-        <el-button type="primary" @click="searchMembers">查询</el-button>
-        <el-button @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
+    </QueryBar>
     <el-table :data="memberList" stripe>
       <el-table-column prop="memberNo" label="会员号"  min-width="160" show-overflow-tooltip />
       <el-table-column prop="memberName" label="姓名" min-width="120" show-overflow-tooltip />
@@ -27,23 +23,15 @@
         </template>
       </el-table-column>
     </el-table>
-    <el-pagination
-      class="pager"
-      layout="total, prev, pager, next"
-      background
-      :total="total"
-      :current-page="page"
-      :page-size="pageSize"
-      :page-sizes="pageSizeOptions"
-      @current-change="onPageChange"
-      @size-change="onPageSizeChange"
-    />
+    <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Search } from '@element-plus/icons-vue';
+import ListPager from '../../components/ListPager.vue';
+import QueryBar from '../../components/QueryBar.vue';
 import { PageSetting, RecordStatus, statusLabel } from '../../utils/constants';
 import http from '../../utils/request';
 
@@ -56,7 +44,6 @@ interface MemberRow {
   status: string;
 }
 
-const pageSizeOptions = [PageSetting.DEFAULT_PAGE_SIZE, 20, 50];
 const keyword = ref('');
 const memberList = ref<MemberRow[]>([]);
 const total = ref(0);
@@ -99,37 +86,8 @@ function onPageChange(nextPage: number): void {
   void loadMembers();
 }
 
-/**
- * 修改每页条数后回到第一页。
- */
-function onPageSizeChange(nextPageSize: number): void {
-  pageSize.value = nextPageSize;
-  page.value = PageSetting.DEFAULT_PAGE;
-  void loadMembers();
-}
-
 onMounted(() => {
   void loadMembers();
 });
 </script>
 
-<style scoped>
-.query-bar {
-  margin-bottom: 16px;
-  padding: 16px 16px 0;
-  background: #f5f7fa;
-  border-radius: 8px;
-}
-
-.query-keyword {
-  width: 280px;
-}
-
-.query-actions :deep(.el-form-item__content) {
-  flex-wrap: nowrap;
-}
-
-.pager {
-  margin-top: 16px;
-}
-</style>
