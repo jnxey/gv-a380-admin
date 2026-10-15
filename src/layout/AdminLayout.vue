@@ -279,7 +279,7 @@ onBeforeUnmount(() => {
 }
 
 .admin-menu-toggle {
-  height: 40px;
+  height: 45px;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;

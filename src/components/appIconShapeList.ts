@@ -112,8 +112,14 @@ export const menuIconShapeListByName: Record<string, MenuIconShape[]> = {
     { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 8, centerY: 15, radius: 2.2 },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M10.2 15H18l1.6-1.6M15.2 15v2.2' },
   ],
-  [MenuIconName.MENU_EXPAND]: [{ shapeKind: MenuIconShapeKind.PATH, pathData: 'm9 6 6 6-6 6' }],
-  [MenuIconName.MENU_COLLAPSE]: [{ shapeKind: MenuIconShapeKind.PATH, pathData: 'm15 6-6 6 6 6' }],
+  [MenuIconName.MENU_EXPAND]: [
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'm5 6 6 6-6 6' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'm13 6 6 6-6 6' },
+  ],
+  [MenuIconName.MENU_COLLAPSE]: [
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'm11 6-6 6 6 6' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'm19 6-6 6 6 6' },
+  ],
   [MenuIconName.MENU_HAMBURGER]: [{ shapeKind: MenuIconShapeKind.PATH, pathData: 'M4 7h16M4 12h16M4 17h16' }],
   [MenuIconName.LOGIN_ACCOUNT]: [
     { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 12, centerY: 8, radius: 3.2 },
