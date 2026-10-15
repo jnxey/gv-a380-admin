@@ -4,7 +4,9 @@
       <el-form-item label="核销码">
         <el-input v-model="verifyCode" clearable />
       </el-form-item>
-      <el-button type="primary" @click="loadOrders">查询</el-button>
+      <el-form-item>
+        <el-button type="primary" @click="loadOrders">查询</el-button>
+      </el-form-item>
     </el-form>
     <el-table :data="orderList" border>
       <el-table-column prop="orderNo" label="订单号" min-width="180" />

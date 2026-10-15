@@ -6,7 +6,9 @@
           <el-option v-for="item in bizTypeOptions" :key="item" :label="statusLabel(item)" :value="item" />
         </el-select>
       </el-form-item>
-      <el-button type="primary" @click="loadBills">查询</el-button>
+      <el-form-item>
+        <el-button type="primary" @click="loadBills">查询</el-button>
+      </el-form-item>
     </el-form>
     <el-table :data="billList" border>
       <el-table-column prop="billNo" label="账单号" min-width="180" />

@@ -1,6 +1,6 @@
 <template>
   <el-dropdown v-if="showSwitcher" trigger="hover" @command="onShopCommand">
-    <el-button type="default" text>{{ currentShopLabel }}</el-button>
+    <el-button class="shop-switcher" type="default" text>{{ currentShopLabel }}</el-button>
     <template #dropdown>
       <el-dropdown-menu>
         <el-dropdown-item
@@ -98,6 +98,11 @@ function onShopChange(shopId: string): void {
 </script>
 
 <style>
+.shop-switcher {
+  height: 32px;
+  padding: 0 8px;
+}
+
 .el-dropdown-menu__item.is-current-shop,
 .el-dropdown-menu__item.is-current-shop:hover,
 .el-dropdown-menu__item.is-current-shop:focus {

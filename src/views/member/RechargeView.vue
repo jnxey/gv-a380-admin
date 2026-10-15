@@ -4,7 +4,9 @@
       <el-form-item label="会员">
         <el-input v-model="keyword" placeholder="手机号 / 会员号 / 姓名" />
       </el-form-item>
-      <el-button @click="searchMember">查找</el-button>
+      <el-form-item>
+        <el-button @click="searchMember">查找</el-button>
+      </el-form-item>
     </el-form>
     <el-table :data="memberList" border highlight-current-row @current-change="onSelectMember">
       <el-table-column prop="memberNo" label="会员号" />
@@ -19,7 +21,9 @@
       <el-form-item label="备注">
         <el-input v-model="remark" />
       </el-form-item>
-      <el-button type="primary" :disabled="selectedMemberId === ''" @click="submitRecharge">确认充值</el-button>
+      <el-form-item>
+        <el-button type="primary" :disabled="selectedMemberId === ''" @click="submitRecharge">确认充值</el-button>
+      </el-form-item>
     </el-form>
   </el-card>
 </template>

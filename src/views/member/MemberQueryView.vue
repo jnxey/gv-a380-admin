@@ -4,7 +4,9 @@
       <el-form-item label="关键字">
         <el-input v-model="keyword" placeholder="手机号 / 会员号 / 姓名" clearable />
       </el-form-item>
-      <el-button type="primary" @click="loadMembers">查询</el-button>
+      <el-form-item>
+        <el-button type="primary" @click="loadMembers">查询</el-button>
+      </el-form-item>
     </el-form>
     <el-table :data="memberList" border>
       <el-table-column prop="memberNo" label="会员号" />
