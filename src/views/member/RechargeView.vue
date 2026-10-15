@@ -1,44 +1,64 @@
 <template>
-  <el-card>
-    <QueryBar @search="searchMember" @reset="resetQuery">
-      <el-form-item>
-        <el-input v-model="keyword" v-place class="query-keyword" placeholder="手机号 / 会员号 / 姓名" clearable />
-      </el-form-item>
-    </QueryBar>
-    <div class="record-list record-list--wide-table">
-      <div v-if="isEmpty(memberList)" class="record-empty">暂无数据</div>
-      <RecordCard
-        v-for="memberRow in memberList"
-        :key="memberRow.memberId"
-        :selected="selectedMemberId === memberRow.memberId"
-        @click="onSelectMember(memberRow)"
-      >
-        <RecordField label="会员号">{{ memberRow.memberNo }}</RecordField>
-        <RecordField label="姓名">{{ memberRow.memberName }}</RecordField>
-        <RecordField label="手机号">{{ memberRow.mobile }}</RecordField>
-        <RecordField label="当前余额">{{ memberRow.balance }}</RecordField>
-      </RecordCard>
+  <el-card class="recharge-page">
+    <div class="recharge-panel">
+      <template v-if="isEmpty(selectedMember)">
+        <h2 class="recharge-title">查找会员</h2>
+        <div class="recharge-search">
+          <el-input
+            v-model="keyword"
+            class="recharge-search-input"
+            placeholder="手机号 / 会员号 / 姓名"
+            clearable
+            @keyup.enter="searchMember"
+          />
+          <el-button type="primary" class="recharge-search-button" aria-label="查找" @click="searchMember">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m13 6 6 6-6 6" />
+            </svg>
+          </el-button>
+        </div>
+        <div v-if="memberMissed === true" class="recharge-empty">没有找到会员</div>
+      </template>
+      <template v-else>
+        <el-button class="recharge-back" @click="backToSearch">返回</el-button>
+        <div class="member-summary">
+          <div class="member-card-name">{{ selectedMember.memberName }}</div>
+          <div class="member-card-meta">
+            <span v-if="isEmpty(selectedMember.mobile) === false">{{ selectedMember.mobile }}</span>
+            <span
+              v-if="isEmpty(selectedMember.mobile) === false && isEmpty(selectedMember.memberNo) === false"
+              class="member-card-separator"
+            >·</span>
+            <span v-if="isEmpty(selectedMember.memberNo) === false">{{ selectedMember.memberNo }}</span>
+          </div>
+          <div class="member-balance-label">余额</div>
+          <div class="member-balance-value">{{ selectedMember.balance }}</div>
+        </div>
+        <div class="recharge-amount-label">充值金额</div>
+        <el-input v-model="amount" class="recharge-amount" placeholder="请输入金额" />
+        <div class="recharge-amount-options">
+          <button
+            v-for="amountOption in rechargeAmountOptionList"
+            :key="amountOption"
+            type="button"
+            class="recharge-amount-option"
+            :class="{ 'is-active': amount === amountOption }"
+            @click="fillAmount(amountOption)"
+          >
+            {{ amountOption }}
+          </button>
+        </div>
+        <el-input v-model="remark" class="recharge-remark" placeholder="备注（选填）" />
+        <el-button type="primary" class="recharge-submit" :disabled="isEmpty(amount)" @click="submitRecharge">确认充值</el-button>
+      </template>
     </div>
-    <el-form class="recharge-form" label-width="80px">
-      <el-form-item label="充值金额">
-        <el-input v-model="amount" />
-      </el-form-item>
-      <el-form-item label="备注">
-        <el-input v-model="remark" />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" :disabled="selectedMemberId === ''" @click="submitRecharge">确认充值</el-button>
-      </el-form-item>
-    </el-form>
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import QueryBar from '../../components/QueryBar.vue';
-import RecordCard from '../../components/RecordCard.vue';
-import RecordField from '../../components/RecordField.vue';
 import { PageSetting } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import http from '../../utils/request';
@@ -51,57 +71,252 @@ interface MemberRow {
   balance: string;
 }
 
+const rechargeAmountOptionList = ['100', '200', '500', '1000'];
+
 const keyword = ref('');
-const memberList = ref<MemberRow[]>([]);
-const selectedMemberId = ref('');
+const memberMissed = ref(false);
+const selectedMember = ref<MemberRow | null>(null);
 const amount = ref('');
 const remark = ref('');
 
 /**
- * 清空关键字并重新查找。
+ * 按关键字查出列表，只留下会员号、手机号或姓名全等的会员。
  */
-function resetQuery(): void {
-  keyword.value = '';
-  void searchMember();
+async function findExactMemberList(cleanedKeyword: string): Promise<MemberRow[]> {
+  const pageResult = (await http.get('/admin/members', {
+    params: { keyword: cleanedKeyword, page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.DEFAULT_PAGE_SIZE },
+  })) as { list: MemberRow[] };
+  return pageResult.list.filter((memberRow) => {
+    return (
+      memberRow.memberNo === cleanedKeyword ||
+      memberRow.mobile === cleanedKeyword ||
+      memberRow.memberName === cleanedKeyword
+    );
+  });
 }
 
 /**
- * 按关键字查找可充值的会员。
+ * 全等命中唯一会员时进入充值，否则留在查找。
  */
 async function searchMember(): Promise<void> {
-  const pageResult = (await http.get('/admin/members', {
-    params: { keyword: keyword.value, page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.DEFAULT_PAGE_SIZE },
-  })) as { list: MemberRow[] };
-  memberList.value = pageResult.list;
-  selectedMemberId.value = '';
+  const cleanedKeyword = keyword.value.trim();
+  if (isEmpty(cleanedKeyword)) {
+    return;
+  }
+  const exactMemberList = await findExactMemberList(cleanedKeyword);
+  if (exactMemberList.length !== 1) {
+    memberMissed.value = true;
+    selectedMember.value = null;
+    return;
+  }
+  memberMissed.value = false;
+  selectedMember.value = exactMemberList[0];
 }
 
 /**
- * 选中要充值的会员。
+ * 返回查找，并清空金额和备注。
  */
-function onSelectMember(memberRow: MemberRow | undefined): void {
-  selectedMemberId.value = isEmpty(memberRow) ? '' : memberRow.memberId;
+function backToSearch(): void {
+  selectedMember.value = null;
+  memberMissed.value = false;
+  amount.value = '';
+  remark.value = '';
 }
 
 /**
- * 按当前门店给会员入账。
+ * 把快捷金额填进输入框。
+ */
+function fillAmount(amountOption: string): void {
+  amount.value = amountOption;
+}
+
+/**
+ * 按当前门店给会员入账，并刷新这位会员的余额。
  */
 async function submitRecharge(): Promise<void> {
+  if (isEmpty(selectedMember.value) || isEmpty(amount.value)) {
+    return;
+  }
+  const memberId = selectedMember.value.memberId;
   await http.post('/admin/members/recharge', {
-    memberId: selectedMemberId.value,
+    memberId,
     amount: amount.value,
     remark: remark.value,
   });
   ElMessage.success('充值成功');
   amount.value = '';
   remark.value = '';
-  await searchMember();
+  const cleanedKeyword = keyword.value.trim();
+  if (isEmpty(cleanedKeyword)) {
+    return;
+  }
+  const exactMemberList = await findExactMemberList(cleanedKeyword);
+  const refreshedMember = exactMemberList.find((memberRow) => memberRow.memberId === memberId);
+  if (!isEmpty(refreshedMember)) {
+    selectedMember.value = refreshedMember;
+  }
 }
 </script>
 
 <style scoped>
-.recharge-form {
+.recharge-page {
+  height: calc(100vh - 56px - 24px);
+  box-sizing: border-box;
+  overflow: auto;
+}
+
+.recharge-panel {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.recharge-title {
+  margin: 8px 0 20px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #1c2434;
+}
+
+.recharge-search {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.recharge-search-input :deep(.el-input__wrapper),
+.recharge-remark :deep(.el-input__wrapper),
+.recharge-amount :deep(.el-input__wrapper) {
+  border-radius: 12px;
+}
+
+.recharge-search-input :deep(.el-input__wrapper) {
+  min-height: 44px;
+}
+
+.recharge-search-input :deep(.el-input__inner) {
+  height: 44px;
+  font-size: 16px;
+}
+
+.recharge-search-button {
+  width: 100%;
+  height: 44px;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.recharge-search-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.recharge-empty {
   margin-top: 24px;
-  max-width: 480px;
+  text-align: center;
+  color: #667085;
+}
+
+.recharge-back {
+  width: 100%;
+  height: 44px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+}
+
+.member-summary {
+  padding: 16px;
+  border: 1px solid #e6e8ec;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.member-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: #1c2434;
+}
+
+.member-card-meta {
+  font-size: 13px;
+  line-height: 20px;
+  color: #667085;
+}
+
+.member-card-separator {
+  margin: 0 8px;
+  color: #d0d5dd;
+}
+
+.member-balance-label {
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 20px;
+  color: #667085;
+}
+
+.member-balance-value {
+  margin-top: 4px;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 40px;
+  color: #1c2434;
+}
+
+.recharge-amount-label {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  color: #667085;
+}
+
+.recharge-amount :deep(.el-input__inner) {
+  height: 48px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.recharge-amount-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.recharge-amount-option {
+  min-width: 72px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e6e8ec;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1c2434;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.recharge-amount-option.is-active {
+  border-color: #2563eb;
+  background: #e8f0fe;
+  color: #2563eb;
+}
+
+.recharge-remark {
+  margin-top: 16px;
+}
+
+.recharge-submit {
+  width: 100%;
+  height: 44px;
+  margin-top: 20px;
+  border-radius: 12px;
 }
 </style>

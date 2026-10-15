@@ -89,7 +89,7 @@ async function onSubmit(): Promise<void> {
   try {
     const loginResult = (await http.post('/admin/auth/login', loginForm)) as { accessToken: string };
     sessionStore.saveAccessToken(loginResult.accessToken);
-    await router.push('/');
+    await router.replace('/');
   } finally {
     submitting.value = false;
   }
