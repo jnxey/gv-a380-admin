@@ -97,6 +97,38 @@ export const AccountCenter = {
   ROUTE_NAME: 'account-center',
 } as const;
 
+export const MenuIconName = {
+  MEMBER: 'MEMBER',
+  MEMBER_QUERY: 'MEMBER_QUERY',
+  MEMBER_RECHARGE: 'MEMBER_RECHARGE',
+  FINANCE: 'FINANCE',
+  FINANCE_BILL: 'FINANCE_BILL',
+  KTV: 'KTV',
+  KTV_SHOP: 'KTV_SHOP',
+  KTV_ROOM: 'KTV_ROOM',
+  KTV_VERIFY: 'KTV_VERIFY',
+  HOTEL: 'HOTEL',
+  HOTEL_ROOM_TYPE: 'HOTEL_ROOM_TYPE',
+  HOTEL_ROOM: 'HOTEL_ROOM',
+  HOTEL_STAY: 'HOTEL_STAY',
+} as const;
+
+export const menuIconNameByPath: Record<string, string> = {
+  '/member': MenuIconName.MEMBER,
+  '/member/query': MenuIconName.MEMBER_QUERY,
+  '/member/recharge': MenuIconName.MEMBER_RECHARGE,
+  '/finance': MenuIconName.FINANCE,
+  '/finance/bill': MenuIconName.FINANCE_BILL,
+  '/ktv': MenuIconName.KTV,
+  '/ktv/shop': MenuIconName.KTV_SHOP,
+  '/ktv/room': MenuIconName.KTV_ROOM,
+  '/ktv/verify': MenuIconName.KTV_VERIFY,
+  '/hotel': MenuIconName.HOTEL,
+  '/hotel/room-type': MenuIconName.HOTEL_ROOM_TYPE,
+  '/hotel/room': MenuIconName.HOTEL_ROOM,
+  '/hotel/stay': MenuIconName.HOTEL_STAY,
+};
+
 export const statusLabelMap: Record<string, string> = {
   ENABLED: '启用',
   DISABLED: '停用',
