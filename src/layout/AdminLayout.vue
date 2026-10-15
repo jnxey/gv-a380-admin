@@ -9,7 +9,13 @@
         </span>
       </div>
       <div class="admin-menu">
-        <el-menu :default-active="route.path" :default-openeds="openedMenuPathList" :collapse="menuCollapsed" router>
+        <el-menu
+          :default-active="route.path"
+          :default-openeds="openedMenuPathList"
+          :collapse="menuCollapsed"
+          :collapse-transition="false"
+          router
+        >
           <el-sub-menu v-for="menu in sessionStore.menuTree" :key="menu.menuId" :index="menu.menuPath">
             <template #title>
               <MenuIcon :icon-name="resolveMenuIconName(menu.menuPath)" />
@@ -251,6 +257,9 @@ async function onLogout(): Promise<void> {
 .admin-aside.is-collapsed :deep(.el-menu-item),
 .admin-aside.is-collapsed :deep(.el-sub-menu__title) {
   margin: 2px 8px;
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: center;
 }
 
 .admin-aside :deep(.el-menu) {
