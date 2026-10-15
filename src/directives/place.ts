@@ -165,7 +165,7 @@ function syncPlaceholder(
 
   // 步骤 4：有值时把提示浮到框顶。
   resetContentOpacity(content);
-  if (!isEmpty(placeholderElement) && placeholderElement.classList.contains(placeholderRemoveClassName) !== true) {
+  if (!isEmpty(placeholderElement) && !placeholderElement.classList.contains(placeholderRemoveClassName)) {
     return;
   }
   // 步骤 5：上次回落没清干净时先删掉，再重新浮上来。

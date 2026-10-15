@@ -63,6 +63,20 @@ label {
 
 .el-dialog {
   --el-dialog-border-radius: 12px;
+  --el-message-close-size: 20px;
+}
+
+.el-dialog .el-form-item {
+  --el-form-item-margin-bottom: 14px;
+}
+
+.el-dialog .el-form-item__label {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.el-dialog .el-form-item__error {
+  font-size: 12px;
 }
 
 .el-dialog__footer .el-button {

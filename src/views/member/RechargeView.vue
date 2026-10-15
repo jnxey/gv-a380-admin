@@ -182,7 +182,7 @@ async function submitRecharge(): Promise<void> {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 12px;
+  gap: 16px;
 }
 
 .recharge-search-input :deep(.el-input__wrapper),

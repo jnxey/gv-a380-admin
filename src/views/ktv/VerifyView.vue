@@ -37,8 +37,8 @@
         <el-form-item label="备注"><el-input v-model="consumeRemark" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="consumeVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitConsume">确认扣款</el-button>
+        <el-button size="large" @click="consumeVisible = false">取消</el-button>
+        <el-button size="large" type="primary" @click="submitConsume">确认扣款</el-button>
       </template>
     </el-dialog>
   </el-card>

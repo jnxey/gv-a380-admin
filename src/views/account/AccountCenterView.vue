@@ -23,8 +23,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="passwordDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="passwordSaving" @click="submitPassword">保存</el-button>
+        <el-button size="large" @click="passwordDialogVisible = false">取消</el-button>
+        <el-button size="large" type="primary" :loading="passwordSaving" @click="submitPassword">保存</el-button>
       </template>
     </el-dialog>
   </el-card>

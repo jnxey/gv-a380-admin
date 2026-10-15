@@ -27,15 +27,15 @@
         <el-option v-for="room in idleRoomList" :key="room.id" :label="room.roomNo" :value="room.id" />
       </el-select>
       <template #footer>
-        <el-button @click="checkInVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitCheckIn">确认入住</el-button>
+        <el-button size="large" @click="checkInVisible = false">取消</el-button>
+        <el-button size="large" type="primary" @click="submitCheckIn">确认入住</el-button>
       </template>
     </el-dialog>
     <el-dialog v-model="extendVisible" title="续住" width="420px">
       <el-date-picker v-model="extendDate" type="date" value-format="YYYY-MM-DD" placeholder="新的离店日期" />
       <template #footer>
-        <el-button @click="extendVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitExtend">确认续住</el-button>
+        <el-button size="large" @click="extendVisible = false">取消</el-button>
+        <el-button size="large" type="primary" @click="submitExtend">确认续住</el-button>
       </template>
     </el-dialog>
   </el-card>

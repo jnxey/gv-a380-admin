@@ -36,8 +36,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveRoomType">保存</el-button>
+        <el-button size="large" @click="dialogVisible = false">取消</el-button>
+        <el-button size="large" type="primary" @click="saveRoomType">保存</el-button>
       </template>
     </el-dialog>
   </el-card>
