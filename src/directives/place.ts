@@ -23,6 +23,17 @@ interface PlaceFieldProps {
   placeholder?: unknown;
 }
 
+/** 指令所在组件实例上能读到的值和提示。 */
+interface PlaceComponentContext {
+  props?: PlaceFieldProps;
+  $props?: PlaceFieldProps;
+}
+
+/** Vue 3.5 的公开 VNode 类型不再声明 ctx，运行时仍是渲染这个节点的组件实例。 */
+interface PlaceVNode extends VNode {
+  ctx: PlaceComponentContext | null;
+}
+
 const pendingRemoveTaskMap = new WeakMap<HTMLElement, PlaceholderRemoveTask>();
 
 /**
@@ -179,7 +190,7 @@ function syncPlaceholder(
  * 读取控件上的值和提示文字。
  */
 function readFieldProps(vnode: VNode): PlaceFieldProps {
-  const context = vnode.ctx as { props?: PlaceFieldProps; $props?: PlaceFieldProps } | null;
+  const context = (vnode as PlaceVNode).ctx;
   if (isEmpty(context)) {
     return {};
   }

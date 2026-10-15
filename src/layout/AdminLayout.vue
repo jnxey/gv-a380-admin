@@ -333,6 +333,11 @@ onBeforeUnmount(() => {
   color: var(--admin-text);
 }
 
+.admin-aside :deep(.admin-menu > .el-menu > .el-menu-item),
+.admin-aside :deep(.el-sub-menu__title) {
+  font-weight: 600;
+}
+
 .admin-aside :deep(.el-menu-item) {
   min-width: 0;
 }
@@ -345,7 +350,6 @@ onBeforeUnmount(() => {
 .admin-aside :deep(.el-menu-item.is-active) {
   background: var(--admin-primary-soft);
   color: var(--admin-primary);
-  font-weight: 600;
 }
 
 .admin-aside :deep(.el-sub-menu .el-menu) {
