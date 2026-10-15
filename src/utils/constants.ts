@@ -1,0 +1,132 @@
+/**
+ * 与后端保持一致的常量。
+ */
+export const ResponseCode = {
+  SUCCESS: 0,
+} as const;
+
+export const HttpStatusCode = {
+  UNAUTHORIZED: 401,
+} as const;
+
+export const ModuleCode = {
+  CORE: 'CORE',
+  KTV: 'KTV',
+  HOTEL: 'HOTEL',
+} as const;
+
+export const ShopType = {
+  KTV: 'KTV',
+  HOTEL: 'HOTEL',
+} as const;
+
+export const PermissionCode = {
+  KTV_SHOP_SAVE: 'ktv:shop:save',
+  KTV_ROOM_SAVE: 'ktv:room:save',
+  KTV_ORDER_VERIFY: 'ktv:order:verify',
+  KTV_ORDER_CONSUME: 'ktv:order:consume',
+  KTV_ORDER_CANCEL: 'ktv:order:cancel',
+  HOTEL_ROOM_TYPE_SAVE: 'hotel:room-type:save',
+  HOTEL_ROOM_SAVE: 'hotel:room:save',
+  HOTEL_STAY_CHECK_IN: 'hotel:stay:check-in',
+  HOTEL_STAY_EXTEND: 'hotel:stay:extend',
+  HOTEL_STAY_CHECK_OUT: 'hotel:stay:check-out',
+  HOTEL_ORDER_CANCEL: 'hotel:order:cancel',
+  MEMBER_RECHARGE: 'member:recharge',
+} as const;
+
+export const RecordStatus = {
+  ENABLED: 'ENABLED',
+  DISABLED: 'DISABLED',
+} as const;
+
+export const KtvRoomType = {
+  SMALL: 'SMALL',
+  MEDIUM: 'MEDIUM',
+  LARGE: 'LARGE',
+} as const;
+
+export const KtvOrderStatus = {
+  PENDING_VERIFY: 'PENDING_VERIFY',
+  VERIFIED: 'VERIFIED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
+} as const;
+
+export const HotelOrderStatus = {
+  BOOKED: 'BOOKED',
+  CHECKED_IN: 'CHECKED_IN',
+  CHECKED_OUT: 'CHECKED_OUT',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export const HotelRoomStatus = {
+  IDLE: 'IDLE',
+  OCCUPIED: 'OCCUPIED',
+  MAINTENANCE: 'MAINTENANCE',
+} as const;
+
+export const HotelBedType = {
+  LARGE: 'LARGE',
+  TWIN: 'TWIN',
+} as const;
+
+export const FinanceBizType = {
+  RECHARGE: 'RECHARGE',
+  KTV_BOOKING: 'KTV_BOOKING',
+  KTV_IN_STORE: 'KTV_IN_STORE',
+  HOTEL_ROOM_FEE: 'HOTEL_ROOM_FEE',
+  REFUND: 'REFUND',
+} as const;
+
+export const PageSetting = {
+  DEFAULT_PAGE: 1,
+  DEFAULT_PAGE_SIZE: 10,
+  ROOM_LOOKUP_PAGE_SIZE: 100,
+} as const;
+
+export const StorageKey = {
+  ACCESS_TOKEN: 'gv_a380_admin_access_token',
+  CURRENT_SHOP_ID: 'gv_a380_admin_current_shop_id',
+} as const;
+
+export const statusLabelMap: Record<string, string> = {
+  ENABLED: '启用',
+  DISABLED: '停用',
+  PENDING_VERIFY: '待核销',
+  VERIFIED: '已核销',
+  COMPLETED: '已完成',
+  CANCELLED: '已取消',
+  REFUNDED: '已退款',
+  BOOKED: '已预订',
+  CHECKED_IN: '已入住',
+  CHECKED_OUT: '已退房',
+  IDLE: '空闲',
+  OCCUPIED: '在住',
+  MAINTENANCE: '维修',
+  SMALL: '小包',
+  MEDIUM: '中包',
+  LARGE: '大床/大包',
+  TWIN: '双床',
+  RECHARGE: '充值',
+  KTV_BOOKING: 'KTV预订',
+  KTV_IN_STORE: 'KTV店内消费',
+  HOTEL_ROOM_FEE: '酒店房费',
+  REFUND: '退款',
+  IN: '收入',
+  OUT: '支出',
+  KTV: 'KTV',
+  HOTEL: '酒店',
+};
+
+/**
+ * 把状态编码转成中文。未知编码原样返回，避免页面空白。
+ */
+export function statusLabel(statusCode: string): string {
+  const label = statusLabelMap[statusCode];
+  if (label === undefined) {
+    return statusCode;
+  }
+  return label;
+}
