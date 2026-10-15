@@ -20,6 +20,15 @@ body {
   width: 100%;
 }
 
+.el-table {
+  --el-table-header-text-color: #303133;
+  --el-table-header-bg-color: #f0f2f5;
+}
+
+.el-table th.el-table__cell {
+  font-weight: 600;
+}
+
 .el-table .el-button.is-link {
   vertical-align: middle;
 }
