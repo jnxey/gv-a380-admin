@@ -19,10 +19,8 @@
         :data="assignTree"
         node-key="nodeKey"
         show-checkbox
-        check-strictly
         default-expand-all
         :props="assignTreeProps"
-        @check="onAssignTreeCheck"
       />
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -76,18 +74,10 @@ interface AssignTreeNode {
   children: AssignTreeNode[];
 }
 
-interface AssignTreeStoreNode {
-  checked: boolean;
-  level: number;
-  data: AssignTreeNode;
-  parent: AssignTreeStoreNode | null;
-  childNodes: AssignTreeStoreNode[];
-}
-
 interface AssignTreeExpose {
   setCheckedKeys: (nodeKeyList: string[], leafOnly?: boolean) => void;
   getCheckedKeys: (leafOnly?: boolean) => string[];
-  getNode: (nodeData: AssignTreeNode) => AssignTreeStoreNode | null;
+  getHalfCheckedKeys: () => string[];
 }
 
 const assignTreeProps = {
@@ -105,7 +95,6 @@ const editingRoleName = ref('');
 const permissionList = ref<PermissionOption[]>([]);
 const menuList = ref<MenuOption[]>([]);
 const assignTreeRef = ref<AssignTreeExpose>();
-const syncingAssignTree = ref(false);
 
 /**
  * 目录、页面和按钮权限组成的分配树。
@@ -173,7 +162,29 @@ function readNodeId(nodeKey: string): string {
 }
 
 /**
- * 打开分配弹窗，并勾上当前角色已有的菜单和权限。
+ * 收集没有子节点的键。回显时只勾这些，父级全选和半选由树自己算。
+ */
+function collectLeafNodeKeySet(nodeList: AssignTreeNode[], leafNodeKeySet: Set<string>): void {
+  nodeList.forEach((node) => {
+    if (isEmpty(node.children)) {
+      leafNodeKeySet.add(node.nodeKey);
+      return;
+    }
+    collectLeafNodeKeySet(node.children, leafNodeKeySet);
+  });
+}
+
+/**
+ * 从已保存的菜单和权限里只留下叶子节点。
+ */
+function keepLeafNodeKeyList(checkedNodeKeyList: string[]): string[] {
+  const leafNodeKeySet = new Set<string>();
+  collectLeafNodeKeySet(assignTree.value, leafNodeKeySet);
+  return checkedNodeKeyList.filter((nodeKey) => leafNodeKeySet.has(nodeKey));
+}
+
+/**
+ * 打开分配弹窗，并只勾上已保存的叶子节点。
  */
 async function openEdit(roleRow: RoleRow): Promise<void> {
   const roleDetail = (await http.get(`/admin/system/roles/${roleRow.roleId}`)) as RoleDetail;
@@ -181,83 +192,29 @@ async function openEdit(roleRow: RoleRow): Promise<void> {
   editingRoleName.value = roleDetail.roleName;
   permissionList.value = roleDetail.permissionList;
   menuList.value = roleDetail.menuList;
+  // 1. 接口里的菜单含全选和半选父级，回显时去掉，避免把没保存的子级勾上
   const checkedNodeKeyList = [
     ...roleDetail.menuIdList.map((menuId) => buildNodeKey(AssignTreeNodeKind.MENU, menuId)),
     ...roleDetail.permissionIdList.map((permissionId) => buildNodeKey(AssignTreeNodeKind.PERMISSION, permissionId)),
   ];
+  const leafNodeKeyList = keepLeafNodeKeyList(checkedNodeKeyList);
   dialogVisible.value = true;
   await nextTick();
-  assignTreeRef.value?.setCheckedKeys(checkedNodeKeyList, false);
+  assignTreeRef.value?.setCheckedKeys(leafNodeKeyList, false);
 }
 
 /**
- * 勾选只向上带父级。取消目录或页面时，取消它下面的节点。
- */
-function onAssignTreeCheck(nodeData: AssignTreeNode): void {
-  if (syncingAssignTree.value === true || isEmpty(assignTreeRef.value)) {
-    return;
-  }
-  const currentNode = assignTreeRef.value.getNode(nodeData);
-  if (isEmpty(currentNode)) {
-    return;
-  }
-  // 1. 先记下当前已经勾上的节点，再按这次操作补父级或去掉下级
-  const checkedNodeKeySet = new Set<string>();
-  assignTreeRef.value.getCheckedKeys(false).forEach((nodeKey) => {
-    const nodeKeyText = String(nodeKey);
-    if (!isEmpty(nodeKeyText)) {
-      checkedNodeKeySet.add(nodeKeyText);
-    }
-  });
-  if (currentNode.checked === true) {
-    collectAncestorMenuNodeKeys(currentNode, checkedNodeKeySet);
-  } else {
-    removeDescendantNodeKeys(currentNode, checkedNodeKeySet);
-  }
-  const checkedNodeKeyList = [...checkedNodeKeySet];
-  // 2. 等这次勾选落定后整组写回。严格勾选模式下，回调里单独改父节点不会刷新
-  syncingAssignTree.value = true;
-  nextTick(() => {
-    assignTreeRef.value?.setCheckedKeys(checkedNodeKeyList, false);
-    syncingAssignTree.value = false;
-  });
-}
-
-/**
- * 勾中权限或页面时，把它上面的菜单也放进勾选结果。
- */
-function collectAncestorMenuNodeKeys(currentNode: AssignTreeStoreNode, checkedNodeKeySet: Set<string>): void {
-  let parentNode = currentNode.parent;
-  while (!isEmpty(parentNode) && parentNode.level > 0) {
-    const parentNodeKey = parentNode.data.nodeKey;
-    if (!isEmpty(parentNodeKey) && readNodeKind(parentNodeKey) === AssignTreeNodeKind.MENU) {
-      checkedNodeKeySet.add(parentNodeKey);
-    }
-    parentNode = parentNode.parent;
-  }
-}
-
-/**
- * 取消目录或页面时，从勾选结果里拿掉它下面的页面和权限。
- */
-function removeDescendantNodeKeys(currentNode: AssignTreeStoreNode, checkedNodeKeySet: Set<string>): void {
-  currentNode.childNodes.forEach((childNode) => {
-    const childNodeKey = childNode.data.nodeKey;
-    if (!isEmpty(childNodeKey)) {
-      checkedNodeKeySet.delete(childNodeKey);
-    }
-    removeDescendantNodeKeys(childNode, checkedNodeKeySet);
-  });
-}
-
-/**
- * 保存权限和菜单。改完重新拉取当前登录人的菜单。
+ * 保存权限和菜单。全选和半选一起提交，改完重新拉取当前登录人的菜单。
  */
 async function saveRole(): Promise<void> {
   if (isEmpty(editingRoleId.value) || isEmpty(assignTreeRef.value)) {
     return;
   }
-  const checkedNodeKeyList = assignTreeRef.value.getCheckedKeys(false);
+  // 全选和半选都要提交。半选父级是菜单，只提交叶子的话页面和目录会丢
+  const checkedNodeKeyList = [
+    ...assignTreeRef.value.getCheckedKeys(false),
+    ...assignTreeRef.value.getHalfCheckedKeys(),
+  ];
   const menuIdList: string[] = [];
   const permissionIdList: string[] = [];
   checkedNodeKeyList.forEach((nodeKey) => {
