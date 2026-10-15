@@ -3,7 +3,12 @@
     <el-button type="default" text>{{ currentShopLabel }}</el-button>
     <template #dropdown>
       <el-dropdown-menu>
-        <el-dropdown-item v-for="shop in selectableShopList" :key="shop.shopId" :command="shop.shopId">
+        <el-dropdown-item
+          v-for="shop in selectableShopList"
+          :key="shop.shopId"
+          :command="shop.shopId"
+          :class="{ 'is-current-shop': shop.shopId === sessionStore.currentShopId }"
+        >
           {{ shopLabel(shop) }}
         </el-dropdown-item>
       </el-dropdown-menu>
@@ -91,3 +96,13 @@ function onShopChange(shopId: string): void {
   sessionStore.saveCurrentShopId(shopId);
 }
 </script>
+
+<style>
+.el-dropdown-menu__item.is-current-shop,
+.el-dropdown-menu__item.is-current-shop:hover,
+.el-dropdown-menu__item.is-current-shop:focus {
+  color: #2563eb;
+  background-color: #e8f0fe;
+  font-weight: 600;
+}
+</style>

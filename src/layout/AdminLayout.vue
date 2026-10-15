@@ -123,9 +123,11 @@ async function onLogout(): Promise<void> {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 64px;
+  height: 56px;
+  box-sizing: border-box;
   padding: 0 16px;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--admin-border);
 }
 
 .admin-brand-mark {
@@ -200,6 +202,7 @@ async function onLogout(): Promise<void> {
 
 .admin-header {
   height: 56px;
+  box-sizing: border-box;
   flex-shrink: 0;
   display: flex;
   align-items: center;
