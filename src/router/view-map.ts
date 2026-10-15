@@ -12,4 +12,6 @@ export const viewComponentMap: Record<string, () => Promise<unknown>> = {
   'hotel/room-type': () => import('../views/hotel/RoomTypeView.vue'),
   'hotel/room': () => import('../views/hotel/RoomView.vue'),
   'hotel/stay': () => import('../views/hotel/StayView.vue'),
+  'system/user': () => import('../views/system/UserView.vue'),
+  'system/role': () => import('../views/system/RoleView.vue'),
 };

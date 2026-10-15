@@ -33,6 +33,17 @@ export const PermissionCode = {
   HOTEL_STAY_CHECK_OUT: 'hotel:stay:check-out',
   HOTEL_ORDER_CANCEL: 'hotel:order:cancel',
   MEMBER_RECHARGE: 'member:recharge',
+  SYSTEM_USER_QUERY: 'system:user:query',
+  SYSTEM_USER_SAVE: 'system:user:save',
+  SYSTEM_ROLE_QUERY: 'system:role:query',
+  SYSTEM_ROLE_SAVE: 'system:role:save',
+} as const;
+
+/**
+ * 菜单根节点父级 ID，与后端一致。
+ */
+export const MenuRoot = {
+  PARENT_ID: '0',
 } as const;
 
 export const RecordStatus = {
@@ -111,6 +122,9 @@ export const MenuIconName = {
   HOTEL_ROOM_TYPE: 'HOTEL_ROOM_TYPE',
   HOTEL_ROOM: 'HOTEL_ROOM',
   HOTEL_STAY: 'HOTEL_STAY',
+  SYSTEM: 'SYSTEM',
+  SYSTEM_USER: 'SYSTEM_USER',
+  SYSTEM_ROLE: 'SYSTEM_ROLE',
 } as const;
 
 export const menuIconNameByPath: Record<string, string> = {
@@ -127,6 +141,9 @@ export const menuIconNameByPath: Record<string, string> = {
   '/hotel/room-type': MenuIconName.HOTEL_ROOM_TYPE,
   '/hotel/room': MenuIconName.HOTEL_ROOM,
   '/hotel/stay': MenuIconName.HOTEL_STAY,
+  '/system': MenuIconName.SYSTEM,
+  '/system/user': MenuIconName.SYSTEM_USER,
+  '/system/role': MenuIconName.SYSTEM_ROLE,
 };
 
 export const statusLabelMap: Record<string, string> = {
@@ -156,6 +173,7 @@ export const statusLabelMap: Record<string, string> = {
   OUT: '支出',
   KTV: 'KTV',
   HOTEL: '酒店',
+  GROUP: '集团',
 };
 
 /**

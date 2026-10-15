@@ -73,6 +73,19 @@ defineProps<{
       <path d="M11 12h9" />
       <path d="M17 12v2.4M20 12v2" />
     </template>
+    <template v-else-if="iconName === MenuIconName.SYSTEM">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2" />
+      <path d="m6.2 6.2 1.6 1.6M16.2 16.2l1.6 1.6M17.8 6.2l-1.6 1.6M7.8 16.2 6.2 17.8" />
+    </template>
+    <template v-else-if="iconName === MenuIconName.SYSTEM_USER">
+      <circle cx="12" cy="8" r="3" />
+      <path d="M6 19c1.2-2.6 3-3.8 6-3.8s4.8 1.2 6 3.8" />
+    </template>
+    <template v-else-if="iconName === MenuIconName.SYSTEM_ROLE">
+      <circle cx="8" cy="15" r="2.2" />
+      <path d="M10.2 15H18l1.6-1.6M15.2 15v2.2" />
+    </template>
   </svg>
 </template>
 
