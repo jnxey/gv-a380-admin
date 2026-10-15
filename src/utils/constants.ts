@@ -46,6 +46,18 @@ export const MenuRoot = {
   PARENT_ID: '0',
 } as const;
 
+/**
+ * 角色分配树上的节点种类。菜单和权限主键会重复，用前缀区分。
+ */
+export const AssignTreeNodeKind = {
+  MENU: 'menu',
+  PERMISSION: 'permission',
+} as const;
+
+export const AssignTreeNodeKey = {
+  SEPARATOR: ':',
+} as const;
+
 export const RecordStatus = {
   ENABLED: 'ENABLED',
   DISABLED: 'DISABLED',
