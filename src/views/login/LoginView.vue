@@ -33,10 +33,7 @@
                 size="large"
               >
                 <template #prefix>
-                  <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="12" cy="8" r="3.2" />
-                    <path d="M5.5 19.2c1.2-3 3.5-4.5 6.5-4.5s5.3 1.5 6.5 4.5" />
-                  </svg>
+                  <AppIcon class="field-icon" :icon-name="MenuIconName.LOGIN_ACCOUNT" />
                 </template>
               </el-input>
             </el-form-item>
@@ -50,10 +47,7 @@
                 size="large"
               >
                 <template #prefix>
-                  <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="5" y="10.5" width="14" height="9" rx="1.6" />
-                    <path d="M8.2 10.5V8.2a3.8 3.8 0 0 1 7.6 0v2.3" />
-                  </svg>
+                  <AppIcon class="field-icon" :icon-name="MenuIconName.LOGIN_PASSWORD" />
                 </template>
               </el-input>
             </el-form-item>
@@ -70,7 +64,9 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import AppIcon from '../../components/AppIcon.vue';
 import { useSessionStore } from '../../stores/session';
+import { MenuIconName } from '../../utils/constants';
 import http from '../../utils/request';
 
 const router = useRouter();
@@ -268,7 +264,7 @@ async function onSubmit(): Promise<void> {
   color: #f4f7fb;
 }
 
-.field-icon {
+.login-card :deep(.el-input__prefix .field-icon) {
   width: 16px;
   height: 16px;
   fill: none;

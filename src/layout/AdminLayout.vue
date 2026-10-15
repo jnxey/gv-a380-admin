@@ -19,16 +19,16 @@
           @select="closeMenuDrawer"
         >
           <el-menu-item :index="Home.PATH">
-            <MenuIcon :icon-name="resolveMenuIconName(Home.PATH)" />
+            <AppIcon class="menu-icon" :icon-name="resolveMenuIconName(Home.PATH)" />
             <span>{{ Home.TITLE }}</span>
           </el-menu-item>
           <el-sub-menu v-for="menu in sessionStore.menuTree" :key="menu.menuId" :index="menu.menuPath">
             <template #title>
-              <MenuIcon :icon-name="resolveMenuIconName(menu.menuPath)" />
+              <AppIcon class="menu-icon" :icon-name="resolveMenuIconName(menu.menuPath)" />
               <span>{{ menu.menuName }}</span>
             </template>
             <el-menu-item v-for="childMenu in menu.children" :key="childMenu.menuId" :index="childMenu.menuPath">
-              <MenuIcon :icon-name="resolveMenuIconName(childMenu.menuPath)" />
+              <AppIcon class="menu-icon" :icon-name="resolveMenuIconName(childMenu.menuPath)" />
               <span>{{ childMenu.menuName }}</span>
             </el-menu-item>
           </el-sub-menu>
@@ -40,19 +40,17 @@
         :aria-label="menuCollapsed === true ? '展开' : '收起'"
         @click="toggleMenuCollapsed"
       >
-        <svg class="admin-menu-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path v-if="menuCollapsed === true" d="m9 6 6 6-6 6" />
-          <path v-else d="m15 6-6 6 6 6" />
-        </svg>
+        <AppIcon
+          class="admin-menu-toggle-icon"
+          :icon-name="menuCollapsed === true ? MenuIconName.MENU_EXPAND : MenuIconName.MENU_COLLAPSE"
+        />
       </button>
     </aside>
     <div class="admin-main">
       <header class="admin-header">
         <div class="header-left">
           <button type="button" class="header-menu" aria-label="打开菜单" @click="openMenuDrawer">
-            <svg class="header-menu-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
+            <AppIcon class="header-menu-icon" :icon-name="MenuIconName.MENU_HAMBURGER" />
           </button>
           <span class="admin-title">{{ currentPageTitle }}</span>
         </div>
@@ -82,10 +80,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import AppIcon from '../components/AppIcon.vue';
 import ShopSwitcher from '../components/ShopSwitcher.vue';
-import MenuIcon from './MenuIcon.vue';
 import { useSessionStore } from '../stores/session';
-import { AccountCenter, Home, menuIconNameByPath } from '../utils/constants';
+import { AccountCenter, Home, MenuIconName, menuIconNameByPath } from '../utils/constants';
 import { isEmpty } from '../utils/tools';
 
 const route = useRoute();

@@ -12,10 +12,7 @@
             @keyup.enter="searchMember"
           />
           <el-button type="primary" class="recharge-search-button" aria-label="查找" @click="searchMember">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12h14" />
-              <path d="m13 6 6 6-6 6" />
-            </svg>
+            <AppIcon :icon-name="MenuIconName.ARROW_RIGHT" />
           </el-button>
         </div>
         <div v-if="memberMissed === true" class="recharge-empty">没有找到会员</div>
@@ -59,7 +56,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { PageSetting } from '../../utils/constants';
+import AppIcon from '../../components/AppIcon.vue';
+import { MenuIconName, PageSetting } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import http from '../../utils/request';
 

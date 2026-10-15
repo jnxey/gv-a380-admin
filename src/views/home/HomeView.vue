@@ -15,7 +15,7 @@
           class="home-entry"
           @click="openEntry(entry.menuPath)"
         >
-          <MenuIcon :icon-name="resolveMenuIconName(entry.menuPath)" />
+          <AppIcon class="menu-icon" :icon-name="resolveMenuIconName(entry.menuPath)" />
           <span>{{ entry.menuName }}</span>
         </button>
       </div>
@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import MenuIcon from '../../layout/MenuIcon.vue';
+import AppIcon from '../../components/AppIcon.vue';
 import { viewComponentMap } from '../../router/view-map';
 import { useSessionStore } from '../../stores/session';
 import { menuIconNameByPath } from '../../utils/constants';
