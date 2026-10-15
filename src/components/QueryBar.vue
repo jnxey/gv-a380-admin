@@ -18,13 +18,14 @@ const emit = defineEmits<{
 <style scoped>
 .query-bar {
   margin-bottom: 16px;
-  padding: 16px 16px 0;
+  padding: 12px 12px 0;
   background: #f5f7fa;
   border-radius: 8px;
 }
 
 .query-bar :deep(.el-form-item) {
   margin-right: 12px;
+  margin-bottom: 12px;
   max-width: 100%;
 }
 
@@ -35,5 +36,24 @@ const emit = defineEmits<{
 
 .query-actions :deep(.el-form-item__content) {
   flex-wrap: nowrap;
+}
+
+@media (max-width: 768px) {
+  .query-bar {
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    border-bottom: 1px solid #e6e8ec;
+  }
+
+  .query-bar :deep(.query-keyword) {
+    width: 150px;
+    font-size: 12px;
+  }
+
+  .query-bar :deep(.el-input__clear),
+  .query-bar :deep(.el-select__clear) {
+    display: none;
+  }
 }
 </style>

@@ -70,6 +70,26 @@ function actionSlotHasContent(): boolean {
   display: none;
 }
 
+@media (max-width: 768px) {
+  .record-card,
+  .record-card.is-selected {
+    padding: 12px 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    border-bottom: 1px solid #e6e8ec;
+  }
+
+  .record-card.is-selected {
+    background: #e8f0fe;
+  }
+
+  .record-actions {
+    padding-top: 0;
+    border-top: none;
+  }
+}
+
 @media (min-width: 769px) {
   .record-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -56,6 +56,11 @@ label {
   -webkit-overflow-scrolling: touch;
 }
 
+.el-card {
+  --el-card-border-radius: 8px;
+  --el-card-padding: 12px;
+}
+
 .el-dialog .el-select,
 .el-dialog .el-date-editor {
   width: 100%;

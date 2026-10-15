@@ -4,6 +4,12 @@
   gap: 12px;
 }
 
+@media (max-width: 768px) {
+  .record-list {
+    gap: 0;
+  }
+}
+
 @media (min-width: 1200px) {
   .el-card__body:has(.record-list--wide-table) {
     overflow-x: hidden;
