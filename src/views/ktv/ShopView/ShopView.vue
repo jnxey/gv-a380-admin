@@ -43,12 +43,12 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
-import RecordCard from '../../components/RecordCard.vue';
-import RecordField from '../../components/RecordField.vue';
-import { PermissionCode, RecordStatus, statusLabel } from '../../utils/constants';
-import { isEmpty } from '../../utils/tools';
-import { useSessionStore } from '../../stores/session';
-import http from '../../utils/request';
+import RecordCard from '../../../components/RecordCard/RecordCard.vue';
+import RecordField from '../../../components/RecordField/RecordField.vue';
+import { PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
+import { isEmpty } from '../../../utils/tools';
+import { useSessionStore } from '../../../stores/session';
+import http from '../../../utils/request';
 
 interface ShopRow {
   shopId: string;

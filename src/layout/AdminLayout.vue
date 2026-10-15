@@ -80,8 +80,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import AppIcon from '../components/AppIcon.vue';
-import ShopSwitcher from '../components/ShopSwitcher.vue';
+import AppIcon from '../components/AppIcon/AppIcon.vue';
+import ShopSwitcher from '../components/ShopSwitcher/ShopSwitcher.vue';
 import { useSessionStore } from '../stores/session';
 import { AccountCenter, Home, MenuIconName, menuIconNameByPath } from '../utils/constants';
 import { isEmpty } from '../utils/tools';

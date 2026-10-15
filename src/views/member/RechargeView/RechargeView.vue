@@ -56,10 +56,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import AppIcon from '../../components/AppIcon.vue';
-import { MenuIconName, PageSetting } from '../../utils/constants';
-import { isEmpty } from '../../utils/tools';
-import http from '../../utils/request';
+import AppIcon from '../../../components/AppIcon/AppIcon.vue';
+import { MenuIconName, PageSetting } from '../../../utils/constants';
+import { isEmpty } from '../../../utils/tools';
+import http from '../../../utils/request';
 
 interface MemberRow {
   memberId: string;

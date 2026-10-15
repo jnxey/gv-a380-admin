@@ -26,11 +26,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import AppIcon from '../../components/AppIcon.vue';
-import { viewComponentMap } from '../../router/view-map';
-import { useSessionStore } from '../../stores/session';
-import { menuIconNameByPath } from '../../utils/constants';
-import { isEmpty } from '../../utils/tools';
+import AppIcon from '../../../components/AppIcon/AppIcon.vue';
+import { viewComponentMap } from '../../../router/view-map';
+import { useSessionStore } from '../../../stores/session';
+import { menuIconNameByPath } from '../../../utils/constants';
+import { isEmpty } from '../../../utils/tools';
 
 interface HomeEntry {
   menuId: string;

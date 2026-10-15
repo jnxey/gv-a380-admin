@@ -19,9 +19,9 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useSessionStore, type ShopOption } from '../stores/session';
-import { ModuleCode } from '../utils/constants';
-import { isEmpty } from '../utils/tools';
+import { useSessionStore, type ShopOption } from '../../stores/session';
+import { ModuleCode } from '../../utils/constants';
+import { isEmpty } from '../../utils/tools';
 
 const route = useRoute();
 const sessionStore = useSessionStore();

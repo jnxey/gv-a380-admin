@@ -1,4 +1,4 @@
-import { MenuIconName } from '../utils/constants';
+import { MenuIconName } from '../../utils/constants';
 
 export const MenuIconShapeKind = {
   PATH: 'PATH',

@@ -33,12 +33,12 @@
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
-import RecordCard from '../../components/RecordCard.vue';
-import RecordField from '../../components/RecordField.vue';
-import { AssignTreeNodeKey, AssignTreeNodeKind, MenuRoot, PermissionCode, statusLabel } from '../../utils/constants';
-import { isEmpty } from '../../utils/tools';
-import { useSessionStore } from '../../stores/session';
-import http from '../../utils/request';
+import RecordCard from '../../../components/RecordCard/RecordCard.vue';
+import RecordField from '../../../components/RecordField/RecordField.vue';
+import { AssignTreeNodeKey, AssignTreeNodeKind, MenuRoot, PermissionCode, statusLabel } from '../../../utils/constants';
+import { isEmpty } from '../../../utils/tools';
+import { useSessionStore } from '../../../stores/session';
+import http from '../../../utils/request';
 
 interface RoleRow {
   roleId: string;

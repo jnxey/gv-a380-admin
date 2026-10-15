@@ -26,13 +26,13 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import ListPager from '../../components/ListPager.vue';
-import QueryBar from '../../components/QueryBar.vue';
-import RecordCard from '../../components/RecordCard.vue';
-import RecordField from '../../components/RecordField.vue';
-import { PageSetting, RecordStatus, statusLabel } from '../../utils/constants';
-import { isEmpty } from '../../utils/tools';
-import http from '../../utils/request';
+import ListPager from '../../../components/ListPager/ListPager.vue';
+import QueryBar from '../../../components/QueryBar/QueryBar.vue';
+import RecordCard from '../../../components/RecordCard/RecordCard.vue';
+import RecordField from '../../../components/RecordField/RecordField.vue';
+import { PageSetting, RecordStatus, statusLabel } from '../../../utils/constants';
+import { isEmpty } from '../../../utils/tools';
+import http from '../../../utils/request';
 
 interface MemberRow {
   memberNo: string;

@@ -64,10 +64,10 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import AppIcon from '../../components/AppIcon.vue';
-import { useSessionStore } from '../../stores/session';
-import { MenuIconName } from '../../utils/constants';
-import http from '../../utils/request';
+import AppIcon from '../../../components/AppIcon/AppIcon.vue';
+import { useSessionStore } from '../../../stores/session';
+import { MenuIconName } from '../../../utils/constants';
+import http from '../../../utils/request';
 
 const router = useRouter();
 const sessionStore = useSessionStore();

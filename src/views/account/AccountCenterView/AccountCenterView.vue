@@ -33,9 +33,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { useSessionStore } from '../../stores/session';
-import { isEmpty } from '../../utils/tools';
-import http from '../../utils/request';
+import { useSessionStore } from '../../../stores/session';
+import { isEmpty } from '../../../utils/tools';
+import http from '../../../utils/request';
 
 const sessionStore = useSessionStore();
 const passwordDialogVisible = ref(false);

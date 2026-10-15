@@ -44,13 +44,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import ListPager from '../../components/ListPager.vue';
-import RecordCard from '../../components/RecordCard.vue';
-import RecordField from '../../components/RecordField.vue';
-import { HotelOrderStatus, HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../utils/constants';
-import { isEmpty } from '../../utils/tools';
-import { useSessionStore } from '../../stores/session';
-import http from '../../utils/request';
+import ListPager from '../../../components/ListPager/ListPager.vue';
+import RecordCard from '../../../components/RecordCard/RecordCard.vue';
+import RecordField from '../../../components/RecordField/RecordField.vue';
+import { HotelOrderStatus, HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
+import { isEmpty } from '../../../utils/tools';
+import { useSessionStore } from '../../../stores/session';
+import http from '../../../utils/request';
 
 interface OrderRow {
   bookingOrderId: string;

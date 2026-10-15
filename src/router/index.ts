@@ -9,7 +9,7 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/login/LoginView.vue'),
+      component: () => import('../views/login/LoginView/LoginView.vue'),
     },
     {
       path: '/',
@@ -19,7 +19,7 @@ const router = createRouter({
         {
           path: '',
           name: Home.ROUTE_NAME,
-          component: () => import('../views/home/HomeView.vue'),
+          component: () => import('../views/home/HomeView/HomeView.vue'),
           meta: {
             title: Home.TITLE,
           },
@@ -27,7 +27,7 @@ const router = createRouter({
         {
           path: AccountCenter.PATH,
           name: AccountCenter.ROUTE_NAME,
-          component: () => import('../views/account/AccountCenterView.vue'),
+          component: () => import('../views/account/AccountCenterView/AccountCenterView.vue'),
           meta: {
             title: AccountCenter.TITLE,
           },

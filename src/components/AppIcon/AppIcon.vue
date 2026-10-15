@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { isEmpty } from '../utils/tools';
+import { isEmpty } from '../../utils/tools';
 import { MenuIconShapeKind, menuIconShapeListByName } from './appIconShapeList';
 
 const props = defineProps<{
