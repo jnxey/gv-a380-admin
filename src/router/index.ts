@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useSessionStore } from '../stores/session';
+import { AccountCenter } from '../utils/constants';
 import { isEmpty } from '../utils/tools';
 
 const router = createRouter({
@@ -14,7 +15,16 @@ const router = createRouter({
       path: '/',
       name: 'admin-layout',
       component: () => import('../layout/AdminLayout.vue'),
-      children: [],
+      children: [
+        {
+          path: AccountCenter.PATH,
+          name: AccountCenter.ROUTE_NAME,
+          component: () => import('../views/account/AccountCenterView.vue'),
+          meta: {
+            title: AccountCenter.TITLE,
+          },
+        },
+      ],
     },
   ],
 });

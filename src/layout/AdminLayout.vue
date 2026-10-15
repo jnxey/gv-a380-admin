@@ -22,8 +22,18 @@
         <span class="admin-title">{{ currentPageTitle }}</span>
         <div class="header-right">
           <ShopSwitcher />
-          <span class="header-real-name">{{ sessionStore.realName }}</span>
-          <el-button link type="primary" @click="onLogout">退出</el-button>
+          <el-popover trigger="hover" placement="bottom-end" :width="168">
+            <template #reference>
+              <button type="button" class="header-avatar" aria-label="账号菜单">
+                <img class="header-avatar-image" src="/avatar.png" alt="" />
+              </button>
+            </template>
+            <div class="account-menu">
+              <div class="account-menu-name">{{ sessionStore.username }}</div>
+              <button type="button" class="account-menu-item" @click="openAccountCenter">个人中心</button>
+              <button type="button" class="account-menu-item" @click="onLogout">退出登录</button>
+            </div>
+          </el-popover>
         </div>
       </header>
       <main class="admin-content">
@@ -38,6 +48,7 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ShopSwitcher from '../components/ShopSwitcher.vue';
 import { useSessionStore } from '../stores/session';
+import { AccountCenter } from '../utils/constants';
 import { isEmpty } from '../utils/tools';
 
 const route = useRoute();
@@ -66,6 +77,13 @@ const currentPageTitle = computed(() => {
 const openedMenuPathList = computed(() => {
   return sessionStore.menuTree.map((menu) => menu.menuPath);
 });
+
+/**
+ * 打开个人中心。
+ */
+function openAccountCenter(): void {
+  router.push(AccountCenter.PATH);
+}
 
 /**
  * 退出并作废当前令牌。
@@ -203,9 +221,48 @@ async function onLogout(): Promise<void> {
   gap: 12px;
 }
 
-.header-real-name {
+.header-avatar {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: none;
+  border-radius: 50%;
+  background: var(--admin-primary-soft);
+  cursor: pointer;
+}
+
+.header-avatar-image {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  display: block;
+}
+
+.account-menu-name {
+  padding: 4px 8px 8px;
   font-size: 14px;
-  color: var(--admin-text);
+  font-weight: 600;
+  color: #1c2434;
+}
+
+.account-menu-item {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  color: #1c2434;
+  cursor: pointer;
+}
+
+.account-menu-item:hover {
+  background: #f4f6f8;
 }
 
 .admin-content {

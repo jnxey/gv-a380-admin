@@ -1,13 +1,14 @@
 <template>
-  <el-select
-    v-if="showSwitcher"
-    :model-value="sessionStore.currentShopId"
-    placeholder="选择门店"
-    style="width: 220px"
-    @change="onShopChange"
-  >
-    <el-option v-for="shop in selectableShopList" :key="shop.shopId" :label="shopLabel(shop)" :value="shop.shopId" />
-  </el-select>
+  <el-dropdown v-if="showSwitcher" trigger="hover" @command="onShopCommand">
+    <el-button type="default" text>{{ currentShopLabel }}</el-button>
+    <template #dropdown>
+      <el-dropdown-menu>
+        <el-dropdown-item v-for="shop in selectableShopList" :key="shop.shopId" :command="shop.shopId">
+          {{ shopLabel(shop) }}
+        </el-dropdown-item>
+      </el-dropdown-menu>
+    </template>
+  </el-dropdown>
 </template>
 
 <script setup lang="ts">
@@ -42,6 +43,17 @@ const selectableShopList = computed(() => sessionStore.listShopsForModule(curren
 const showSwitcher = computed(() => selectableShopList.value.length > 1);
 
 /**
+ * 下拉按钮上的当前门店名称。还没匹配到门店时显示占位文案。
+ */
+const currentShopLabel = computed(() => {
+  const currentShop = selectableShopList.value.find((shop) => shop.shopId === sessionStore.currentShopId);
+  if (isEmpty(currentShop)) {
+    return '选择门店';
+  }
+  return shopLabel(currentShop);
+});
+
+/**
  * 进入业务页时，如果当前门店不属于该业务线，自动切到第一家匹配门店。
  */
 watch(
@@ -63,6 +75,13 @@ watch(
  */
 function shopLabel(shop: ShopOption): string {
   return `${shop.shopName}（${shop.shopCode}）`;
+}
+
+/**
+ * 用户从下拉菜单选中一家门店。
+ */
+function onShopCommand(shopId: string): void {
+  onShopChange(shopId);
 }
 
 /**

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import type { Router } from 'vue-router';
-import { ModuleCode, StorageKey } from '../utils/constants';
+import { AccountCenter, ModuleCode, StorageKey } from '../utils/constants';
 import { isEmpty } from '../utils/tools';
 import http from '../utils/request';
 import { viewComponentMap } from '../router/view-map';
@@ -36,6 +36,7 @@ export const useSessionStore = defineStore('session', {
   state: () => ({
     accessToken: window.localStorage.getItem(StorageKey.ACCESS_TOKEN) || '',
     currentShopId: window.localStorage.getItem(StorageKey.CURRENT_SHOP_ID) || '',
+    username: '',
     realName: '',
     permissionCodeList: [] as string[],
     shopList: [] as ShopOption[],
@@ -84,11 +85,13 @@ export const useSessionStore = defineStore('session', {
      */
     async loadSession(router: Router): Promise<void> {
       const profile = (await http.get('/admin/auth/profile')) as {
+        username: string;
         realName: string;
         permissionCodeList: string[];
         shopList: ShopOption[];
       };
       const menuTree = (await http.get('/admin/auth/menus')) as MenuNode[];
+      this.username = profile.username;
       this.realName = profile.realName;
       this.permissionCodeList = profile.permissionCodeList;
       this.shopList = profile.shopList;
@@ -155,6 +158,7 @@ export const useSessionStore = defineStore('session', {
      */
     clearSession(router: Router): void {
       this.accessToken = '';
+      this.username = '';
       this.realName = '';
       this.permissionCodeList = [];
       this.shopList = [];
@@ -162,7 +166,12 @@ export const useSessionStore = defineStore('session', {
       this.menuLoaded = false;
       window.localStorage.removeItem(StorageKey.ACCESS_TOKEN);
       router.getRoutes().forEach((routeRecord) => {
-        if (routeRecord.name !== 'login' && routeRecord.name !== 'admin-layout' && routeRecord.name !== undefined) {
+        if (
+          routeRecord.name !== 'login' &&
+          routeRecord.name !== 'admin-layout' &&
+          routeRecord.name !== AccountCenter.ROUTE_NAME &&
+          routeRecord.name !== undefined
+        ) {
           router.removeRoute(routeRecord.name);
         }
       });

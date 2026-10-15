@@ -91,6 +91,12 @@ export const StorageKey = {
   CURRENT_SHOP_ID: 'gv_a380_admin_current_shop_id',
 } as const;
 
+export const AccountCenter = {
+  PATH: '/account',
+  TITLE: '个人中心',
+  ROUTE_NAME: 'account-center',
+} as const;
+
 export const statusLabelMap: Record<string, string> = {
   ENABLED: '启用',
   DISABLED: '停用',
