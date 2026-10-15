@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import type { Router } from 'vue-router';
-import { AccountCenter, ModuleCode, StorageKey } from '../utils/constants';
+import { AccountCenter, Home, ModuleCode, StorageKey } from '../utils/constants';
 import { isEmpty } from '../utils/tools';
 import http from '../utils/request';
 import { viewComponentMap } from '../router/view-map';
@@ -130,18 +130,6 @@ export const useSessionStore = defineStore('session', {
       });
     },
     /**
-     * 取第一个可打开的菜单路径。
-     */
-    findFirstMenuPath(): string {
-      for (const menuNode of this.menuTree) {
-        const firstChild = menuNode.children[0];
-        if (!isEmpty(firstChild) && !isEmpty(firstChild.menuPath)) {
-          return firstChild.menuPath;
-        }
-      }
-      return '';
-    },
-    /**
      * 退出登录，清掉令牌和动态路由。
      */
     async logout(router: Router): Promise<void> {
@@ -170,6 +158,7 @@ export const useSessionStore = defineStore('session', {
           routeRecord.name !== 'login' &&
           routeRecord.name !== 'admin-layout' &&
           routeRecord.name !== AccountCenter.ROUTE_NAME &&
+          routeRecord.name !== Home.ROUTE_NAME &&
           routeRecord.name !== undefined
         ) {
           router.removeRoute(routeRecord.name);

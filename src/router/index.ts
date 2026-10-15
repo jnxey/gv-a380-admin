@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useSessionStore } from '../stores/session';
-import { AccountCenter } from '../utils/constants';
+import { AccountCenter, Home } from '../utils/constants';
 import { isEmpty } from '../utils/tools';
 
 const router = createRouter({
@@ -16,6 +16,14 @@ const router = createRouter({
       name: 'admin-layout',
       component: () => import('../layout/AdminLayout.vue'),
       children: [
+        {
+          path: '',
+          name: Home.ROUTE_NAME,
+          component: () => import('../views/home/HomeView.vue'),
+          meta: {
+            title: Home.TITLE,
+          },
+        },
         {
           path: AccountCenter.PATH,
           name: AccountCenter.ROUTE_NAME,
@@ -43,12 +51,6 @@ router.beforeEach(async (to) => {
   if (sessionStore.menuLoaded !== true) {
     await sessionStore.loadSession(router);
     return to.fullPath;
-  }
-  if (to.path === '/') {
-    const firstMenuPath = sessionStore.findFirstMenuPath();
-    if (!isEmpty(firstMenuPath)) {
-      return firstMenuPath;
-    }
   }
   return true;
 });

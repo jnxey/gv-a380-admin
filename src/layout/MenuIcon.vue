@@ -8,7 +8,11 @@ defineProps<{
 
 <template>
   <svg v-if="iconName !== ''" class="menu-icon" viewBox="0 0 24 24" aria-hidden="true">
-    <template v-if="iconName === MenuIconName.MEMBER">
+    <template v-if="iconName === MenuIconName.HOME">
+      <path d="M4 11.5 12 5l8 6.5" />
+      <path d="M7 10.5V19h10v-8.5" />
+    </template>
+    <template v-else-if="iconName === MenuIconName.MEMBER">
       <circle cx="9" cy="8" r="2.4" />
       <circle cx="16" cy="9.2" r="2" />
       <path d="M4.8 18.4c.8-2.4 2.4-3.6 4.2-3.6s3.4 1.2 4.2 3.6" />

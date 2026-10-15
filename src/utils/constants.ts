@@ -120,7 +120,14 @@ export const AccountCenter = {
   ROUTE_NAME: 'account-center',
 } as const;
 
+export const Home = {
+  PATH: '/',
+  TITLE: '首页',
+  ROUTE_NAME: 'home',
+} as const;
+
 export const MenuIconName = {
+  HOME: 'HOME',
   MEMBER: 'MEMBER',
   MEMBER_QUERY: 'MEMBER_QUERY',
   MEMBER_RECHARGE: 'MEMBER_RECHARGE',
@@ -140,6 +147,7 @@ export const MenuIconName = {
 } as const;
 
 export const menuIconNameByPath: Record<string, string> = {
+  [Home.PATH]: MenuIconName.HOME,
   '/member': MenuIconName.MEMBER,
   '/member/query': MenuIconName.MEMBER_QUERY,
   '/member/recharge': MenuIconName.MEMBER_RECHARGE,

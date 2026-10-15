@@ -18,6 +18,10 @@
           router
           @select="closeMenuDrawer"
         >
+          <el-menu-item :index="Home.PATH">
+            <MenuIcon :icon-name="resolveMenuIconName(Home.PATH)" />
+            <span>{{ Home.TITLE }}</span>
+          </el-menu-item>
           <el-sub-menu v-for="menu in sessionStore.menuTree" :key="menu.menuId" :index="menu.menuPath">
             <template #title>
               <MenuIcon :icon-name="resolveMenuIconName(menu.menuPath)" />
@@ -81,7 +85,7 @@ import { useRoute, useRouter } from 'vue-router';
 import ShopSwitcher from '../components/ShopSwitcher.vue';
 import MenuIcon from './MenuIcon.vue';
 import { useSessionStore } from '../stores/session';
-import { AccountCenter, menuIconNameByPath } from '../utils/constants';
+import { AccountCenter, Home, menuIconNameByPath } from '../utils/constants';
 import { isEmpty } from '../utils/tools';
 
 const route = useRoute();
