@@ -1,25 +1,22 @@
 <template>
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建房型</el-button>
-    <el-table :data="roomTypeList" stripe class="table">
-      <el-table-column prop="typeName" label="房型" min-width="160" />
-      <el-table-column label="床型" min-width="100">
-        <template #default="scope">{{ scope.row.bedType === HotelBedType.TWIN ? '双床' : '大床' }}</template>
-      </el-table-column>
-      <el-table-column prop="price" label="每晚价格" min-width="120" />
-      <el-table-column label="状态" min-width="100">
-        <template #default="scope">
-          <el-tag :type="scope.row.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
-            {{ statusLabel(scope.row.status) }}
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(roomTypeList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="roomTypeRow in roomTypeList" :key="roomTypeRow.id">
+        <RecordField label="房型">{{ roomTypeRow.typeName }}</RecordField>
+        <RecordField label="床型">{{ roomTypeRow.bedType === HotelBedType.TWIN ? '双床' : '大床' }}</RecordField>
+        <RecordField label="每晚价格">{{ roomTypeRow.price }}</RecordField>
+        <RecordField label="状态">
+          <el-tag :type="roomTypeRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
+            {{ statusLabel(roomTypeRow.status) }}
           </el-tag>
+        </RecordField>
+        <template v-if="canSave" #actions>
+          <el-button link type="primary" @click="openEdit(roomTypeRow)">编辑</el-button>
         </template>
-      </el-table-column>
-      <el-table-column v-if="canSave" label="操作" min-width="100">
-        <template #default="scope">
-          <el-button link type="primary" @click="openEdit(scope.row)">编辑</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      </RecordCard>
+    </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="dialogVisible" :title="editingId === '' ? '新建房型' : '编辑房型'" width="480px">
       <el-form label-width="90px">
@@ -50,6 +47,8 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import ListPager from '../../components/ListPager.vue';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { HotelBedType, PageSetting, PermissionCode, RecordStatus, statusLabel } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import { useSessionStore } from '../../stores/session';
@@ -141,7 +140,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.table {
+.record-list {
   margin-top: 16px;
 }
 </style>

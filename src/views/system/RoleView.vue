@@ -1,17 +1,16 @@
 <template>
   <el-card>
-    <el-table :data="roleList" stripe>
-      <el-table-column prop="roleName" label="角色" min-width="160" />
-      <el-table-column prop="roleCode" label="编码" min-width="180" />
-      <el-table-column label="范围" min-width="120">
-        <template #default="scope">{{ statusLabel(scope.row.roleScope) }}</template>
-      </el-table-column>
-      <el-table-column v-if="canSave" label="操作" min-width="120">
-        <template #default="scope">
-          <el-button link type="primary" @click="openEdit(scope.row)">分配权限</el-button>
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(roleList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="roleRow in roleList" :key="roleRow.roleId">
+        <RecordField label="角色">{{ roleRow.roleName }}</RecordField>
+        <RecordField label="编码">{{ roleRow.roleCode }}</RecordField>
+        <RecordField label="范围">{{ statusLabel(roleRow.roleScope) }}</RecordField>
+        <template v-if="canSave" #actions>
+          <el-button link type="primary" @click="openEdit(roleRow)">分配权限</el-button>
         </template>
-      </el-table-column>
-    </el-table>
+      </RecordCard>
+    </div>
     <el-dialog v-model="dialogVisible" :title="editingRoleName" width="480px">
       <el-tree
         ref="assignTreeRef"
@@ -34,6 +33,8 @@
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { AssignTreeNodeKey, AssignTreeNodeKind, MenuRoot, PermissionCode, statusLabel } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import { useSessionStore } from '../../stores/session';

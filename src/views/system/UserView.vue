@@ -1,27 +1,24 @@
 <template>
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建账号</el-button>
-    <el-table :data="userList" stripe class="table">
-      <el-table-column prop="username" label="登录名" min-width="140" />
-      <el-table-column prop="realName" label="姓名" min-width="120" />
-      <el-table-column prop="mobile" label="手机" min-width="140" />
-      <el-table-column label="状态" min-width="100">
-        <template #default="scope">
-          <el-tag :type="scope.row.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
-            {{ statusLabel(scope.row.status) }}
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(userList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="userRow in userList" :key="userRow.userId">
+        <RecordField label="登录名">{{ userRow.username }}</RecordField>
+        <RecordField label="姓名">{{ userRow.realName }}</RecordField>
+        <RecordField label="手机">{{ userRow.mobile }}</RecordField>
+        <RecordField label="状态">
+          <el-tag :type="userRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
+            {{ statusLabel(userRow.status) }}
           </el-tag>
+        </RecordField>
+        <RecordField label="角色">{{ userRow.roleName }}</RecordField>
+        <RecordField label="门店">{{ shopNameText(userRow) }}</RecordField>
+        <template v-if="canSave" #actions>
+          <el-button link type="primary" @click="openEdit(userRow)">编辑</el-button>
         </template>
-      </el-table-column>
-      <el-table-column prop="roleName" label="角色" min-width="140" />
-      <el-table-column label="门店" min-width="160">
-        <template #default="scope">{{ shopNameText(scope.row) }}</template>
-      </el-table-column>
-      <el-table-column v-if="canSave" label="操作" min-width="100">
-        <template #default="scope">
-          <el-button link type="primary" @click="openEdit(scope.row)">编辑</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      </RecordCard>
+    </div>
     <el-dialog v-model="dialogVisible" :title="editingUserId === '' ? '新建账号' : '编辑账号'" width="520px">
       <el-form label-width="88px">
         <el-form-item label="登录名">
@@ -66,6 +63,8 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { PermissionCode, RecordStatus, statusLabel } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import { useSessionStore } from '../../stores/session';
@@ -222,7 +221,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.table {
+.record-list {
   margin-top: 16px;
 }
 </style>

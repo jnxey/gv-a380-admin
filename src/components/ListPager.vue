@@ -34,6 +34,8 @@ function onCurrentChange(nextPage: number): void {
 
 <style scoped>
 .pager {
+  display: flex;
+  justify-content: flex-end;
   margin-top: 16px;
 }
 </style>

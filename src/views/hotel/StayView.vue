@@ -1,29 +1,26 @@
 <template>
   <el-card>
-    <el-table :data="orderList" stripe>
-      <el-table-column prop="orderNo" label="订单号" min-width="180" />
-      <el-table-column prop="memberName" label="会员" min-width="120" />
-      <el-table-column prop="mobile" label="手机号" min-width="140" />
-      <el-table-column prop="typeName" label="房型" min-width="120" />
-      <el-table-column prop="roomNo" label="房号" min-width="100" />
-      <el-table-column prop="checkInDate" label="入住" min-width="120" />
-      <el-table-column prop="checkOutDate" label="离店" min-width="120" />
-      <el-table-column prop="amount" label="房费" min-width="100" />
-      <el-table-column label="订单状态" min-width="120">
-        <template #default="scope">{{ statusLabel(scope.row.orderStatus) }}</template>
-      </el-table-column>
-      <el-table-column label="入住状态" min-width="120">
-        <template #default="scope">{{ statusLabel(scope.row.stayStatus) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" min-width="240">
-        <template #default="scope">
-          <el-button v-if="canCheckIn && scope.row.orderStatus === HotelOrderStatus.BOOKED" link type="primary" @click="openCheckIn(scope.row)">入住</el-button>
-          <el-button v-if="canExtend && scope.row.orderStatus === HotelOrderStatus.CHECKED_IN" link type="primary" @click="openExtend(scope.row)">续住</el-button>
-          <el-button v-if="canCheckOut && scope.row.orderStatus === HotelOrderStatus.CHECKED_IN" link type="primary" @click="checkOut(scope.row.bookingOrderId)">退房结算</el-button>
-          <el-button v-if="canCancel && scope.row.orderStatus === HotelOrderStatus.BOOKED" link type="danger" @click="cancelOrder(scope.row.bookingOrderId)">取消</el-button>
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(orderList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
+        <RecordField label="订单号">{{ orderRow.orderNo }}</RecordField>
+        <RecordField label="会员">{{ orderRow.memberName }}</RecordField>
+        <RecordField label="手机号">{{ orderRow.mobile }}</RecordField>
+        <RecordField label="房型">{{ orderRow.typeName }}</RecordField>
+        <RecordField label="房号">{{ orderRow.roomNo }}</RecordField>
+        <RecordField label="入住">{{ orderRow.checkInDate }}</RecordField>
+        <RecordField label="离店">{{ orderRow.checkOutDate }}</RecordField>
+        <RecordField label="房费">{{ orderRow.amount }}</RecordField>
+        <RecordField label="订单状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
+        <RecordField label="入住状态">{{ statusLabel(orderRow.stayStatus) }}</RecordField>
+        <template #actions>
+          <el-button v-if="canCheckIn && orderRow.orderStatus === HotelOrderStatus.BOOKED" link type="primary" @click="openCheckIn(orderRow)">入住</el-button>
+          <el-button v-if="canExtend && orderRow.orderStatus === HotelOrderStatus.CHECKED_IN" link type="primary" @click="openExtend(orderRow)">续住</el-button>
+          <el-button v-if="canCheckOut && orderRow.orderStatus === HotelOrderStatus.CHECKED_IN" link type="primary" @click="checkOut(orderRow.bookingOrderId)">退房结算</el-button>
+          <el-button v-if="canCancel && orderRow.orderStatus === HotelOrderStatus.BOOKED" link type="danger" @click="cancelOrder(orderRow.bookingOrderId)">取消</el-button>
         </template>
-      </el-table-column>
-    </el-table>
+      </RecordCard>
+    </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="checkInVisible" title="办理入住" width="420px">
       <el-select v-model="selectedRoomId" placeholder="选择空闲房间" style="width: 100%">
@@ -48,7 +45,10 @@
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ListPager from '../../components/ListPager.vue';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { HotelOrderStatus, HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../utils/constants';
+import { isEmpty } from '../../utils/tools';
 import { useSessionStore } from '../../stores/session';
 import http from '../../utils/request';
 

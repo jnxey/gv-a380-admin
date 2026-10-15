@@ -1,19 +1,18 @@
 <template>
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建房间</el-button>
-    <el-table :data="roomList" stripe class="table">
-      <el-table-column prop="roomNo" label="房号" min-width="120" />
-      <el-table-column prop="floorNo" label="楼层" min-width="100" />
-      <el-table-column prop="roomTypeId" label="房型ID" min-width="120" />
-      <el-table-column label="房态" min-width="120">
-        <template #default="scope">{{ statusLabel(scope.row.roomStatus) }}</template>
-      </el-table-column>
-      <el-table-column v-if="canSave" label="操作" min-width="100">
-        <template #default="scope">
-          <el-button link type="primary" @click="openEdit(scope.row)">编辑</el-button>
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(roomList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="roomRow in roomList" :key="roomRow.id">
+        <RecordField label="房号">{{ roomRow.roomNo }}</RecordField>
+        <RecordField label="楼层">{{ roomRow.floorNo }}</RecordField>
+        <RecordField label="房型ID">{{ roomRow.roomTypeId }}</RecordField>
+        <RecordField label="房态">{{ statusLabel(roomRow.roomStatus) }}</RecordField>
+        <template v-if="canSave" #actions>
+          <el-button link type="primary" @click="openEdit(roomRow)">编辑</el-button>
         </template>
-      </el-table-column>
-    </el-table>
+      </RecordCard>
+    </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="dialogVisible" :title="editingRoomId === '' ? '新建房间' : '编辑房间'" width="480px">
       <el-form label-width="80px">
@@ -44,6 +43,8 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import ListPager from '../../components/ListPager.vue';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import { useSessionStore } from '../../stores/session';
@@ -146,7 +147,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.table {
+.record-list {
   margin-top: 16px;
 }
 </style>

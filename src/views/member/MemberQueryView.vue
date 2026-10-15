@@ -1,38 +1,37 @@
 <template>
   <el-card>
     <QueryBar @search="searchMembers" @reset="resetQuery">
-      <el-form-item label="关键字">
-        <el-input v-model="keyword" class="query-keyword" placeholder="手机号 / 会员号 / 姓名" clearable>
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
+      <el-form-item>
+        <el-input v-model="keyword" v-place class="query-keyword" placeholder="手机号 / 会员号 / 姓名" clearable />
       </el-form-item>
     </QueryBar>
-    <el-table :data="memberList" stripe>
-      <el-table-column prop="memberNo" label="会员号"  min-width="160" show-overflow-tooltip />
-      <el-table-column prop="memberName" label="姓名" min-width="120" show-overflow-tooltip />
-      <el-table-column prop="mobile" label="手机号"  min-width="140" />
-      <el-table-column prop="balance" label="余额"  min-width="120" />
-      <el-table-column prop="points" label="积分"  min-width="100" />
-      <el-table-column label="状态"  min-width="100">
-        <template #default="scope">
-          <el-tag :type="scope.row.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
-            {{ statusLabel(scope.row.status) }}
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(memberList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="memberRow in memberList" :key="memberRow.memberNo">
+        <RecordField label="会员号">{{ memberRow.memberNo }}</RecordField>
+        <RecordField label="姓名">{{ memberRow.memberName }}</RecordField>
+        <RecordField label="手机号">{{ memberRow.mobile }}</RecordField>
+        <RecordField label="余额">{{ memberRow.balance }}</RecordField>
+        <RecordField label="积分">{{ memberRow.points }}</RecordField>
+        <RecordField label="状态">
+          <el-tag :type="memberRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
+            {{ statusLabel(memberRow.status) }}
           </el-tag>
-        </template>
-      </el-table-column>
-    </el-table>
+        </RecordField>
+      </RecordCard>
+    </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { Search } from '@element-plus/icons-vue';
 import ListPager from '../../components/ListPager.vue';
 import QueryBar from '../../components/QueryBar.vue';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { PageSetting, RecordStatus, statusLabel } from '../../utils/constants';
+import { isEmpty } from '../../utils/tools';
 import http from '../../utils/request';
 
 interface MemberRow {

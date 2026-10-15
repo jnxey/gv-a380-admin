@@ -1,24 +1,23 @@
 <template>
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建门店</el-button>
-    <el-table :data="shopList" stripe class="table">
-      <el-table-column prop="shopCode" label="编码" min-width="140" />
-      <el-table-column prop="shopName" label="名称" min-width="160" />
-      <el-table-column prop="address" label="地址" min-width="200" />
-      <el-table-column prop="contactPhone" label="电话" min-width="140" />
-      <el-table-column label="状态" min-width="100">
-        <template #default="scope">
-          <el-tag :type="scope.row.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
-            {{ statusLabel(scope.row.status) }}
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(shopList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="shopRow in shopList" :key="shopRow.shopId">
+        <RecordField label="编码">{{ shopRow.shopCode }}</RecordField>
+        <RecordField label="名称">{{ shopRow.shopName }}</RecordField>
+        <RecordField label="地址">{{ shopRow.address }}</RecordField>
+        <RecordField label="电话">{{ shopRow.contactPhone }}</RecordField>
+        <RecordField label="状态">
+          <el-tag :type="shopRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
+            {{ statusLabel(shopRow.status) }}
           </el-tag>
+        </RecordField>
+        <template v-if="canSave" #actions>
+          <el-button link type="primary" @click="openEdit(shopRow)">编辑</el-button>
         </template>
-      </el-table-column>
-      <el-table-column v-if="canSave" label="操作" min-width="100">
-        <template #default="scope">
-          <el-button link type="primary" @click="openEdit(scope.row)">编辑</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      </RecordCard>
+    </div>
     <el-dialog v-model="dialogVisible" :title="editingShopId === '' ? '新建门店' : '编辑门店'" width="480px">
       <el-form label-width="80px">
         <el-form-item label="编码"><el-input v-model="shopForm.shopCode" /></el-form-item>
@@ -44,6 +43,8 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { PermissionCode, RecordStatus, statusLabel } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import { useSessionStore } from '../../stores/session';
@@ -127,7 +128,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.table {
+.record-list {
   margin-top: 16px;
 }
 </style>

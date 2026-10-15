@@ -1,0 +1,74 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: 'Segoe UI', 'PingFang SC', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a,
+button,
+img {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+a,
+button,
+input,
+textarea,
+select,
+label {
+  touch-action: manipulation;
+}
+
+.admin-content,
+.admin-menu,
+.el-dialog__body,
+.el-drawer__body {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.el-dialog .el-select,
+.el-dialog .el-date-editor {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .el-dialog {
+    width: calc(100vw - 32px) !important;
+  }
+
+  .el-input,
+  .el-textarea,
+  .el-select {
+    font-size: 16px;
+  }
+}

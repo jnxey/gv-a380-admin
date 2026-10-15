@@ -1,0 +1,49 @@
+.el-input,
+.el-select,
+.el-textarea {
+  position: relative;
+}
+
+.placeholder-dom {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  z-index: 10;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  word-break: keep-all;
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-placeholder);
+  animation: placeholder-in linear 0.3s;
+}
+
+.placeholder-dom.remove {
+  top: 6px;
+  font-size: 14px;
+  animation: placeholder-out linear 0.3s;
+}
+
+@keyframes placeholder-in {
+  from {
+    top: 6px;
+    font-size: 14px;
+  }
+
+  to {
+    top: -8px;
+    font-size: 12px;
+  }
+}
+
+@keyframes placeholder-out {
+  from {
+    top: -8px;
+    font-size: 12px;
+  }
+
+  to {
+    top: 6px;
+    font-size: 14px;
+  }
+}

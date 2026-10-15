@@ -1,27 +1,24 @@
 <template>
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建包厢</el-button>
-    <el-table :data="roomList" stripe class="table">
-      <el-table-column prop="roomNo" label="编号" min-width="120" />
-      <el-table-column prop="roomName" label="名称" min-width="140" />
-      <el-table-column label="类型" min-width="120">
-        <template #default="scope">{{ statusLabel(scope.row.roomType) }}</template>
-      </el-table-column>
-      <el-table-column prop="capacity" label="人数" min-width="100" />
-      <el-table-column prop="price" label="价格" min-width="120" />
-      <el-table-column label="状态" min-width="100">
-        <template #default="scope">
-          <el-tag :type="scope.row.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
-            {{ statusLabel(scope.row.status) }}
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(roomList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="roomRow in roomList" :key="roomRow.id">
+        <RecordField label="编号">{{ roomRow.roomNo }}</RecordField>
+        <RecordField label="名称">{{ roomRow.roomName }}</RecordField>
+        <RecordField label="类型">{{ statusLabel(roomRow.roomType) }}</RecordField>
+        <RecordField label="人数">{{ roomRow.capacity }}</RecordField>
+        <RecordField label="价格">{{ roomRow.price }}</RecordField>
+        <RecordField label="状态">
+          <el-tag :type="roomRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
+            {{ statusLabel(roomRow.status) }}
           </el-tag>
+        </RecordField>
+        <template v-if="canSave" #actions>
+          <el-button link type="primary" @click="openEdit(roomRow)">编辑</el-button>
         </template>
-      </el-table-column>
-      <el-table-column v-if="canSave" label="操作" min-width="100">
-        <template #default="scope">
-          <el-button link type="primary" @click="openEdit(scope.row)">编辑</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      </RecordCard>
+    </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="dialogVisible" :title="editingRoomId === '' ? '新建包厢' : '编辑包厢'" width="480px">
       <el-form label-width="80px">
@@ -55,6 +52,8 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import ListPager from '../../components/ListPager.vue';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { KtvRoomType, PageSetting, PermissionCode, RecordStatus, statusLabel } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import { useSessionStore } from '../../stores/session';
@@ -155,7 +154,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.table {
+.record-list {
   margin-top: 16px;
 }
 </style>

@@ -1,28 +1,27 @@
 <template>
   <el-card>
     <QueryBar @search="searchBills" @reset="resetQuery">
-      <el-form-item label="流水类型">
-        <el-select v-model="bizType" class="query-keyword" clearable placeholder="全部">
+      <el-form-item>
+        <el-select v-model="bizType" v-place class="query-keyword" clearable placeholder="流水类型">
           <el-option v-for="item in bizTypeOptions" :key="item" :label="statusLabel(item)" :value="item" />
         </el-select>
       </el-form-item>
     </QueryBar>
-    <el-table :data="billList" stripe>
-      <el-table-column prop="billNo" label="账单号" min-width="180" />
-      <el-table-column prop="memberId" label="会员ID" min-width="120" />
-      <el-table-column label="类型" min-width="120">
-        <template #default="scope">{{ statusLabel(scope.row.bizType) }}</template>
-      </el-table-column>
-      <el-table-column label="方向" min-width="100">
-        <template #default="scope">{{ statusLabel(scope.row.direction) }}</template>
-      </el-table-column>
-      <el-table-column prop="amount" label="金额" min-width="120" />
-      <el-table-column prop="balanceBefore" label="变动前" min-width="120" />
-      <el-table-column prop="balanceAfter" label="变动后" min-width="120" />
-      <el-table-column prop="bizOrderNo" label="业务单号" min-width="160" />
-      <el-table-column prop="remark" label="备注" min-width="160" />
-      <el-table-column prop="createdAt" label="时间" min-width="160" />
-    </el-table>
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(billList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="billRow in billList" :key="billRow.billNo">
+        <RecordField label="账单号">{{ billRow.billNo }}</RecordField>
+        <RecordField label="会员ID">{{ billRow.memberId }}</RecordField>
+        <RecordField label="类型">{{ statusLabel(billRow.bizType) }}</RecordField>
+        <RecordField label="方向">{{ statusLabel(billRow.direction) }}</RecordField>
+        <RecordField label="金额">{{ billRow.amount }}</RecordField>
+        <RecordField label="变动前">{{ billRow.balanceBefore }}</RecordField>
+        <RecordField label="变动后">{{ billRow.balanceAfter }}</RecordField>
+        <RecordField label="业务单号">{{ billRow.bizOrderNo }}</RecordField>
+        <RecordField label="备注">{{ billRow.remark }}</RecordField>
+        <RecordField label="时间">{{ billRow.createdAt }}</RecordField>
+      </RecordCard>
+    </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
   </el-card>
 </template>
@@ -31,7 +30,10 @@
 import { onMounted, ref } from 'vue';
 import ListPager from '../../components/ListPager.vue';
 import QueryBar from '../../components/QueryBar.vue';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { FinanceBizType, PageSetting, statusLabel } from '../../utils/constants';
+import { isEmpty } from '../../utils/tools';
 import http from '../../utils/request';
 
 interface BillRow {

@@ -1,36 +1,35 @@
 <template>
   <el-card>
     <QueryBar @search="searchOrders" @reset="resetQuery">
-      <el-form-item label="核销码">
-        <el-input v-model="verifyCode" class="query-keyword" clearable />
+      <el-form-item>
+        <el-input v-model="verifyCode" v-place class="query-keyword" placeholder="核销码" clearable />
       </el-form-item>
     </QueryBar>
-    <el-table :data="orderList" stripe>
-      <el-table-column prop="orderNo" label="订单号" min-width="180" />
-      <el-table-column prop="memberName" label="会员" min-width="120" />
-      <el-table-column prop="mobile" label="手机号" min-width="140" />
-      <el-table-column prop="roomName" label="包厢" min-width="120" />
-      <el-table-column prop="bookingDate" label="日期" min-width="120" />
-      <el-table-column prop="startTime" label="开始" min-width="100" />
-      <el-table-column prop="endTime" label="结束" min-width="100" />
-      <el-table-column prop="amount" label="包厢费" min-width="100" />
-      <el-table-column prop="verifyCode" label="核销码" min-width="120" />
-      <el-table-column label="状态" min-width="120">
-        <template #default="scope">{{ statusLabel(scope.row.orderStatus) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" min-width="220">
-        <template #default="scope">
-          <el-button v-if="canVerify && scope.row.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="primary" @click="verifyOrder(scope.row.bookingOrderId)">核销</el-button>
-          <el-button v-if="canConsume && scope.row.orderStatus === KtvOrderStatus.VERIFIED" link type="primary" @click="openConsume(scope.row.bookingOrderId)">店内消费</el-button>
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(orderList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
+        <RecordField label="订单号">{{ orderRow.orderNo }}</RecordField>
+        <RecordField label="会员">{{ orderRow.memberName }}</RecordField>
+        <RecordField label="手机号">{{ orderRow.mobile }}</RecordField>
+        <RecordField label="包厢">{{ orderRow.roomName }}</RecordField>
+        <RecordField label="日期">{{ orderRow.bookingDate }}</RecordField>
+        <RecordField label="开始">{{ orderRow.startTime }}</RecordField>
+        <RecordField label="结束">{{ orderRow.endTime }}</RecordField>
+        <RecordField label="包厢费">{{ orderRow.amount }}</RecordField>
+        <RecordField label="核销码">{{ orderRow.verifyCode }}</RecordField>
+        <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
+        <template #actions>
+          <el-button v-if="canVerify && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="primary" @click="verifyOrder(orderRow.bookingOrderId)">核销</el-button>
+          <el-button v-if="canConsume && orderRow.orderStatus === KtvOrderStatus.VERIFIED" link type="primary" @click="openConsume(orderRow.bookingOrderId)">店内消费</el-button>
           <el-button
-            v-if="canCancel && (scope.row.orderStatus === KtvOrderStatus.PENDING_VERIFY || scope.row.orderStatus === KtvOrderStatus.VERIFIED)"
+            v-if="canCancel && (orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY || orderRow.orderStatus === KtvOrderStatus.VERIFIED)"
             link
             type="danger"
-            @click="cancelOrder(scope.row.bookingOrderId)"
+            @click="cancelOrder(orderRow.bookingOrderId)"
           >取消退款</el-button>
         </template>
-      </el-table-column>
-    </el-table>
+      </RecordCard>
+    </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="consumeVisible" title="店内消费" width="420px">
       <el-form label-width="80px">
@@ -50,7 +49,10 @@ import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ListPager from '../../components/ListPager.vue';
 import QueryBar from '../../components/QueryBar.vue';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { KtvOrderStatus, PageSetting, PermissionCode, statusLabel } from '../../utils/constants';
+import { isEmpty } from '../../utils/tools';
 import { useSessionStore } from '../../stores/session';
 import http from '../../utils/request';
 

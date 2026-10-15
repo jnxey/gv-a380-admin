@@ -1,16 +1,24 @@
 <template>
   <el-card>
     <QueryBar @search="searchMember" @reset="resetQuery">
-      <el-form-item label="会员">
-        <el-input v-model="keyword" class="query-keyword" placeholder="手机号 / 会员号 / 姓名" clearable />
+      <el-form-item>
+        <el-input v-model="keyword" v-place class="query-keyword" placeholder="手机号 / 会员号 / 姓名" clearable />
       </el-form-item>
     </QueryBar>
-    <el-table :data="memberList" stripe highlight-current-row @current-change="onSelectMember">
-      <el-table-column prop="memberNo" label="会员号" min-width="160" />
-      <el-table-column prop="memberName" label="姓名" min-width="120" />
-      <el-table-column prop="mobile" label="手机号" min-width="140" />
-      <el-table-column prop="balance" label="当前余额" min-width="120" />
-    </el-table>
+    <div class="record-list record-list--wide-table">
+      <div v-if="isEmpty(memberList)" class="record-empty">暂无数据</div>
+      <RecordCard
+        v-for="memberRow in memberList"
+        :key="memberRow.memberId"
+        :selected="selectedMemberId === memberRow.memberId"
+        @click="onSelectMember(memberRow)"
+      >
+        <RecordField label="会员号">{{ memberRow.memberNo }}</RecordField>
+        <RecordField label="姓名">{{ memberRow.memberName }}</RecordField>
+        <RecordField label="手机号">{{ memberRow.mobile }}</RecordField>
+        <RecordField label="当前余额">{{ memberRow.balance }}</RecordField>
+      </RecordCard>
+    </div>
     <el-form class="recharge-form" label-width="80px">
       <el-form-item label="充值金额">
         <el-input v-model="amount" />
@@ -29,6 +37,8 @@
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import QueryBar from '../../components/QueryBar.vue';
+import RecordCard from '../../components/RecordCard.vue';
+import RecordField from '../../components/RecordField.vue';
 import { PageSetting } from '../../utils/constants';
 import { isEmpty } from '../../utils/tools';
 import http from '../../utils/request';

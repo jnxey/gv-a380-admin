@@ -1,9 +1,10 @@
 <template>
   <div class="admin-layout">
-    <aside class="admin-aside" :class="{ 'is-collapsed': menuCollapsed }">
+    <div v-if="menuDrawerOpen" class="admin-mask" @click="closeMenuDrawer" />
+    <aside class="admin-aside" :class="{ 'is-collapsed': menuCollapsedForLayout, 'is-drawer-open': menuDrawerOpen }">
       <div class="admin-brand">
         <img class="admin-brand-mark" src="/favicon.svg" alt="" />
-        <span v-if="menuCollapsed !== true" class="admin-brand-text">
+        <span v-if="menuCollapsedForLayout !== true" class="admin-brand-text">
           <span class="admin-brand-name">A380</span>
           <span class="admin-brand-sub">管理后台</span>
         </span>
@@ -12,9 +13,10 @@
         <el-menu
           :default-active="route.path"
           :default-openeds="openedMenuPathList"
-          :collapse="menuCollapsed"
+          :collapse="menuCollapsedForLayout"
           :collapse-transition="false"
           router
+          @select="closeMenuDrawer"
         >
           <el-sub-menu v-for="menu in sessionStore.menuTree" :key="menu.menuId" :index="menu.menuPath">
             <template #title>
@@ -42,10 +44,17 @@
     </aside>
     <div class="admin-main">
       <header class="admin-header">
-        <span class="admin-title">{{ currentPageTitle }}</span>
+        <div class="header-left">
+          <button type="button" class="header-menu" aria-label="打开菜单" @click="openMenuDrawer">
+            <svg class="header-menu-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
+          <span class="admin-title">{{ currentPageTitle }}</span>
+        </div>
         <div class="header-right">
           <ShopSwitcher />
-          <el-popover trigger="hover" placement="bottom-end" :width="168">
+          <el-popover v-model:visible="accountMenuVisible" trigger="click" placement="bottom-end" :width="168">
             <template #reference>
               <button type="button" class="header-avatar" aria-label="账号菜单">
                 <img class="header-avatar-image" src="/avatar.png" alt="" />
@@ -67,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ShopSwitcher from '../components/ShopSwitcher.vue';
 import MenuIcon from './MenuIcon.vue';
@@ -79,6 +88,10 @@ const route = useRoute();
 const router = useRouter();
 const sessionStore = useSessionStore();
 const menuCollapsed = ref(false);
+const menuDrawerOpen = ref(false);
+const accountMenuVisible = ref(false);
+const narrowScreen = ref(false);
+const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 
 /**
  * 门店或路由变化时重挂页面，让列表按新门店重新请求。
@@ -115,6 +128,35 @@ const openedMenuPathList = computed(() => {
 });
 
 /**
+ * 宽屏沿用收起状态。窄屏抽屉始终展开文字。
+ */
+const menuCollapsedForLayout = computed(() => narrowScreen.value !== true && menuCollapsed.value === true);
+
+/**
+ * 按屏幕宽度切换抽屉。回到宽屏时关掉抽屉。
+ */
+function syncNarrowScreen(): void {
+  narrowScreen.value = narrowScreenQuery.matches;
+  if (narrowScreen.value !== true) {
+    menuDrawerOpen.value = false;
+  }
+}
+
+/**
+ * 打开窄屏侧栏抽屉。
+ */
+function openMenuDrawer(): void {
+  menuDrawerOpen.value = true;
+}
+
+/**
+ * 关闭窄屏侧栏抽屉。
+ */
+function closeMenuDrawer(): void {
+  menuDrawerOpen.value = false;
+}
+
+/**
  * 切换左侧菜单的收起和展开。刷新页面后恢复展开。
  */
 function toggleMenuCollapsed(): void {
@@ -125,6 +167,7 @@ function toggleMenuCollapsed(): void {
  * 打开个人中心。
  */
 function openAccountCenter(): void {
+  accountMenuVisible.value = false;
   router.push(AccountCenter.PATH);
 }
 
@@ -132,8 +175,18 @@ function openAccountCenter(): void {
  * 退出并作废当前令牌。
  */
 async function onLogout(): Promise<void> {
+  accountMenuVisible.value = false;
   await sessionStore.logout(router);
 }
+
+onMounted(() => {
+  syncNarrowScreen();
+  narrowScreenQuery.addEventListener('change', syncNarrowScreen);
+});
+
+onBeforeUnmount(() => {
+  narrowScreenQuery.removeEventListener('change', syncNarrowScreen);
+});
 </script>
 
 <style scoped>
@@ -306,6 +359,10 @@ async function onLogout(): Promise<void> {
   flex-direction: column;
 }
 
+.admin-mask {
+  display: none;
+}
+
 .admin-header {
   height: 56px;
   box-sizing: border-box;
@@ -313,12 +370,50 @@ async function onLogout(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 0 24px;
   background: var(--admin-surface);
   border-bottom: 1px solid var(--admin-border);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-menu {
+  display: none;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--admin-text);
+  cursor: pointer;
+}
+
+.header-menu-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .admin-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 16px;
   font-weight: 600;
   color: var(--admin-text);
@@ -328,6 +423,8 @@ async function onLogout(): Promise<void> {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .header-avatar {
@@ -379,5 +476,42 @@ async function onLogout(): Promise<void> {
   overflow: auto;
   padding: 12px;
   background: #f4f6f8;
+}
+
+@media (max-width: 768px) {
+  .admin-mask {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: rgba(28, 36, 52, 0.45);
+  }
+
+  .admin-aside,
+  .admin-aside.is-collapsed {
+    position: fixed;
+    z-index: 30;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 232px;
+    transform: translateX(-100%);
+  }
+
+  .admin-aside.is-drawer-open {
+    transform: translateX(0);
+  }
+
+  .admin-menu-toggle {
+    display: none;
+  }
+
+  .header-menu {
+    display: inline-flex;
+  }
+
+  .admin-header {
+    padding: 0 12px;
+  }
 }
 </style>

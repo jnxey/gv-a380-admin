@@ -1,0 +1,112 @@
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 1200px) {
+  .el-card__body:has(.record-list--wide-table) {
+    overflow-x: hidden;
+  }
+
+  .record-list.record-list--wide-table {
+    display: table;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    table-layout: fixed;
+    border-collapse: collapse;
+    gap: 0;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e6e8ec;
+    border-radius: 8px;
+  }
+
+  .record-list.record-list--wide-table > .record-empty {
+    display: table-caption;
+    caption-side: bottom;
+  }
+
+  .record-list.record-list--wide-table .record-card {
+    display: table-row;
+    padding: 0;
+    background: #ffffff;
+    border: none;
+    border-radius: 0;
+  }
+
+  .record-list.record-list--wide-table .record-card.is-selected {
+    background: #e8f0fe;
+    border: none;
+  }
+
+  .record-list.record-list--wide-table .record-card.is-selectable .record-field,
+  .record-list.record-list--wide-table .record-card.is-selectable .record-actions {
+    cursor: pointer;
+  }
+
+  .record-list.record-list--wide-table .record-fields {
+    display: contents;
+  }
+
+  .record-list.record-list--wide-table .record-field,
+  .record-list.record-list--wide-table .record-actions,
+  .record-list.record-list--wide-table .record-actions.is-empty {
+    display: table-cell;
+    vertical-align: middle;
+    min-width: 0;
+    margin: 0;
+    padding: 10px 12px;
+    overflow: hidden;
+    word-break: break-word;
+    border: none;
+    border-bottom: 1px solid #e6e8ec;
+  }
+
+  .record-list.record-list--wide-table .record-card:not(:first-of-type) .record-field-label {
+    display: none;
+  }
+
+  .record-list.record-list--wide-table .record-card:first-of-type .record-field,
+  .record-list.record-list--wide-table .record-card:first-of-type .record-actions,
+  .record-list.record-list--wide-table .record-card:first-of-type .record-actions.is-empty {
+    padding: 0;
+    vertical-align: top;
+  }
+
+  .record-list.record-list--wide-table .record-card:first-of-type .record-field-label,
+  .record-list.record-list--wide-table .record-card:first-of-type .record-actions::before {
+    display: block;
+    box-sizing: border-box;
+    width: auto;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: #303133;
+    background: #f0f2f5;
+  }
+
+  .record-list.record-list--wide-table .record-card:first-of-type .record-actions::before {
+    content: '操作';
+  }
+
+  .record-list.record-list--wide-table .record-card:first-of-type .record-field-value {
+    padding: 10px 12px;
+  }
+
+  .record-list.record-list--wide-table .record-card:first-of-type .record-actions .el-button {
+    margin: 10px 12px 10px 0;
+  }
+
+  .record-list.record-list--wide-table .record-card:first-of-type .record-actions .el-button:first-child {
+    margin-left: 12px;
+  }
+}
+
+.record-empty {
+  padding: 32px 0;
+  text-align: center;
+  color: #667085;
+}

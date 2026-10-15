@@ -23,8 +23,14 @@ const emit = defineEmits<{
   border-radius: 8px;
 }
 
+.query-bar :deep(.el-form-item) {
+  margin-right: 12px;
+  max-width: 100%;
+}
+
 .query-bar :deep(.query-keyword) {
-  width: 280px;
+  width: 180px;
+  max-width: 100%;
 }
 
 .query-actions :deep(.el-form-item__content) {
