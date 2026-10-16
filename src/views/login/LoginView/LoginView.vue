@@ -20,7 +20,9 @@
       </section>
 
       <div class="login-card-shell">
-        <div class="login-card-glow" aria-hidden="true"></div>
+        <div class="login-card-glow-mask" aria-hidden="true">
+          <div class="login-card-glow"></div>
+        </div>
         <el-card class="login-card" shadow="never">
           <p class="login-card-kicker">账号登录</p>
           <h2>欢迎回来</h2>
@@ -210,6 +212,15 @@ async function onSubmit(): Promise<void> {
   border-radius: 22px;
   padding: 1px;
   overflow: hidden;
+}
+
+.login-card-glow-mask {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 18%, transparent 46%, transparent 54%, #000 82%, #000 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 18%, transparent 46%, transparent 54%, #000 82%, #000 100%);
 }
 
 .login-card-glow {
