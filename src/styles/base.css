@@ -72,6 +72,11 @@ label {
   --el-card-padding: 12px;
 }
 
+.el-upload--picture-card,
+.el-upload-list--picture-card {
+  --el-upload-picture-card-size: 80px;
+}
+
 .el-dialog {
   --el-dialog-border-radius: 12px;
   --el-message-close-size: 20px;
