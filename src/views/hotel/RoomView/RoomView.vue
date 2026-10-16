@@ -17,34 +17,12 @@
       </RecordCard>
     </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
-    <el-dialog v-model="dialogVisible" :title="editingRoomId === '' ? '新建房间' : '编辑房间'" width="480px">
-      <el-form label-position="top">
-        <el-form-item label="房型">
-          <el-select v-model="roomForm.roomTypeId">
-            <el-option v-for="roomType in roomTypeList" :key="roomType.id" :label="roomType.typeName" :value="roomType.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="房号"><el-input v-model="roomForm.roomNo" /></el-form-item>
-        <el-form-item label="楼层"><el-input v-model="roomForm.floorNo" /></el-form-item>
-        <el-form-item label="房态">
-          <el-select v-model="roomForm.roomStatus">
-            <el-option label="空闲" :value="HotelRoomStatus.IDLE" />
-            <el-option label="在住" :value="HotelRoomStatus.OCCUPIED" />
-            <el-option label="维修" :value="HotelRoomStatus.MAINTENANCE" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button size="large" @click="dialogVisible = false">取消</el-button>
-        <el-button size="large" type="primary" @click="saveRoom">保存</el-button>
-      </template>
-    </el-dialog>
+    <RoomDialog v-model="dialogVisible" :room="editingRoom" :room-type-list="roomTypeList" @saved="loadRooms" />
   </el-card>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { onMounted, ref } from 'vue';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
@@ -53,35 +31,17 @@ import { HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../..
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
-
-interface RoomRow {
-  id: string;
-  roomNo: string;
-  floorNo: string;
-  roomTypeId: string;
-  roomStatus: string;
-}
-
-interface RoomTypeRow {
-  id: string;
-  typeName: string;
-}
+import RoomDialog, { type RoomRow, type RoomTypeOption } from './RoomDialog.vue';
 
 const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.HOTEL_ROOM_SAVE);
 const roomList = ref<RoomRow[]>([]);
-const roomTypeList = ref<RoomTypeRow[]>([]);
+const roomTypeList = ref<RoomTypeOption[]>([]);
 const total = ref(0);
 const page = ref<number>(PageSetting.DEFAULT_PAGE);
 const pageSize = ref<number>(PageSetting.DEFAULT_PAGE_SIZE);
 const dialogVisible = ref(false);
-const editingRoomId = ref('');
-const roomForm = reactive({
-  roomTypeId: '',
-  roomNo: '',
-  floorNo: '',
-  roomStatus: HotelRoomStatus.IDLE as string,
-});
+const editingRoom = ref<RoomRow | null>(null);
 
 /**
  * 分页查询当前门店房间，并加载房型名称。
@@ -90,7 +50,7 @@ async function loadRooms(): Promise<void> {
   const roomPage = (await http.get('/admin/hotel/rooms', {
     params: { page: page.value, pageSize: pageSize.value },
   })) as { list: RoomRow[]; total: number };
-  const roomTypePage = (await http.get('/admin/hotel/room-types')) as { list: RoomTypeRow[] };
+  const roomTypePage = (await http.get('/admin/hotel/room-types')) as { list: RoomTypeOption[] };
   roomList.value = roomPage.list;
   total.value = roomPage.total;
   roomTypeList.value = roomTypePage.list;
@@ -124,11 +84,7 @@ function roomStatusTagType(roomStatus: string): 'success' | 'warning' | 'info' {
  * 打开新建房间。
  */
 function openCreate(): void {
-  editingRoomId.value = '';
-  roomForm.roomTypeId = isEmpty(roomTypeList.value[0]) ? '' : roomTypeList.value[0].id;
-  roomForm.roomNo = '';
-  roomForm.floorNo = '';
-  roomForm.roomStatus = HotelRoomStatus.IDLE;
+  editingRoom.value = null;
   dialogVisible.value = true;
 }
 
@@ -136,26 +92,8 @@ function openCreate(): void {
  * 打开编辑房间。
  */
 function openEdit(roomRow: RoomRow): void {
-  editingRoomId.value = roomRow.id;
-  roomForm.roomTypeId = roomRow.roomTypeId;
-  roomForm.roomNo = roomRow.roomNo;
-  roomForm.floorNo = roomRow.floorNo;
-  roomForm.roomStatus = roomRow.roomStatus;
+  editingRoom.value = roomRow;
   dialogVisible.value = true;
-}
-
-/**
- * 保存房间到当前门店。
- */
-async function saveRoom(): Promise<void> {
-  if (isEmpty(editingRoomId.value)) {
-    await http.post('/admin/hotel/rooms', roomForm);
-  } else {
-    await http.put(`/admin/hotel/rooms/${editingRoomId.value}`, roomForm);
-  }
-  ElMessage.success('保存成功');
-  dialogVisible.value = false;
-  await loadRooms();
 }
 
 /**
