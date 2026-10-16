@@ -1,10 +1,10 @@
 <template>
   <el-card v-if="showSwitcher" class="shop-switcher-card">
-    <div class="shop-switcher-heading">
+    <div class="shop-switcher">
       <AppIcon class="shop-switcher-icon" :icon-name="MenuIconName.KTV_SHOP" />
-      <span>当前门店</span>
+      <span class="shop-switcher-divider" aria-hidden="true"></span>
+      <el-segmented v-model="selectedShopId" :options="shopOptionList" />
     </div>
-    <el-segmented v-model="selectedShopId" :options="shopOptionList" size="large" />
   </el-card>
 </template>
 
@@ -77,19 +77,23 @@ function shopLabel(shop: ShopOption): string {
   margin-bottom: 12px;
 }
 
-.shop-switcher-heading {
+.shop-switcher {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #667085;
+  gap: 12px;
 }
 
 .shop-switcher-icon {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.shop-switcher-divider {
+  width: 1px;
+  height: 20px;
+  flex-shrink: 0;
+  background: #e6e8ec;
 }
 
 .shop-switcher-card :deep(.el-segmented) {
