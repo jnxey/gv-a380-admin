@@ -73,6 +73,7 @@ import type { UploadRequestOptions, UploadUserFile } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { PermissionCode, RecordStatus, ShopImageLimit, ShopImageMime, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
+import { limitImageWidth, replaceUploadRawFile } from '../../../utils/image';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -166,11 +167,11 @@ function openEdit(shopRow: ShopRow): void {
 }
 
 /**
- * 只允许 jpg、png、webp，且不超过大小上限。
+ * 只允许 jpg、png、webp，且不超过大小上限。通过后把过宽的图缩小。
  */
-function beforeUploadShopImage(file: File): boolean {
+async function beforeUploadShopImage(file: File): Promise<boolean | File> {
   const mimeAllowed = file.type === ShopImageMime.JPEG || file.type === ShopImageMime.PNG || file.type === ShopImageMime.WEBP;
-  if (mimeAllowed !== true) {
+  if (!mimeAllowed) {
     ElMessage.error('只支持 jpg、png、webp');
     return false;
   }
@@ -178,7 +179,7 @@ function beforeUploadShopImage(file: File): boolean {
     ElMessage.error('图片不能超过5MB');
     return false;
   }
-  return true;
+  return limitImageWidth(file);
 }
 
 /**
@@ -192,6 +193,7 @@ function onShopImageExceed(): void {
  * 编辑时立即上传。新建时只留在列表里，等门店保存成功后再传。
  */
 async function uploadShopImage(options: UploadRequestOptions): Promise<void> {
+  replaceUploadRawFile(shopImageFileList.value, options.file);
   if (isEmpty(editingShopId.value)) {
     options.onSuccess({});
     return;

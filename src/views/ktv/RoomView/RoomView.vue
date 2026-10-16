@@ -79,6 +79,7 @@ import type { UploadRequestOptions, UploadUserFile } from 'element-plus';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { KtvRoomType, PermissionCode, RecordStatus, ShopImageLimit, ShopImageMime, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
+import { limitImageWidth, replaceUploadRawFile } from '../../../utils/image';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -194,11 +195,11 @@ async function saveRoom(): Promise<void> {
 }
 
 /**
- * 只允许 jpg、png、webp，且不超过大小上限。
+ * 只允许 jpg、png、webp，且不超过大小上限。通过后把过宽的图缩小。
  */
-function beforeUploadRoomImage(file: File): boolean {
+async function beforeUploadRoomImage(file: File): Promise<boolean | File> {
   const mimeAllowed = file.type === ShopImageMime.JPEG || file.type === ShopImageMime.PNG || file.type === ShopImageMime.WEBP;
-  if (mimeAllowed !== true) {
+  if (!mimeAllowed) {
     ElMessage.error('只支持 jpg、png、webp');
     return false;
   }
@@ -206,7 +207,7 @@ function beforeUploadRoomImage(file: File): boolean {
     ElMessage.error('图片不能超过5MB');
     return false;
   }
-  return true;
+  return limitImageWidth(file);
 }
 
 /**
@@ -220,6 +221,7 @@ function onRoomImageExceed(): void {
  * 编辑时立即上传。新建时只留在列表里，等包厢保存成功后再传。
  */
 async function uploadRoomImage(options: UploadRequestOptions): Promise<void> {
+  replaceUploadRawFile(roomImageFileList.value, options.file);
   if (isEmpty(editingRoomId.value)) {
     options.onSuccess({});
     return;

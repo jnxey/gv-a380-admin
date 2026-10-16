@@ -21,11 +21,12 @@ export const ShopType = {
 } as const;
 
 /**
- * 门店图片数量和大小上限，与服务端一致。
+ * 图片数量、文件大小和宽度上限。数量和大小与服务端一致，宽度在上传前压缩。
  */
 export const ShopImageLimit = {
   MAX_COUNT: 6,
   MAX_BYTES: 5 * 1024 * 1024,
+  MAX_WIDTH: 750,
 } as const;
 
 /**
