@@ -2,7 +2,7 @@
   <ShopSwitcher />
   <el-card>
     <div v-if="isEmpty(roomTypeList) && canSave !== true" class="room-type-empty">暂无数据</div>
-    <div v-else class="room-type-grid">
+    <div v-else ref="sortListRef" class="room-type-grid">
       <button v-if="canSave" type="button" class="room-type-card room-type-create" @click="openCreate">
         <span class="room-type-create-plus">+</span>
         <span>新建类型</span>
@@ -13,7 +13,19 @@
           <span v-else class="room-type-cover-empty">暂无图片</span>
         </div>
         <div class="room-type-body">
-          <div class="room-type-name">{{ roomTypeRow.typeName }}</div>
+          <div class="room-type-name name-box" :data-key="roomTypeRow.id">
+            <button v-if="canSave" type="button" class="drag-icon">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M5.33333 5.33335C6.06971 5.33335 6.66667 4.7364 6.66667 4.00002C6.66667 3.26364 6.06971 2.66669 5.33333 2.66669C4.59695 2.66669 4 3.26364 4 4.00002C4 4.7364 4.59695 5.33335 5.33333 5.33335ZM10.6667 5.33335C11.403 5.33335 12 4.7364 12 4.00002C12 3.26364 11.403 2.66669 10.6667 2.66669C9.93029 2.66669 9.33333 3.26364 9.33333 4.00002C9.33333 4.7364 9.93029 5.33335 10.6667 5.33335ZM6.66667 8.00002C6.66667 8.7364 6.06971 9.33335 5.33333 9.33335C4.59695 9.33335 4 8.7364 4 8.00002C4 7.26364 4.59695 6.66669 5.33333 6.66669C6.06971 6.66669 6.66667 7.26364 6.66667 8.00002ZM10.6667 9.33335C11.403 9.33335 12 8.7364 12 8.00002C12 7.26364 11.403 6.66669 10.6667 6.66669C9.93029 6.66669 9.33333 7.26364 9.33333 8.00002C9.33333 8.7364 9.93029 9.33335 10.6667 9.33335ZM6.66667 12C6.66667 12.7364 6.06971 13.3334 5.33333 13.3334C4.59695 13.3334 4 12.7364 4 12C4 11.2636 4.59695 10.6667 5.33333 10.6667C6.06971 10.6667 6.66667 11.2636 6.66667 12ZM10.6667 13.3334C11.403 13.3334 12 12.7364 12 12C12 11.2636 11.403 10.6667 10.6667 10.6667C9.93029 10.6667 9.33333 11.2636 9.33333 12C9.33333 12.7364 9.93029 13.3334 10.6667 13.3334Z"
+                />
+              </svg>
+            </button>
+            <span>{{ roomTypeRow.typeName }}</span>
+          </div>
           <div class="room-type-meta">{{ roomTypeRow.hourlyPrice }}</div>
           <div class="room-type-foot">
             <el-tag :type="roomTypeRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
@@ -35,13 +47,20 @@ import { PermissionCode, RecordStatus, statusLabel } from '../../../utils/consta
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
+import { useDragSort } from '../../../hooks/drag-sort';
 import RoomTypeDialog, { type RoomTypeRow } from './RoomTypeDialog.vue';
 
 const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.KTV_ROOM_TYPE_SAVE);
 const roomTypeList = ref<RoomTypeRow[]>([]);
+const sortListRef = ref<HTMLElement | null>(null);
 const dialogVisible = ref(false);
 const editingRoomType = ref<RoomTypeRow | null>(null);
+const { initDragSort } = useDragSort(
+  () => sortListRef.value,
+  () => canSave === true,
+  saveRoomTypeSort,
+);
 
 /**
  * 封面用第一张类型图片。没有图片时返回空字符串。
@@ -59,6 +78,7 @@ function coverImageUrl(roomTypeRow: RoomTypeRow): string {
 async function loadRoomTypes(): Promise<void> {
   const pageResult = (await http.get('/admin/ktv/room-types')) as { list: RoomTypeRow[] };
   roomTypeList.value = pageResult.list;
+  await initDragSort();
 }
 
 /**
@@ -75,6 +95,25 @@ function openCreate(): void {
 function openEdit(roomTypeRow: RoomTypeRow): void {
   editingRoomType.value = roomTypeRow;
   dialogVisible.value = true;
+}
+
+/**
+ * 按拖动后的编号顺序保存包厢类型。失败时重新查询。
+ */
+async function saveRoomTypeSort(idList: string[]): Promise<void> {
+  roomTypeList.value = idList.flatMap((recordId) => {
+    const roomTypeRow = roomTypeList.value.find((item) => item.id === recordId);
+    if (isEmpty(roomTypeRow)) {
+      return [];
+    }
+    return [roomTypeRow];
+  });
+  try {
+    await http.put('/admin/ktv/room-types/sort', { idList });
+  } catch (error) {
+    void error;
+    await loadRoomTypes();
+  }
 }
 
 onMounted(() => {
@@ -143,10 +182,30 @@ onMounted(() => {
 }
 
 .room-type-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 16px;
   font-weight: 600;
   color: #1c2434;
   word-break: break-word;
+}
+
+.drag-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: #98a2b3;
+  cursor: move;
+  background: transparent;
+  border: none;
+}
+
+.drag-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .room-type-meta {
