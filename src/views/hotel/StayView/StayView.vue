@@ -1,6 +1,6 @@
 <template>
+  <ShopSwitcher />
   <el-card>
-    <ShopSwitcher />
     <div class="record-list record-list--wide-table">
       <div v-if="isEmpty(orderList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
@@ -182,10 +182,4 @@ onMounted(() => {
   void loadOrders();
 });
 </script>
-
-<style scoped>
-.shop-switcher {
-  margin-bottom: 12px;
-}
-</style>
 

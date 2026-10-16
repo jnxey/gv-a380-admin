@@ -1,9 +1,7 @@
 <template>
+  <ShopSwitcher />
   <el-card>
-    <div class="page-toolbar">
-      <ShopSwitcher />
-      <el-button v-if="canSave" type="primary" @click="openCreate">新建房型</el-button>
-    </div>
+    <el-button v-if="canSave" type="primary" @click="openCreate">新建房型</el-button>
     <div class="record-list record-list--wide-table">
       <div v-if="isEmpty(roomTypeList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="roomTypeRow in roomTypeList" :key="roomTypeRow.id">
@@ -144,12 +142,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .record-list {
   margin-top: 16px;
 }

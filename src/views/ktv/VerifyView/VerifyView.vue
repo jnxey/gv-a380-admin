@@ -1,6 +1,6 @@
 <template>
+  <ShopSwitcher />
   <el-card>
-    <ShopSwitcher />
     <QueryBar @search="searchOrders" @reset="resetQuery">
       <el-form-item>
         <el-input v-model="verifyCode" v-place class="query-keyword" placeholder="核销码" clearable />
@@ -168,10 +168,4 @@ onMounted(() => {
   void loadOrders();
 });
 </script>
-
-<style scoped>
-.shop-switcher {
-  margin-bottom: 12px;
-}
-</style>
 

@@ -243,6 +243,13 @@ async function onSubmit(): Promise<void> {
   --el-border-color: rgba(255, 255, 255, 0.12);
   --el-border-color-hover: rgba(232, 195, 122, 0.7);
   --el-color-primary: #e0b15a;
+  --el-color-primary-rgb: 224, 177, 90;
+  --el-color-primary-light-3: #e9c88c;
+  --el-color-primary-light-5: #f0d8ad;
+  --el-color-primary-light-7: #f6e8ce;
+  --el-color-primary-light-8: #f9efde;
+  --el-color-primary-light-9: #fcf7ef;
+  --el-color-primary-dark-2: #b38e48;
 }
 
 .login-card :deep(.el-card__body) {
