@@ -26,9 +26,7 @@
             </button>
             <span>{{ roomTypeRow.typeName }}</span>
           </div>
-          <div class="room-type-meta">
-            {{ roomTypeRow.bedType === HotelBedType.TWIN ? '双床' : '大床' }} · {{ roomTypeRow.price }}
-          </div>
+          <div class="room-type-meta">{{ roomTypeRow.price }}</div>
           <div class="room-type-foot">
             <el-tag :type="roomTypeRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
               {{ statusLabel(roomTypeRow.status) }}
@@ -45,7 +43,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import { HotelBedType, PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
+import { PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';

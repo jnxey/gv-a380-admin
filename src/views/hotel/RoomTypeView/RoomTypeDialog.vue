@@ -2,12 +2,6 @@
   <el-dialog v-model="visible" :title="isEmpty(roomType) ? '新建房型' : '编辑房型'" width="480px">
     <el-form label-position="top">
       <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
-      <el-form-item label="床型">
-        <el-select v-model="roomTypeForm.bedType">
-          <el-option label="大床" :value="HotelBedType.LARGE" />
-          <el-option label="双床" :value="HotelBedType.TWIN" />
-        </el-select>
-      </el-form-item>
       <el-form-item label="每晚价格"><el-input v-model="roomTypeForm.price" /></el-form-item>
       <el-form-item label="状态">
         <el-select v-model="roomTypeForm.status">
@@ -46,7 +40,7 @@
 import { reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { UploadRequestOptions, UploadUserFile } from 'element-plus';
-import { HotelBedType, RecordStatus, ShopImageLimit, ShopImageMime } from '../../../utils/constants';
+import { RecordStatus, ShopImageLimit, ShopImageMime } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { limitImageWidth, replaceUploadRawFile } from '../../../utils/image';
 import http from '../../../utils/request';
@@ -59,7 +53,6 @@ export interface RoomTypeImageView {
 export interface RoomTypeRow {
   id: string;
   typeName: string;
-  bedType: string;
   price: string;
   status: string;
   imageList: RoomTypeImageView[];
@@ -84,7 +77,6 @@ const previewVisible = ref(false);
 const previewUrl = ref('');
 const roomTypeForm = reactive({
   typeName: '',
-  bedType: HotelBedType.LARGE as string,
   price: '',
   status: RecordStatus.ENABLED as string,
 });
@@ -106,7 +98,6 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
   if (isEmpty(roomTypeRow)) {
     editingId.value = '';
     roomTypeForm.typeName = '';
-    roomTypeForm.bedType = HotelBedType.LARGE;
     roomTypeForm.price = '';
     roomTypeForm.status = RecordStatus.ENABLED;
     roomTypeImageFileList.value = [];
@@ -114,7 +105,6 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
   }
   editingId.value = roomTypeRow.id;
   roomTypeForm.typeName = roomTypeRow.typeName;
-  roomTypeForm.bedType = roomTypeRow.bedType;
   roomTypeForm.price = roomTypeRow.price;
   roomTypeForm.status = roomTypeRow.status;
   const imageList = isEmpty(roomTypeRow.imageList) ? [] : roomTypeRow.imageList;

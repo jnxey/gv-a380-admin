@@ -23,7 +23,6 @@
         <RecordField label="编号">{{ roomRow.roomNo }}</RecordField>
         <RecordField label="类型">{{ roomTypeName(roomRow.roomTypeId) }}</RecordField>
         <RecordField label="人数">{{ roomRow.capacity }}</RecordField>
-        <RecordField label="价格">{{ roomRow.price }}</RecordField>
         <RecordField label="状态">
           <el-tag :type="roomRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
             {{ statusLabel(roomRow.status) }}

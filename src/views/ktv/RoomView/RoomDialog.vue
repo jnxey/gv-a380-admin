@@ -9,7 +9,6 @@
         </el-select>
       </el-form-item>
       <el-form-item label="人数"><el-input v-model.number="roomForm.capacity" /></el-form-item>
-      <el-form-item label="价格"><el-input v-model="roomForm.price" /></el-form-item>
       <el-form-item label="状态">
         <el-select v-model="roomForm.status">
           <el-option label="启用" :value="RecordStatus.ENABLED" />
@@ -42,7 +41,6 @@ export interface RoomRow {
   roomName: string;
   roomTypeId: string;
   capacity: number;
-  price: string;
   status: string;
 }
 
@@ -61,7 +59,6 @@ const roomForm = reactive({
   roomName: '',
   roomTypeId: '',
   capacity: 4,
-  price: '',
   status: RecordStatus.ENABLED as string,
 });
 
@@ -85,7 +82,6 @@ function fillRoomForm(roomRow: RoomRow | null): void {
     roomForm.roomName = '';
     roomForm.roomTypeId = isEmpty(props.roomTypeList[0]) ? '' : props.roomTypeList[0].id;
     roomForm.capacity = 4;
-    roomForm.price = '';
     roomForm.status = RecordStatus.ENABLED;
     return;
   }
@@ -94,7 +90,6 @@ function fillRoomForm(roomRow: RoomRow | null): void {
   roomForm.roomName = roomRow.roomName;
   roomForm.roomTypeId = roomRow.roomTypeId;
   roomForm.capacity = roomRow.capacity;
-  roomForm.price = roomRow.price;
   roomForm.status = roomRow.status;
 }
 

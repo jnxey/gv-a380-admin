@@ -104,11 +104,6 @@ export const HotelRoomStatus = {
   MAINTENANCE: 'MAINTENANCE',
 } as const;
 
-export const HotelBedType = {
-  LARGE: 'LARGE',
-  TWIN: 'TWIN',
-} as const;
-
 export const FinanceBizType = {
   RECHARGE: 'RECHARGE',
   KTV_BOOKING: 'KTV_BOOKING',
