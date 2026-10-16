@@ -41,6 +41,7 @@ export const ShopImageMime = {
 export const PermissionCode = {
   KTV_SHOP_SAVE: 'ktv:shop:save',
   KTV_ROOM_SAVE: 'ktv:room:save',
+  KTV_ROOM_TYPE_SAVE: 'ktv:room-type:save',
   KTV_ORDER_VERIFY: 'ktv:order:verify',
   KTV_ORDER_CONSUME: 'ktv:order:consume',
   KTV_ORDER_CANCEL: 'ktv:order:cancel',
@@ -80,12 +81,6 @@ export const AssignTreeNodeKey = {
 export const RecordStatus = {
   ENABLED: 'ENABLED',
   DISABLED: 'DISABLED',
-} as const;
-
-export const KtvRoomType = {
-  SMALL: 'SMALL',
-  MEDIUM: 'MEDIUM',
-  LARGE: 'LARGE',
 } as const;
 
 export const KtvOrderStatus = {
@@ -180,6 +175,7 @@ export const menuIconNameByPath: Record<string, string> = {
   '/finance/bill': MenuIconName.FINANCE_BILL,
   '/ktv': MenuIconName.KTV,
   '/ktv/shop': MenuIconName.KTV_SHOP,
+  '/ktv/room-type': MenuIconName.HOTEL_ROOM_TYPE,
   '/ktv/room': MenuIconName.KTV_ROOM,
   '/ktv/verify': MenuIconName.KTV_VERIFY,
   '/hotel': MenuIconName.HOTEL,
@@ -206,8 +202,6 @@ export const statusLabelMap: Record<string, string> = {
   IDLE: '空闲',
   OCCUPIED: '在住',
   MAINTENANCE: '维修',
-  SMALL: '小包',
-  MEDIUM: '中包',
   LARGE: '大床/大包',
   TWIN: '双床',
   RECHARGE: '充值',

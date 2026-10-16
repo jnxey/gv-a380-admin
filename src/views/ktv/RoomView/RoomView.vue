@@ -10,7 +10,7 @@
       <article v-for="roomRow in roomList" :key="roomRow.id" class="room-card">
         <div class="room-body">
           <div class="room-name">{{ roomRow.roomName }}</div>
-          <div class="room-meta">{{ roomRow.roomNo }} · {{ statusLabel(roomRow.roomType) }} · {{ roomRow.capacity }}人</div>
+          <div class="room-meta">{{ roomRow.roomNo }} · {{ roomTypeName(roomRow.roomTypeId) }} · {{ roomRow.capacity }}人</div>
           <div class="room-price">{{ roomRow.price }}</div>
           <div class="room-foot">
             <el-tag :type="roomRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
@@ -26,10 +26,8 @@
         <el-form-item label="编号"><el-input v-model="roomForm.roomNo" /></el-form-item>
         <el-form-item label="名称"><el-input v-model="roomForm.roomName" /></el-form-item>
         <el-form-item label="类型">
-          <el-select v-model="roomForm.roomType">
-            <el-option label="小包" :value="KtvRoomType.SMALL" />
-            <el-option label="中包" :value="KtvRoomType.MEDIUM" />
-            <el-option label="大包" :value="KtvRoomType.LARGE" />
+          <el-select v-model="roomForm.roomTypeId">
+            <el-option v-for="roomType in roomTypeList" :key="roomType.id" :label="roomType.typeName" :value="roomType.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="人数"><el-input v-model.number="roomForm.capacity" /></el-form-item>
@@ -53,16 +51,21 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import { KtvRoomType, PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
+import { PageSetting, PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
+
+interface RoomTypeRow {
+  id: string;
+  typeName: string;
+}
 
 interface RoomRow {
   id: string;
   roomNo: string;
   roomName: string;
-  roomType: string;
+  roomTypeId: string;
   capacity: number;
   price: string;
   status: string;
@@ -71,25 +74,41 @@ interface RoomRow {
 const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.KTV_ROOM_SAVE);
 const roomList = ref<RoomRow[]>([]);
+const roomTypeList = ref<RoomTypeRow[]>([]);
 const dialogVisible = ref(false);
 const editingRoomId = ref('');
 const roomForm = reactive({
   roomNo: '',
   roomName: '',
-  roomType: KtvRoomType.SMALL as string,
+  roomTypeId: '',
   capacity: 4,
   price: '',
   status: RecordStatus.ENABLED as string,
 });
 
 /**
- * 查询当前门店全部包厢。
+ * 查询当前门店全部包厢，并加载包厢类型名称。
  */
 async function loadRooms(): Promise<void> {
   const pageResult = (await http.get('/admin/ktv/rooms')) as {
     list: RoomRow[];
   };
+  const roomTypePage = (await http.get('/admin/ktv/room-types', {
+    params: { page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.ROOM_LOOKUP_PAGE_SIZE },
+  })) as { list: RoomTypeRow[] };
   roomList.value = pageResult.list;
+  roomTypeList.value = roomTypePage.list;
+}
+
+/**
+ * 用类型编号换成类型名称。
+ */
+function roomTypeName(roomTypeId: string): string {
+  const roomType = roomTypeList.value.find((item) => item.id === roomTypeId);
+  if (isEmpty(roomType)) {
+    return '';
+  }
+  return roomType.typeName;
 }
 
 /**
@@ -99,7 +118,7 @@ function openCreate(): void {
   editingRoomId.value = '';
   roomForm.roomNo = '';
   roomForm.roomName = '';
-  roomForm.roomType = KtvRoomType.SMALL;
+  roomForm.roomTypeId = isEmpty(roomTypeList.value[0]) ? '' : roomTypeList.value[0].id;
   roomForm.capacity = 4;
   roomForm.price = '';
   roomForm.status = RecordStatus.ENABLED;
@@ -113,7 +132,7 @@ function openEdit(roomRow: RoomRow): void {
   editingRoomId.value = roomRow.id;
   roomForm.roomNo = roomRow.roomNo;
   roomForm.roomName = roomRow.roomName;
-  roomForm.roomType = roomRow.roomType;
+  roomForm.roomTypeId = roomRow.roomTypeId;
   roomForm.capacity = roomRow.capacity;
   roomForm.price = roomRow.price;
   roomForm.status = roomRow.status;

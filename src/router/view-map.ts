@@ -7,6 +7,7 @@ export const viewComponentMap: Record<string, () => Promise<unknown>> = {
   'member/recharge': () => import('../views/member/RechargeView/RechargeView.vue'),
   'finance/bill': () => import('../views/finance/BillView/BillView.vue'),
   'ktv/shop': () => import('../views/ktv/ShopView/ShopView.vue'),
+  'ktv/room-type': () => import('../views/ktv/RoomTypeView/RoomTypeView.vue'),
   'ktv/room': () => import('../views/ktv/RoomView/RoomView.vue'),
   'ktv/verify': () => import('../views/ktv/VerifyView/VerifyView.vue'),
   'hotel/shop': () => import('../views/hotel/ShopView/ShopView.vue'),
