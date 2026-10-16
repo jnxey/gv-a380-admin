@@ -1,20 +1,23 @@
 <template>
   <ShopSwitcher />
   <el-card>
-    <el-button v-if="canSave" type="primary" @click="openCreate">新建房间</el-button>
-    <div class="record-list record-list--wide-table">
-      <div v-if="isEmpty(roomList)" class="record-empty">暂无数据</div>
-      <RecordCard v-for="roomRow in roomList" :key="roomRow.id">
-        <RecordField label="房号">{{ roomRow.roomNo }}</RecordField>
-        <RecordField label="楼层">{{ roomRow.floorNo }}</RecordField>
-        <RecordField label="房型ID">{{ roomRow.roomTypeId }}</RecordField>
-        <RecordField label="房态">{{ statusLabel(roomRow.roomStatus) }}</RecordField>
-        <template v-if="canSave" #actions>
-          <el-button link type="primary" @click="openEdit(roomRow)">编辑</el-button>
-        </template>
-      </RecordCard>
+    <div v-if="isEmpty(roomList) && canSave !== true" class="room-empty">暂无数据</div>
+    <div v-else class="room-grid">
+      <article v-for="roomRow in roomList" :key="roomRow.id" class="room-card">
+        <div class="room-name">{{ roomRow.roomNo }}</div>
+        <div class="room-meta">
+          {{ roomRow.floorNo }}<template v-if="!isEmpty(roomTypeName(roomRow.roomTypeId))"> · {{ roomTypeName(roomRow.roomTypeId) }}</template>
+        </div>
+        <div class="room-foot">
+          <el-tag :type="roomStatusTagType(roomRow.roomStatus)" effect="plain">{{ statusLabel(roomRow.roomStatus) }}</el-tag>
+          <el-button v-if="canSave" link type="primary" @click="openEdit(roomRow)">编辑</el-button>
+        </div>
+      </article>
+      <button v-if="canSave" type="button" class="room-card room-create" @click="openCreate">
+        <span class="room-create-plus">+</span>
+        <span>新建房间</span>
+      </button>
     </div>
-    <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="dialogVisible" :title="editingRoomId === '' ? '新建房间' : '编辑房间'" width="480px">
       <el-form label-position="top">
         <el-form-item label="房型">
@@ -43,10 +46,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import ListPager from '../../../components/ListPager/ListPager.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import RecordCard from '../../../components/RecordCard/RecordCard.vue';
-import RecordField from '../../../components/RecordField/RecordField.vue';
 import { HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
@@ -69,9 +69,6 @@ const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.HOTEL_ROOM_SAVE);
 const roomList = ref<RoomRow[]>([]);
 const roomTypeList = ref<RoomTypeRow[]>([]);
-const total = ref(0);
-const page = ref<number>(PageSetting.DEFAULT_PAGE);
-const pageSize = ref<number>(PageSetting.DEFAULT_PAGE_SIZE);
 const dialogVisible = ref(false);
 const editingRoomId = ref('');
 const roomForm = reactive({
@@ -82,19 +79,41 @@ const roomForm = reactive({
 });
 
 /**
- * 查询房间和房型。
+ * 查询当前门店全部房间，并加载房型名称。
  */
 async function loadRooms(): Promise<void> {
-  const roomPage = (await http.get('/admin/hotel/rooms', { params: { page: page.value, pageSize: pageSize.value } })) as {
+  const roomPage = (await http.get('/admin/hotel/rooms')) as {
     list: RoomRow[];
-    total: number;
   };
   const roomTypePage = (await http.get('/admin/hotel/room-types', {
     params: { page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.ROOM_LOOKUP_PAGE_SIZE },
   })) as { list: RoomTypeRow[] };
   roomList.value = roomPage.list;
-  total.value = roomPage.total;
   roomTypeList.value = roomTypePage.list;
+}
+
+/**
+ * 用房型编号换成房型名称。
+ */
+function roomTypeName(roomTypeId: string): string {
+  const roomType = roomTypeList.value.find((item) => item.id === roomTypeId);
+  if (isEmpty(roomType)) {
+    return '';
+  }
+  return roomType.typeName;
+}
+
+/**
+ * 房态对应的标签颜色。
+ */
+function roomStatusTagType(roomStatus: string): 'success' | 'warning' | 'info' {
+  if (roomStatus === HotelRoomStatus.IDLE) {
+    return 'success';
+  }
+  if (roomStatus === HotelRoomStatus.OCCUPIED) {
+    return 'warning';
+  }
+  return 'info';
 }
 
 /**
@@ -135,21 +154,71 @@ async function saveRoom(): Promise<void> {
   await loadRooms();
 }
 
-/**
- * 翻页。
- */
-function onPageChange(nextPage: number): void {
-  page.value = nextPage;
-  void loadRooms();
-}
-
 onMounted(() => {
   void loadRooms();
 });
 </script>
 
 <style scoped>
-.record-list {
-  margin-top: 16px;
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.room-card {
+  overflow: hidden;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid #e6e8ec;
+  border-radius: 8px;
+}
+
+.room-create {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 148px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  color: #667085;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px dashed #c8cdd4;
+}
+
+.room-create-plus {
+  font-size: 32px;
+  line-height: 1;
+  color: #98a2b3;
+}
+
+.room-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1c2434;
+  word-break: break-word;
+}
+
+.room-meta {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #667085;
+  word-break: break-word;
+}
+
+.room-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.room-empty {
+  color: #909399;
 }
 </style>
