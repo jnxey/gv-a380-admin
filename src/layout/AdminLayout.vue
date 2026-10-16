@@ -55,7 +55,6 @@
           <span class="admin-title">{{ currentPageTitle }}</span>
         </div>
         <div class="header-right">
-          <ShopSwitcher />
           <el-popover v-model:visible="accountMenuVisible" trigger="click" placement="bottom-end" :width="168">
             <template #reference>
               <button type="button" class="header-avatar" aria-label="账号菜单">
@@ -78,12 +77,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppIcon from '../components/AppIcon/AppIcon.vue';
-import ShopSwitcher from '../components/ShopSwitcher/ShopSwitcher.vue';
 import { useSessionStore } from '../stores/session';
-import { AccountCenter, Home, MenuIconName, menuIconNameByPath } from '../utils/constants';
+import { AccountCenter, Home, MenuIconName, ModuleCode, menuIconNameByPath } from '../utils/constants';
 import { isEmpty } from '../utils/tools';
 
 const route = useRoute();
@@ -99,6 +97,39 @@ const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
  * 门店或路由变化时重挂页面，让列表按新门店重新请求。
  */
 const viewKey = computed(() => `${sessionStore.currentShopId}-${route.fullPath}`);
+
+/**
+ * 当前页面所属模块。没有声明时按核心模块处理。
+ */
+const currentModuleCode = computed(() => {
+  const moduleCode = route.meta.moduleCode;
+  if (typeof moduleCode !== 'string' || isEmpty(moduleCode)) {
+    return ModuleCode.CORE;
+  }
+  return moduleCode;
+});
+
+/**
+ * 进入 KTV 或酒店页时，当前门店类型不对就切到该业务第一家店。
+ */
+watch(
+  [currentModuleCode, () => sessionStore.shopList],
+  () => {
+    const moduleCode = currentModuleCode.value;
+    if (moduleCode !== ModuleCode.KTV && moduleCode !== ModuleCode.HOTEL) {
+      return;
+    }
+    const shopList = sessionStore.listShopsForModule(moduleCode);
+    if (shopList.length === 0) {
+      return;
+    }
+    const currentShopMatched = shopList.some((shop) => shop.shopId === sessionStore.currentShopId);
+    if (currentShopMatched !== true) {
+      sessionStore.saveCurrentShopId(shopList[0].shopId);
+    }
+  },
+  { immediate: true },
+);
 
 /**
  * 顶栏当前页标题。路由没有标题时用系统名。

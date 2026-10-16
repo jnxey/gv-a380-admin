@@ -1,5 +1,6 @@
 <template>
   <el-card>
+    <ShopSwitcher />
     <QueryBar @search="searchOrders" @reset="resetQuery">
       <el-form-item>
         <el-input v-model="verifyCode" v-place class="query-keyword" placeholder="核销码" clearable />
@@ -48,6 +49,7 @@
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
+import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
@@ -166,4 +168,10 @@ onMounted(() => {
   void loadOrders();
 });
 </script>
+
+<style scoped>
+.shop-switcher {
+  margin-bottom: 12px;
+}
+</style>
 

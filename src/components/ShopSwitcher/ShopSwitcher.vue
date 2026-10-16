@@ -1,23 +1,11 @@
 <template>
-  <el-dropdown v-if="showSwitcher" trigger="click" @command="onShopCommand">
-    <el-button class="shop-switcher" type="default" text>{{ currentShopLabel }}</el-button>
-    <template #dropdown>
-      <el-dropdown-menu>
-        <el-dropdown-item
-          v-for="shop in selectableShopList"
-          :key="shop.shopId"
-          :command="shop.shopId"
-          :class="{ 'is-current-shop': shop.shopId === sessionStore.currentShopId }"
-        >
-          {{ shopLabel(shop) }}
-        </el-dropdown-item>
-      </el-dropdown-menu>
-    </template>
-  </el-dropdown>
+  <el-select v-if="showSwitcher" v-model="selectedShopId" class="shop-switcher">
+    <el-option v-for="shop in selectableShopList" :key="shop.shopId" :label="shopLabel(shop)" :value="shop.shopId" />
+  </el-select>
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSessionStore, type ShopOption } from '../../stores/session';
 import { ModuleCode } from '../../utils/constants';
@@ -43,37 +31,21 @@ const currentModuleCode = computed(() => {
 const selectableShopList = computed(() => sessionStore.listShopsForModule(currentModuleCode.value));
 
 /**
- * 只有多于一家可选门店时才显示切换器。
+ * 有可选门店时就显示当前店。只有一家时下拉里也是这一家。
  */
-const showSwitcher = computed(() => selectableShopList.value.length > 1);
+const showSwitcher = computed(() => selectableShopList.value.length > 0);
 
 /**
- * 下拉按钮上的当前门店名称。还没匹配到门店时显示占位文案。
+ * 当前选中的门店。改选后写入登录态，页面会按新门店重新加载。
  */
-const currentShopLabel = computed(() => {
-  const currentShop = selectableShopList.value.find((shop) => shop.shopId === sessionStore.currentShopId);
-  if (isEmpty(currentShop)) {
-    return '选择门店';
-  }
-  return shopLabel(currentShop);
-});
-
-/**
- * 进入业务页时，如果当前门店不属于该业务线，自动切到第一家匹配门店。
- */
-watch(
-  selectableShopList,
-  (shopList) => {
-    if (shopList.length === 0) {
-      return;
-    }
-    const currentShopMatched = shopList.some((shop) => shop.shopId === sessionStore.currentShopId);
-    if (currentShopMatched !== true) {
-      sessionStore.saveCurrentShopId(shopList[0].shopId);
-    }
+const selectedShopId = computed({
+  get(): string {
+    return sessionStore.currentShopId;
   },
-  { immediate: true },
-);
+  set(shopId: string): void {
+    sessionStore.saveCurrentShopId(shopId);
+  },
+});
 
 /**
  * 门店下拉展示名称。
@@ -81,46 +53,10 @@ watch(
 function shopLabel(shop: ShopOption): string {
   return `${shop.shopName}（${shop.shopCode}）`;
 }
-
-/**
- * 用户从下拉菜单选中一家门店。
- */
-function onShopCommand(shopId: string): void {
-  onShopChange(shopId);
-}
-
-/**
- * 用户切换门店。
- */
-function onShopChange(shopId: string): void {
-  sessionStore.saveCurrentShopId(shopId);
-}
 </script>
 
-<style>
+<style scoped>
 .shop-switcher {
-  height: 32px;
-  padding: 0 8px;
-}
-
-@media (max-width: 768px) {
-  .shop-switcher {
-    max-width: 120px;
-  }
-
-  .shop-switcher > span {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.el-dropdown-menu__item.is-current-shop,
-.el-dropdown-menu__item.is-current-shop:hover,
-.el-dropdown-menu__item.is-current-shop:focus {
-  color: #2563eb;
-  background-color: #e8f0fe;
-  font-weight: 600;
+  width: 220px;
 }
 </style>

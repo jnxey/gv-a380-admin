@@ -1,6 +1,9 @@
 <template>
   <el-card>
-    <el-button v-if="canSave" type="primary" @click="openCreate">新建房间</el-button>
+    <div class="page-toolbar">
+      <ShopSwitcher />
+      <el-button v-if="canSave" type="primary" @click="openCreate">新建房间</el-button>
+    </div>
     <div class="record-list record-list--wide-table">
       <div v-if="isEmpty(roomList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="roomRow in roomList" :key="roomRow.id">
@@ -43,6 +46,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
+import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
 import { HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
@@ -147,6 +151,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .record-list {
   margin-top: 16px;
 }

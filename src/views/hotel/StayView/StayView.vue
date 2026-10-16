@@ -1,5 +1,6 @@
 <template>
   <el-card>
+    <ShopSwitcher />
     <div class="record-list record-list--wide-table">
       <div v-if="isEmpty(orderList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
@@ -45,6 +46,7 @@
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
+import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
 import { HotelOrderStatus, HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
@@ -180,4 +182,10 @@ onMounted(() => {
   void loadOrders();
 });
 </script>
+
+<style scoped>
+.shop-switcher {
+  margin-bottom: 12px;
+}
+</style>
 
