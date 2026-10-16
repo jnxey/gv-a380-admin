@@ -2,6 +2,10 @@
   <el-card>
     <div v-if="isEmpty(shopList) && canSave !== true" class="shop-empty">暂无数据</div>
     <div v-else class="shop-grid">
+      <button v-if="canSave" type="button" class="shop-card shop-create" @click="openCreate">
+        <span class="shop-create-plus">+</span>
+        <span>新建门店</span>
+      </button>
       <article v-for="shopRow in shopList" :key="shopRow.shopId" class="shop-card">
         <div class="shop-cover">
           <img v-if="!isEmpty(coverImageUrl(shopRow))" :src="coverImageUrl(shopRow)" alt="" />
@@ -21,10 +25,6 @@
           </div>
         </div>
       </article>
-      <button v-if="canSave" type="button" class="shop-card shop-create" @click="openCreate">
-        <span class="shop-create-plus">+</span>
-        <span>新建门店</span>
-      </button>
     </div>
     <el-dialog v-model="dialogVisible" :title="editingShopId === '' ? '新建门店' : '编辑门店'" width="480px">
       <el-form label-position="top">

@@ -3,6 +3,10 @@
   <el-card>
     <div v-if="isEmpty(roomList) && canSave !== true" class="room-empty">暂无数据</div>
     <div v-else class="room-grid">
+      <button v-if="canSave" type="button" class="room-card room-create" @click="openCreate">
+        <span class="room-create-plus">+</span>
+        <span>新建包厢</span>
+      </button>
       <article v-for="roomRow in roomList" :key="roomRow.id" class="room-card">
         <div class="room-name">{{ roomRow.roomName }}</div>
         <div class="room-meta">{{ roomRow.roomNo }} · {{ statusLabel(roomRow.roomType) }} · {{ roomRow.capacity }}人</div>
@@ -14,10 +18,6 @@
           <el-button v-if="canSave" link type="primary" @click="openEdit(roomRow)">编辑</el-button>
         </div>
       </article>
-      <button v-if="canSave" type="button" class="room-card room-create" @click="openCreate">
-        <span class="room-create-plus">+</span>
-        <span>新建包厢</span>
-      </button>
     </div>
     <el-dialog v-model="dialogVisible" :title="editingRoomId === '' ? '新建包厢' : '编辑包厢'" width="480px">
       <el-form label-position="top">
