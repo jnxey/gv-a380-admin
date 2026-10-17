@@ -176,6 +176,7 @@ export const MenuIconName = {
   LOGIN_ACCOUNT: 'LOGIN_ACCOUNT',
   LOGIN_PASSWORD: 'LOGIN_PASSWORD',
   ARROW_RIGHT: 'ARROW_RIGHT',
+  REFRESH: 'REFRESH',
 } as const;
 
 export const menuIconNameByPath: Record<string, string> = {

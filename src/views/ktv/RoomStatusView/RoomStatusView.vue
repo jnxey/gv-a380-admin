@@ -12,6 +12,9 @@
           <span class="room-status-count-label">{{ roomStatusCount.label }}</span>
           <span class="room-status-count-value">{{ roomStatusCount.count }}</span>
         </span>
+        <button type="button" class="room-status-refresh" title="刷新" @click="reloadPage">
+          <AppIcon class="room-status-refresh-icon" :icon-name="MenuIconName.REFRESH" />
+        </button>
       </div>
       <div class="room-status-body">
         <div class="room-status-rooms">
@@ -559,50 +562,57 @@ async function changeRoomStatus(roomRow: RoomStatusRow, roomStatus: string): Pro
   await loadRooms();
 }
 
-/** 待核销订单轮询间隔，单位毫秒。 */
-const pendingOrderRefreshInterval = 3000;
-let pendingOrderTimer = 0;
-let pendingOrderRefreshing = false;
+/**
+ * 刷新整个页面。
+ */
+function reloadPage(): void {
+  window.location.reload();
+}
+
+/** 包厢状态和待核销订单的轮询间隔，单位毫秒。 */
+const roomStatusRefreshInterval = 3000;
+let roomStatusTimer = 0;
+let roomStatusRefreshing = false;
 
 /**
- * 只刷新待核销订单。上一轮还没回来时跳过，避免请求叠在一起。
+ * 同时刷新包厢状态和待核销订单。上一轮还没回来时跳过，避免请求叠在一起。
  */
-async function refreshPendingOrders(): Promise<void> {
-  if (pendingOrderRefreshing) {
+async function refreshRoomStatusPage(): Promise<void> {
+  if (roomStatusRefreshing) {
     return;
   }
-  pendingOrderRefreshing = true;
+  roomStatusRefreshing = true;
   try {
-    pendingBookingList.value = await loadAllPendingOrders();
+    await loadRooms();
   } finally {
-    pendingOrderRefreshing = false;
+    roomStatusRefreshing = false;
   }
 }
 
 /**
- * 进入页面后按固定间隔刷新待核销订单。
+ * 进入页面后按固定间隔刷新包厢状态和待核销订单。
  */
-function startPendingOrderRefresh(): void {
-  pendingOrderTimer = window.setInterval(() => {
-    void refreshPendingOrders();
-  }, pendingOrderRefreshInterval);
+function startRoomStatusRefresh(): void {
+  roomStatusTimer = window.setInterval(() => {
+    void refreshRoomStatusPage();
+  }, roomStatusRefreshInterval);
 }
 
 /**
- * 离开页面后停止待核销订单刷新。
+ * 离开页面后停止包厢状态刷新。
  */
-function stopPendingOrderRefresh(): void {
-  window.clearInterval(pendingOrderTimer);
-  pendingOrderTimer = 0;
+function stopRoomStatusRefresh(): void {
+  window.clearInterval(roomStatusTimer);
+  roomStatusTimer = 0;
 }
 
 onMounted(() => {
   void loadRooms();
-  startPendingOrderRefresh();
+  startRoomStatusRefresh();
 });
 
 onBeforeUnmount(() => {
-  stopPendingOrderRefresh();
+  stopRoomStatusRefresh();
 });
 </script>
 
@@ -631,6 +641,7 @@ onBeforeUnmount(() => {
 .room-status-summary {
   display: flex;
   flex-wrap: nowrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -663,6 +674,29 @@ onBeforeUnmount(() => {
 .room-status-count-label {
   font-size: 12px;
   font-weight: 500;
+}
+
+.room-status-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #1c2434;
+  cursor: pointer;
+  background: #e4e7ec;
+  border: 0;
+  border-radius: 8px;
+}
+
+.room-status-refresh:hover {
+  background: #d5d9e0;
+}
+
+.room-status-refresh-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .room-status-body {

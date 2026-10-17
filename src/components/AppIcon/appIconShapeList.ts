@@ -151,4 +151,8 @@ export const menuIconShapeListByName: Record<string, MenuIconShape[]> = {
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M5 12h14' },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'm13 6 6 6-6 6' },
   ],
+  [MenuIconName.REFRESH]: [
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M20 12a8 8 0 1 1-2.2-5.6' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M20 4.2V9h-4.8' },
+  ],
 };
