@@ -19,7 +19,7 @@
         <RecordField label="小时">{{ orderRow.durationHours }}</RecordField>
         <RecordField label="结束">{{ formatBookingEnd(orderRow) }}</RecordField>
         <RecordField label="包厢费">{{ orderRow.amount }}</RecordField>
-        <RecordField label="核销码">{{ orderRow.verifyCode }}</RecordField>
+        <RecordField label="核销码">{{ VerifyCodeMask }}</RecordField>
         <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
         <template #actions>
           <el-button v-if="canVerify && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="primary" @click="openVerify(orderRow.bookingOrderId)">核销</el-button>
@@ -69,7 +69,7 @@ import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
-import { KtvOrderStatus, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
+import { KtvOrderStatus, PageSetting, PermissionCode, VerifyCodeMask, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';

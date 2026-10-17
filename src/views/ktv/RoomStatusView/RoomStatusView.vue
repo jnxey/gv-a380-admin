@@ -2,10 +2,26 @@
   <div class="room-status-page">
     <ShopSwitcher />
     <el-card class="room-status-main">
-    <div v-if="isEmpty(roomStatusGroupList)" class="room-status-empty">暂无数据</div>
-    <section v-for="roomStatusGroup in roomStatusGroupList" :key="roomStatusGroup.roomTypeId" class="room-status-group">
-      <h3 class="room-status-group-title">{{ roomStatusGroup.typeName }}</h3>
-      <div class="room-status-grid">
+      <div class="room-status-summary">
+        <span
+          v-for="roomStatusCount in roomStatusCountList"
+          :key="roomStatusCount.value"
+          class="room-status-count"
+          :class="roomStatusCardClass(roomStatusCount.value)"
+        >
+          <span class="room-status-count-value">{{ roomStatusCount.count }}</span>
+          <span class="room-status-count-label">{{ roomStatusCount.label }}</span>
+        </span>
+      </div>
+      <div class="room-status-body">
+        <div class="room-status-rooms">
+          <div v-if="isEmpty(roomStatusGroupList)" class="room-status-empty">暂无数据</div>
+          <section v-for="roomStatusGroup in roomStatusGroupList" :key="roomStatusGroup.roomTypeId" class="room-status-group">
+            <h3 class="room-status-group-title">{{ roomStatusGroup.typeName }}</h3>
+            <div v-if="isEmpty(roomTypeWarningText(roomStatusGroup.roomTypeId)) !== true" class="room-status-warning">
+              {{ roomTypeWarningText(roomStatusGroup.roomTypeId) }}
+            </div>
+            <div class="room-status-grid">
         <article v-for="roomRow in roomStatusGroup.roomList" :key="roomRow.id" class="room-status-card" :class="roomStatusCardClass(roomRow.roomStatus)">
           <div class="room-status-actions">
             <button
@@ -52,13 +68,39 @@
               </template>
             </el-popover>
           </div>
-          <div class="room-status-name">{{ roomRow.roomName }}</div>
           <div class="room-status-no">{{ roomRow.roomNo }}</div>
+          <div class="room-status-name">
+            {{ roomRow.roomName }}
+            <template v-if="isEmpty(roomHourlyPrice(roomRow.roomTypeId)) !== true"> {{ roomHourlyPrice(roomRow.roomTypeId) }}/小时</template>
+          </div>
           <div class="room-status-text">{{ roomStatusLabel(roomRow.roomStatus) }}</div>
         </article>
-    </div>
-    </section>
-    <el-dialog v-model="openRoomVisible" title="开包厢" width="360px">
+            </div>
+          </section>
+        </div>
+        <aside class="room-status-orders">
+          <div class="room-status-order-stat">
+            <span class="room-status-order-stat-label">待核销</span>
+            <span class="room-status-order-stat-count">{{ pendingBookingList.length }}</span>
+          </div>
+          <div v-if="isEmpty(pendingTypeCountList) !== true" class="room-status-order-types">
+            <span v-for="pendingTypeCount in pendingTypeCountList" :key="pendingTypeCount.roomTypeId" class="room-status-order-type">
+              {{ pendingTypeCount.typeName }} {{ pendingTypeCount.count }}
+            </span>
+          </div>
+          <div v-for="roomTypeWarning in roomTypeWarningList" :key="roomTypeWarning.roomTypeId" class="room-status-warning">
+            {{ roomTypeWarning.warningText }}
+          </div>
+          <div v-if="isEmpty(pendingBookingList)" class="room-status-empty">暂无待核销订单</div>
+          <article v-for="pendingOrder in pendingBookingList" :key="pendingOrder.bookingOrderId" class="room-status-order">
+            <div class="room-status-order-name">{{ pendingOrder.memberName }}</div>
+            <div class="room-status-order-line">{{ pendingOrder.roomTypeName }}</div>
+            <div class="room-status-order-line">{{ pendingOrder.bookingDate }} {{ formatClock(pendingOrder.startTime) }} - {{ formatBookingEnd(pendingOrder) }}</div>
+            <div class="room-status-order-line">核销码 {{ VerifyCodeMask }}</div>
+          </article>
+        </aside>
+      </div>
+      <el-dialog v-model="openRoomVisible" title="开包厢" width="360px">
       <el-input v-model="verifyCode" placeholder="核销码，线下开包厢可不填" />
       <template #footer>
         <el-button size="large" @click="openRoomVisible = false">取消</el-button>
@@ -74,7 +116,7 @@ import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import { KtvOrderStatus, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus } from '../../../utils/constants';
+import { KtvOrderStatus, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -91,6 +133,7 @@ interface RoomStatusRow {
 interface RoomTypeOption {
   id: string;
   typeName: string;
+  hourlyPrice: string | number;
 }
 
 interface RoomStatusGroup {
@@ -105,6 +148,35 @@ interface PendingOrder {
   orderStatus: string;
 }
 
+interface PendingBookingOrder {
+  bookingOrderId: string;
+  memberName: string;
+  roomTypeId: string;
+  roomTypeName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  durationHours: number;
+  verifyCode: string;
+  orderStatus: string;
+}
+
+interface PendingTypeCount {
+  roomTypeId: string;
+  typeName: string;
+  count: number;
+}
+
+interface RoomTypeWarning {
+  roomTypeId: string;
+  warningText: string;
+}
+
+interface BookingRangePoint {
+  timeMs: number;
+  changeCount: number;
+}
+
 interface RoomStatusOption {
   value: string;
   label: string;
@@ -115,6 +187,7 @@ const canSave = sessionStore.hasPermission(PermissionCode.KTV_ROOM_SAVE);
 const canVerify = sessionStore.hasPermission(PermissionCode.KTV_ORDER_VERIFY);
 const roomList = ref<RoomStatusRow[]>([]);
 const roomTypeList = ref<RoomTypeOption[]>([]);
+const pendingBookingList = ref<PendingBookingOrder[]>([]);
 const verifyCode = ref('');
 const openRoomVisible = ref(false);
 const openingRoom = ref<RoomStatusRow | null>(null);
@@ -146,13 +219,211 @@ const roomStatusGroupList = computed<RoomStatusGroup[]>(() => {
 });
 
 /**
- * 查询当前门店启用中的包厢，并带上类型名称。
+ * 各运营状态的启用包厢数量。没有包厢的状态也显示 0。
+ */
+const roomStatusCountList = computed(() => {
+  return roomStatusOptionList.map((roomStatusOption) => {
+    const count = roomList.value.filter((roomRow) => roomRow.roomStatus === roomStatusOption.value).length;
+    return {
+      value: roomStatusOption.value,
+      label: roomStatusOption.label,
+      count,
+    };
+  });
+});
+
+/**
+ * 待核销订单按包厢类型计数。
+ */
+const pendingTypeCountList = computed<PendingTypeCount[]>(() => {
+  const pendingTypeCountMap = new Map<string, PendingTypeCount>();
+  pendingBookingList.value.forEach((pendingOrder) => {
+    const pendingTypeCount = pendingTypeCountMap.get(pendingOrder.roomTypeId);
+    if (pendingTypeCount === undefined) {
+      pendingTypeCountMap.set(pendingOrder.roomTypeId, {
+        roomTypeId: pendingOrder.roomTypeId,
+        typeName: pendingOrder.roomTypeName,
+        count: 1,
+      });
+      return;
+    }
+    pendingTypeCount.count += 1;
+  });
+  return Array.from(pendingTypeCountMap.values());
+});
+
+/**
+ * 同一时段待核销单快占满或已经占满空闲包厢时给出提示。
+ */
+const roomTypeWarningList = computed<RoomTypeWarning[]>(() => {
+  const roomTypeIdList = pendingTypeCountList.value.map((pendingTypeCount) => pendingTypeCount.roomTypeId);
+  return roomTypeIdList.flatMap((roomTypeId) => {
+    const typeOrderList = pendingBookingList.value.filter((pendingOrder) => pendingOrder.roomTypeId === roomTypeId);
+    const peakCount = peakPendingCount(typeOrderList);
+    if (peakCount === 0) {
+      return [];
+    }
+    const idleCount = roomList.value.filter((roomRow) => {
+      return roomRow.roomTypeId === roomTypeId && roomRow.roomStatus === KtvRoomStatus.IDLE;
+    }).length;
+    const freeLeft = idleCount - peakCount;
+    if (freeLeft > 1) {
+      return [];
+    }
+    const firstPendingOrder = typeOrderList[0];
+    if (isEmpty(firstPendingOrder)) {
+      return [];
+    }
+    const typeName = firstPendingOrder.roomTypeName;
+    return [
+      {
+        roomTypeId,
+        warningText: roomTypeWarningMessage(typeName, peakCount, idleCount, freeLeft),
+      },
+    ];
+  });
+});
+
+/**
+ * 查询当前门店启用中的包厢，并带上待核销订单。
  */
 async function loadRooms(): Promise<void> {
   const pageResult = (await http.get('/admin/ktv/rooms')) as { list: RoomStatusRow[] };
   const roomTypePage = (await http.get('/admin/ktv/room-types')) as { list: RoomTypeOption[] };
+  const pendingOrderList = await loadAllPendingOrders();
   roomList.value = pageResult.list.filter((roomRow) => roomRow.status === RecordStatus.ENABLED);
   roomTypeList.value = roomTypePage.list;
+  pendingBookingList.value = pendingOrderList;
+}
+
+/**
+ * 翻页取完全部待核销订单。某一页没有数据时停止，避免空页死循环。
+ */
+async function loadAllPendingOrders(): Promise<PendingBookingOrder[]> {
+  const pendingOrderList: PendingBookingOrder[] = [];
+  let page = PageSetting.DEFAULT_PAGE;
+  let total = 0;
+  do {
+    const pageResult = (await http.get('/admin/ktv/booking-orders', {
+      params: {
+        orderStatus: KtvOrderStatus.PENDING_VERIFY,
+        page,
+        pageSize: PageSetting.ROOM_LOOKUP_PAGE_SIZE,
+      },
+    })) as { list: PendingBookingOrder[]; total: number };
+    if (isEmpty(pageResult.list)) {
+      break;
+    }
+    pendingOrderList.push(...pageResult.list);
+    total = pageResult.total;
+    page += 1;
+  } while (pendingOrderList.length < total);
+  return pendingOrderList;
+}
+
+/**
+ * 把钟点收成 HH:mm。
+ */
+function formatClock(timeText: string): string {
+  if (timeText.length >= 5) {
+    return timeText.slice(0, 5);
+  }
+  return timeText;
+}
+
+/**
+ * 结束钟点不晚于开唱钟点时，表示已经跨到第二天。
+ */
+function formatBookingEnd(pendingOrder: PendingBookingOrder): string {
+  const endClock = formatClock(pendingOrder.endTime);
+  if (pendingOrder.endTime <= pendingOrder.startTime) {
+    return `次日 ${endClock}`;
+  }
+  return endClock;
+}
+
+/**
+ * 开唱时刻的本地毫秒。用年月日分开构造，避免把日期串当成 UTC。
+ */
+function bookingStartMs(pendingOrder: PendingBookingOrder): number {
+  const datePartList = pendingOrder.bookingDate.slice(0, 10).split('-');
+  const timePartList = pendingOrder.startTime.split(':');
+  const year = Number(datePartList[0]);
+  const month = Number(datePartList[1]);
+  const day = Number(datePartList[2]);
+  const hour = Number(timePartList[0]);
+  const minute = Number(timePartList[1]);
+  const second = Number(timePartList[2] || '0');
+  return new Date(year, month - 1, day, hour, minute, second).getTime();
+}
+
+/**
+ * 计算同一包厢类型里，待核销订单在同一时刻最多叠几单。相邻小时不算重叠。
+ */
+function peakPendingCount(bookingOrderList: PendingBookingOrder[]): number {
+  if (isEmpty(bookingOrderList)) {
+    return 0;
+  }
+  // 1. 每张订单拆成开唱加一、结束减一
+  const pointList: BookingRangePoint[] = [];
+  bookingOrderList.forEach((pendingOrder) => {
+    const startMs = bookingStartMs(pendingOrder);
+    const endMs = startMs + pendingOrder.durationHours * 60 * 60 * 1000;
+    pointList.push({ timeMs: startMs, changeCount: 1 });
+    pointList.push({ timeMs: endMs, changeCount: -1 });
+  });
+  // 2. 同一时刻先结束再开唱，相邻小时不叠在一起
+  pointList.sort((leftPoint, rightPoint) => {
+    if (leftPoint.timeMs !== rightPoint.timeMs) {
+      return leftPoint.timeMs - rightPoint.timeMs;
+    }
+    return leftPoint.changeCount - rightPoint.changeCount;
+  });
+  // 3. 扫一遍，留下同时在场的最大单数
+  let currentCount = 0;
+  let peakCount = 0;
+  pointList.forEach((point) => {
+    currentCount += point.changeCount;
+    if (currentCount > peakCount) {
+      peakCount = currentCount;
+    }
+  });
+  return peakCount;
+}
+
+/**
+ * 按剩余空闲间数生成提示。还剩 1 间、刚好达到、已经超过各一句。
+ */
+function roomTypeWarningMessage(typeName: string, peakCount: number, idleCount: number, freeLeft: number): string {
+  if (freeLeft === 1) {
+    return `${typeName}同一时段待核销 ${peakCount} 单，空闲 ${idleCount} 间，还剩 1 间`;
+  }
+  if (peakCount === idleCount) {
+    return `${typeName}同一时段待核销 ${peakCount} 单，已达到空闲包厢 ${idleCount} 间`;
+  }
+  return `${typeName}同一时段待核销 ${peakCount} 单，已超过空闲包厢 ${idleCount} 间`;
+}
+
+/**
+ * 取出某个包厢类型的订满提示。没有提示时返回空字符串。
+ */
+function roomTypeWarningText(roomTypeId: string): string {
+  const roomTypeWarning = roomTypeWarningList.value.find((item) => item.roomTypeId === roomTypeId);
+  if (isEmpty(roomTypeWarning)) {
+    return '';
+  }
+  return roomTypeWarning.warningText;
+}
+
+/**
+ * 取出包厢类型的每小时价格。没有类型时返回空字符串。
+ */
+function roomHourlyPrice(roomTypeId: string): string {
+  const roomType = roomTypeList.value.find((item) => item.id === roomTypeId);
+  if (isEmpty(roomType) || isEmpty(roomType.hourlyPrice)) {
+    return '';
+  }
+  return String(roomType.hourlyPrice);
 }
 
 /**
@@ -292,6 +563,134 @@ onMounted(() => {
 
 .room-status-main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.room-status-main :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.room-status-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.room-status-count {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 72px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #1c2434;
+}
+
+.room-status-count-value {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.room-status-count-label {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.room-status-body {
+  display: flex;
+  flex: 1;
+  gap: 16px;
+  min-height: 0;
+}
+
+.room-status-orders {
+  width: 280px;
+  flex-shrink: 0;
+  overflow: auto;
+  padding-left: 12px;
+  border-left: 1px solid #e6e8ec;
+}
+
+.room-status-order-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.room-status-order-stat-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  color: #1c2434;
+}
+
+.room-status-order-stat-count {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1;
+  color: #1c2434;
+}
+
+.room-status-order-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.room-status-order-type {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f4f6f8;
+  font-size: 12px;
+  line-height: 20px;
+  color: #344054;
+}
+
+.room-status-warning {
+  margin-top: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fdecea;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #b42318;
+}
+
+.room-status-order {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e6e8ec;
+}
+
+.room-status-order-name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  color: #1c2434;
+}
+
+.room-status-order-line {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 20px;
+  color: #344054;
+}
+
+.room-status-rooms {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
 }
 
 .room-status-empty {
@@ -303,7 +702,7 @@ onMounted(() => {
 }
 
 .room-status-group-title {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   font-size: 15px;
   font-weight: 600;
   line-height: 22px;
@@ -379,18 +778,18 @@ onMounted(() => {
 }
 
 .room-status-name {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 22px;
-  color: #1c2434;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #344054;
 }
 
 .room-status-no {
-  margin-top: 4px;
-  font-size: 13px;
+  font-size: 20px;
   font-weight: 600;
-  line-height: 20px;
-  color: #344054;
+  line-height: 28px;
+  color: #1c2434;
 }
 
 .room-status-text {

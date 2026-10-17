@@ -129,6 +129,9 @@ export const PageSetting = {
   ROOM_LOOKUP_PAGE_SIZE: 100,
 } as const;
 
+/** 列表里代替真实核销码的展示文字。 */
+export const VerifyCodeMask = '******';
+
 export const StorageKey = {
   ACCESS_TOKEN: 'gv_a380_admin_access_token',
   CURRENT_SHOP_ID: 'gv_a380_admin_current_shop_id',

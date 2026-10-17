@@ -6,7 +6,7 @@
       <RecordTableHead />
       <div v-if="isEmpty(roomList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="roomRow in roomList" :key="roomRow.id">
-        <RecordField label="名称">
+        <RecordField label="编号">
           <span class="name-box" :data-key="roomRow.id">
             <button v-if="canSave" type="button" class="drag-icon">
               <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -18,10 +18,10 @@
                 />
               </svg>
             </button>
-            <span>{{ roomRow.roomName }}</span>
+            <span>{{ roomRow.roomNo }}</span>
           </span>
         </RecordField>
-        <RecordField label="编号">{{ roomRow.roomNo }}</RecordField>
+        <RecordField label="名称">{{ roomRow.roomName }}</RecordField>
         <RecordField label="类型">{{ roomTypeName(roomRow.roomTypeId) }}</RecordField>
         <RecordField label="人数">{{ roomRow.capacity }}</RecordField>
         <RecordField label="状态">
