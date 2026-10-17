@@ -9,8 +9,8 @@
           class="room-status-count"
           :class="roomStatusCardClass(roomStatusCount.value)"
         >
-          <span class="room-status-count-value">{{ roomStatusCount.count }}</span>
           <span class="room-status-count-label">{{ roomStatusCount.label }}</span>
+          <span class="room-status-count-value">{{ roomStatusCount.count }}</span>
         </span>
       </div>
       <div class="room-status-body">
@@ -100,7 +100,7 @@
           </article>
         </aside>
       </div>
-      <el-dialog v-model="openRoomVisible" title="开包厢" width="360px">
+      <el-dialog v-model="openRoomVisible" :title="openRoomTitle" width="360px">
       <el-input v-model="verifyCode" placeholder="核销码，线下开包厢可不填" />
       <template #footer>
         <el-button size="large" @click="openRoomVisible = false">取消</el-button>
@@ -112,8 +112,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { KtvOrderStatus, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask } from '../../../utils/constants';
@@ -191,6 +191,16 @@ const pendingBookingList = ref<PendingBookingOrder[]>([]);
 const verifyCode = ref('');
 const openRoomVisible = ref(false);
 const openingRoom = ref<RoomStatusRow | null>(null);
+
+/**
+ * 开包厢弹窗标题带上当前包厢编号。还没选中包厢时只显示开包厢。
+ */
+const openRoomTitle = computed(() => {
+  if (isEmpty(openingRoom.value)) {
+    return '开包厢';
+  }
+  return `开包厢 · ${openingRoom.value.roomNo}`;
+});
 const roomStatusOptionList: RoomStatusOption[] = [
   { value: KtvRoomStatus.IDLE, label: '空闲' },
   { value: KtvRoomStatus.IN_USE, label: '使用中' },
@@ -538,18 +548,61 @@ async function submitOpenRoom(): Promise<void> {
 }
 
 /**
- * 手动切换包厢状态。使用中不能被选成目标状态。
+ * 手动切换包厢状态。确认后再请求。使用中不能被选成目标状态。
  */
 async function changeRoomStatus(roomRow: RoomStatusRow, roomStatus: string): Promise<void> {
   if (roomStatus === roomRow.roomStatus || roomStatus === KtvRoomStatus.IN_USE) {
     return;
   }
+  await ElMessageBox.confirm(`确认将 ${roomRow.roomNo} 改为${roomStatusLabel(roomStatus)}？`, '切换状态');
   await http.put(`/admin/ktv/rooms/${roomRow.id}/room-status`, { roomStatus });
   await loadRooms();
 }
 
+/** 待核销订单轮询间隔，单位毫秒。 */
+const pendingOrderRefreshInterval = 3000;
+let pendingOrderTimer = 0;
+let pendingOrderRefreshing = false;
+
+/**
+ * 只刷新待核销订单。上一轮还没回来时跳过，避免请求叠在一起。
+ */
+async function refreshPendingOrders(): Promise<void> {
+  if (pendingOrderRefreshing) {
+    return;
+  }
+  pendingOrderRefreshing = true;
+  try {
+    pendingBookingList.value = await loadAllPendingOrders();
+  } finally {
+    pendingOrderRefreshing = false;
+  }
+}
+
+/**
+ * 进入页面后按固定间隔刷新待核销订单。
+ */
+function startPendingOrderRefresh(): void {
+  pendingOrderTimer = window.setInterval(() => {
+    void refreshPendingOrders();
+  }, pendingOrderRefreshInterval);
+}
+
+/**
+ * 离开页面后停止待核销订单刷新。
+ */
+function stopPendingOrderRefresh(): void {
+  window.clearInterval(pendingOrderTimer);
+  pendingOrderTimer = 0;
+}
+
 onMounted(() => {
   void loadRooms();
+  startPendingOrderRefresh();
+});
+
+onBeforeUnmount(() => {
+  stopPendingOrderRefresh();
 });
 </script>
 
@@ -577,31 +630,39 @@ onMounted(() => {
 
 .room-status-summary {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   margin-bottom: 12px;
 }
 
 .room-status-count {
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-width: 72px;
-  padding: 8px 12px;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
   border-radius: 8px;
   color: #1c2434;
+  white-space: nowrap;
+}
+
+.room-status-count-value,
+.room-status-count-label {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  line-height: 1;
 }
 
 .room-status-count-value {
   font-size: 22px;
   font-weight: 600;
-  line-height: 28px;
+  transform: translateY(-2px);
 }
 
 .room-status-count-label {
   font-size: 12px;
   font-weight: 500;
-  line-height: 18px;
 }
 
 .room-status-body {
@@ -721,23 +782,28 @@ onMounted(() => {
   border-radius: 8px;
 }
 
-.room-status-card.is-idle {
+.room-status-card.is-idle,
+.room-status-count.is-idle {
   background: #b7ebc6;
 }
 
-.room-status-card.is-in-use {
+.room-status-card.is-in-use,
+.room-status-count.is-in-use {
   background: #f5c16c;
 }
 
-.room-status-card.is-cleaning {
+.room-status-card.is-cleaning,
+.room-status-count.is-cleaning {
   background: #9fd4f5;
 }
 
-.room-status-card.is-maintenance {
+.room-status-card.is-maintenance,
+.room-status-count.is-maintenance {
   background: #f0a3a3;
 }
 
-.room-status-card.is-closed {
+.room-status-card.is-closed,
+.room-status-count.is-closed {
   background: #d0d5dd;
 }
 
