@@ -75,6 +75,24 @@ export const menuIconShapeListByName: Record<string, MenuIconShape[]> = {
     { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 9.2, centerY: 12, radius: 0.8 },
     { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 14.8, centerY: 12, radius: 0.8 },
   ],
+  [MenuIconName.KTV_ROOM_OPEN]: [
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M14 4h3.2A1.8 1.8 0 0 1 19 5.8V20' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M5 20h3' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M14 20h5' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M14 4.7v15a1 1 0 0 1-1.22.98L6.4 19.1V6.2a1.6 1.6 0 0 1 1.22-1.56l4.9-.76A1.6 1.6 0 0 1 14 4.7z' },
+    { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 11.1, centerY: 12.4, radius: 0.7 },
+  ],
+  [MenuIconName.KTV_ROOM_CLEAN]: [
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M14.8 3.2 10.2 13' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M6.6 13.2h7.2' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M7.6 13.2 6.2 20.4' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M10.2 13.2 9.6 20.4' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M12.8 13.2 13.4 20.4' },
+  ],
+  [MenuIconName.KTV_ROOM_IDLE]: [
+    { shapeKind: MenuIconShapeKind.RECT, offsetX: 4.5, offsetY: 4.5, width: 15, height: 15, cornerRadius: 2 },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'm8.2 12.2 2.5 2.5 5.1-5.2' },
+  ],
   [MenuIconName.KTV_VERIFY]: [
     { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 12, centerY: 12, radius: 8 },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'm8.5 12.2 2.5 2.4 4.8-5.1' },

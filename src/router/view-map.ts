@@ -9,6 +9,7 @@ export const viewComponentMap: Record<string, () => Promise<unknown>> = {
   'ktv/shop': () => import('../views/ktv/ShopView/ShopView.vue'),
   'ktv/room-type': () => import('../views/ktv/RoomTypeView/RoomTypeView.vue'),
   'ktv/room': () => import('../views/ktv/RoomView/RoomView.vue'),
+  'ktv/room-status': () => import('../views/ktv/RoomStatusView/RoomStatusView.vue'),
   'ktv/verify': () => import('../views/ktv/VerifyView/VerifyView.vue'),
   'hotel/shop': () => import('../views/hotel/ShopView/ShopView.vue'),
   'hotel/room-type': () => import('../views/hotel/RoomTypeView/RoomTypeView.vue'),

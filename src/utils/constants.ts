@@ -104,6 +104,17 @@ export const HotelRoomStatus = {
   MAINTENANCE: 'MAINTENANCE',
 } as const;
 
+/**
+ * KTV 包厢运营状态。使用中由核销写入，页面不能手动选成使用中。
+ */
+export const KtvRoomStatus = {
+  IDLE: 'IDLE',
+  IN_USE: 'IN_USE',
+  CLEANING: 'CLEANING',
+  MAINTENANCE: 'MAINTENANCE',
+  CLOSED: 'CLOSED',
+} as const;
+
 export const FinanceBizType = {
   RECHARGE: 'RECHARGE',
   KTV_BOOKING: 'KTV_BOOKING',
@@ -145,6 +156,9 @@ export const MenuIconName = {
   KTV: 'KTV',
   KTV_SHOP: 'KTV_SHOP',
   KTV_ROOM: 'KTV_ROOM',
+  KTV_ROOM_OPEN: 'KTV_ROOM_OPEN',
+  KTV_ROOM_CLEAN: 'KTV_ROOM_CLEAN',
+  KTV_ROOM_IDLE: 'KTV_ROOM_IDLE',
   KTV_VERIFY: 'KTV_VERIFY',
   HOTEL: 'HOTEL',
   HOTEL_ROOM_TYPE: 'HOTEL_ROOM_TYPE',
@@ -172,6 +186,7 @@ export const menuIconNameByPath: Record<string, string> = {
   '/ktv/shop': MenuIconName.KTV_SHOP,
   '/ktv/room-type': MenuIconName.HOTEL_ROOM_TYPE,
   '/ktv/room': MenuIconName.KTV_ROOM,
+  '/ktv/room-status': MenuIconName.KTV_ROOM,
   '/ktv/verify': MenuIconName.KTV_VERIFY,
   '/hotel': MenuIconName.HOTEL,
   '/hotel/shop': MenuIconName.KTV_SHOP,
@@ -195,8 +210,11 @@ export const statusLabelMap: Record<string, string> = {
   CHECKED_IN: '已入住',
   CHECKED_OUT: '已退房',
   IDLE: '空闲',
+  IN_USE: '使用中',
+  CLEANING: '打扫中',
   OCCUPIED: '在住',
   MAINTENANCE: '维修',
+  CLOSED: '临时关闭',
   LARGE: '大床/大包',
   TWIN: '双床',
   RECHARGE: '充值',
