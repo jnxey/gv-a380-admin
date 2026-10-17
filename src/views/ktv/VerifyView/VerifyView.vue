@@ -226,3 +226,12 @@ onMounted(() => {
 });
 </script>
 
+<style scoped>
+@media (min-width: 1200px) {
+  .record-list--wide-table :deep(.record-actions) {
+    width: 188px;
+    white-space: nowrap;
+  }
+}
+</style>
+
