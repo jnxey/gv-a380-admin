@@ -4,6 +4,10 @@
   gap: 12px;
 }
 
+.record-head {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .record-list {
     gap: 0;
@@ -108,6 +112,84 @@
 
   .record-list.record-list--wide-table .record-card:first-of-type .record-actions .el-button:first-child {
     margin-left: 12px;
+  }
+
+  body .gu-mirror.record-card {
+    display: flex;
+    align-items: stretch;
+    box-sizing: border-box;
+    padding: 0;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e6e8ec;
+    border-radius: 0;
+  }
+
+  body .gu-mirror.record-card .record-fields {
+    display: contents;
+  }
+
+  body .gu-mirror.record-card .record-field,
+  body .gu-mirror.record-card .record-actions {
+    display: flex;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+    padding: 10px 12px;
+    overflow: hidden;
+    word-break: break-word;
+    border: none;
+    border-bottom: 1px solid #e6e8ec;
+  }
+
+  body .gu-mirror.record-card .record-field-label {
+    display: none;
+  }
+
+  body .gu-mirror.record-card .record-actions.is-empty {
+    display: none;
+  }
+
+  .record-list.record-list--wide-table .record-head.is-ready {
+    display: table-row;
+  }
+
+  .record-list.record-list--wide-table .record-head-cell {
+    display: table-cell;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: #303133;
+    background: #f0f2f5;
+    border-bottom: 1px solid #e6e8ec;
+  }
+
+  .record-list.record-list--wide-table:has(.record-head.is-ready) .record-card .record-field-label {
+    display: none;
+  }
+
+  .record-list.record-list--wide-table:has(.record-head.is-ready) .record-card:first-of-type .record-field,
+  .record-list.record-list--wide-table:has(.record-head.is-ready) .record-card:first-of-type .record-actions,
+  .record-list.record-list--wide-table:has(.record-head.is-ready) .record-card:first-of-type .record-actions.is-empty {
+    padding: 10px 12px;
+    vertical-align: middle;
+  }
+
+  .record-list.record-list--wide-table:has(.record-head.is-ready) .record-card:first-of-type .record-actions::before {
+    content: none;
+    display: none;
+  }
+
+  .record-list.record-list--wide-table:has(.record-head.is-ready) .record-card:first-of-type .record-field-value {
+    padding: 0;
+  }
+
+  .record-list.record-list--wide-table:has(.record-head.is-ready) .record-card:first-of-type .record-actions .el-button,
+  .record-list.record-list--wide-table:has(.record-head.is-ready) .record-card:first-of-type .record-actions .el-button:first-child {
+    margin: 0;
   }
 }
 

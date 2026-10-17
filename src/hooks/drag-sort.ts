@@ -7,6 +7,7 @@ const dragSortNameClass = 'name-box';
 const dragSortIconClass = 'drag-icon';
 const dragSortKeyAttribute = 'data-key';
 const createCardClass = 'room-type-create';
+const recordHeadClass = 'record-head';
 const scrollEdgePx = 48;
 const scrollMaxSpeed = 12;
 
@@ -38,6 +39,9 @@ export function useDragSort(getContainer: () => HTMLElement | null, canDrag: () 
       },
       accepts: (_element, _target, _source, sibling) => {
         if (sibling !== null && sibling.classList.contains(createCardClass)) {
+          return false;
+        }
+        if (sibling !== null && sibling.classList.contains(recordHeadClass)) {
           return false;
         }
         return true;

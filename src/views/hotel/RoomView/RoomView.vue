@@ -3,6 +3,7 @@
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建房间</el-button>
     <div ref="sortListRef" class="record-list record-list--wide-table">
+      <RecordTableHead />
       <div v-if="isEmpty(roomList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="roomRow in roomList" :key="roomRow.id">
         <RecordField label="房号">
@@ -38,6 +39,7 @@
 import { onMounted, ref } from 'vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
+import RecordTableHead from '../../../components/RecordTableHead/RecordTableHead.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
 import { HotelRoomStatus, PermissionCode, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
