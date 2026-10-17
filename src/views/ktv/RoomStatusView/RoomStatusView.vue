@@ -642,7 +642,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 6px 12px;
   border-radius: 8px;
-  color: #1c2434;
+  color: #fff;
   white-space: nowrap;
 }
 
@@ -784,27 +784,27 @@ onBeforeUnmount(() => {
 
 .room-status-card.is-idle,
 .room-status-count.is-idle {
-  background: #b7ebc6;
+  background: #248a4a;
 }
 
 .room-status-card.is-in-use,
 .room-status-count.is-in-use {
-  background: #f5c16c;
+  background: #b56a08;
 }
 
 .room-status-card.is-cleaning,
 .room-status-count.is-cleaning {
-  background: #9fd4f5;
+  background: #217eae;
 }
 
 .room-status-card.is-maintenance,
 .room-status-count.is-maintenance {
-  background: #f0a3a3;
+  background: #b84545;
 }
 
 .room-status-card.is-closed,
 .room-status-count.is-closed {
-  background: #d0d5dd;
+  background: #5e6772;
 }
 
 .room-status-actions {
@@ -848,21 +848,21 @@ onBeforeUnmount(() => {
   font-size: 13px;
   font-weight: 400;
   line-height: 20px;
-  color: #344054;
+  color: #fff;
 }
 
 .room-status-no {
   font-size: 20px;
   font-weight: 600;
   line-height: 28px;
-  color: #1c2434;
+  color: #fff;
 }
 
 .room-status-text {
   margin-top: 12px;
   font-size: 13px;
   line-height: 20px;
-  color: #1c2434;
+  color: #fff;
 }
 
 .room-status-more {
