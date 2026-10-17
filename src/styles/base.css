@@ -99,6 +99,17 @@ label {
   border-radius: var(--el-border-radius-round);
 }
 
+.el-message-box {
+  --el-messagebox-border-radius: 12px;
+}
+
+.el-message-box__btns .el-button {
+  height: 40px;
+  padding: 12px 19px;
+  font-size: var(--el-font-size-base);
+  border-radius: var(--el-border-radius-round);
+}
+
 .el-dialog .el-select,
 .el-dialog .el-date-editor {
   width: 100%;
