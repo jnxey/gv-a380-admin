@@ -12,15 +12,17 @@
         <RecordField label="订单号">{{ orderRow.orderNo }}</RecordField>
         <RecordField label="会员">{{ orderRow.memberName }}</RecordField>
         <RecordField label="手机号">{{ orderRow.mobile }}</RecordField>
+        <RecordField label="类型">{{ orderRow.roomTypeName }}</RecordField>
         <RecordField label="包厢">{{ orderRow.roomName }}</RecordField>
         <RecordField label="日期">{{ orderRow.bookingDate }}</RecordField>
         <RecordField label="开始">{{ orderRow.startTime }}</RecordField>
-        <RecordField label="结束">{{ orderRow.endTime }}</RecordField>
+        <RecordField label="小时">{{ orderRow.durationHours }}</RecordField>
+        <RecordField label="结束">{{ formatBookingEnd(orderRow) }}</RecordField>
         <RecordField label="包厢费">{{ orderRow.amount }}</RecordField>
         <RecordField label="核销码">{{ orderRow.verifyCode }}</RecordField>
         <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
         <template #actions>
-          <el-button v-if="canVerify && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="primary" @click="verifyOrder(orderRow.bookingOrderId)">核销</el-button>
+          <el-button v-if="canVerify && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="primary" @click="openVerify(orderRow.bookingOrderId)">核销</el-button>
           <el-button v-if="canConsume && orderRow.orderStatus === KtvOrderStatus.VERIFIED" link type="primary" @click="openConsume(orderRow.bookingOrderId)">店内消费</el-button>
           <el-button
             v-if="canCancel && (orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY || orderRow.orderStatus === KtvOrderStatus.VERIFIED)"
@@ -32,6 +34,20 @@
       </RecordCard>
     </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
+    <el-dialog v-model="verifyVisible" title="分配包厢" width="420px">
+      <div v-if="isEmpty(freeRoomList)" class="record-empty">该时段没有空闲包厢</div>
+      <el-form v-else label-position="top">
+        <el-form-item label="包厢">
+          <el-select v-model="verifyRoomId">
+            <el-option v-for="room in freeRoomList" :key="room.id" :label="room.roomName" :value="room.id" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button size="large" @click="verifyVisible = false">取消</el-button>
+        <el-button size="large" type="primary" :disabled="isEmpty(freeRoomList)" @click="submitVerify">确认核销</el-button>
+      </template>
+    </el-dialog>
     <el-dialog v-model="consumeVisible" title="店内消费" width="420px">
       <el-form label-position="top">
         <el-form-item label="金额"><el-input v-model="consumeAmount" /></el-form-item>
@@ -58,15 +74,22 @@ import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
+interface FreeRoom {
+  id: string;
+  roomName: string;
+}
+
 interface OrderRow {
   bookingOrderId: string;
   orderNo: string;
   memberName: string;
   mobile: string;
+  roomTypeName: string;
   roomName: string;
   bookingDate: string;
   startTime: string;
   endTime: string;
+  durationHours: number;
   amount: string;
   verifyCode: string;
   orderStatus: string;
@@ -81,10 +104,24 @@ const orderList = ref<OrderRow[]>([]);
 const total = ref(0);
 const page = ref<number>(PageSetting.DEFAULT_PAGE);
 const pageSize = ref<number>(PageSetting.DEFAULT_PAGE_SIZE);
+const verifyVisible = ref(false);
+const verifyOrderId = ref('');
+const verifyRoomId = ref('');
+const freeRoomList = ref<FreeRoom[]>([]);
 const consumeVisible = ref(false);
 const consumeOrderId = ref('');
 const consumeAmount = ref('');
 const consumeRemark = ref('');
+
+/**
+ * 结束钟点不晚于开唱钟点时，表示已经跨到第二天。
+ */
+function formatBookingEnd(orderRow: OrderRow): string {
+  if (orderRow.endTime <= orderRow.startTime) {
+    return `次日 ${orderRow.endTime}`;
+  }
+  return orderRow.endTime;
+}
 
 /**
  * 查询当前门店预订订单。
@@ -98,11 +135,31 @@ async function loadOrders(): Promise<void> {
 }
 
 /**
- * 核销订单。
+ * 打开核销弹窗，并加载该时段还能分配的包厢。
  */
-async function verifyOrder(bookingOrderId: string): Promise<void> {
-  await http.post(`/admin/ktv/booking-orders/${bookingOrderId}/verify`);
+async function openVerify(bookingOrderId: string): Promise<void> {
+  verifyOrderId.value = bookingOrderId;
+  verifyRoomId.value = '';
+  freeRoomList.value = (await http.get(`/admin/ktv/booking-orders/${bookingOrderId}/free-rooms`)) as FreeRoom[];
+  if (isEmpty(freeRoomList.value) !== true) {
+    verifyRoomId.value = freeRoomList.value[0].id;
+  }
+  verifyVisible.value = true;
+}
+
+/**
+ * 把选中的空闲包厢写入订单并核销。
+ */
+async function submitVerify(): Promise<void> {
+  if (isEmpty(verifyRoomId.value)) {
+    ElMessage.warning('该时段没有空闲包厢');
+    return;
+  }
+  await http.post(`/admin/ktv/booking-orders/${verifyOrderId.value}/verify`, {
+    roomId: verifyRoomId.value,
+  });
   ElMessage.success('核销成功');
+  verifyVisible.value = false;
   await loadOrders();
 }
 
