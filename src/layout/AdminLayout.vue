@@ -9,7 +9,7 @@
           <span class="admin-brand-sub">管理后台</span>
         </span>
       </div>
-      <div class="admin-menu">
+      <el-scrollbar class="admin-menu">
         <el-menu
           :default-active="route.path"
           :default-openeds="openedMenuPathList"
@@ -33,7 +33,7 @@
             </el-menu-item>
           </el-sub-menu>
         </el-menu>
-      </div>
+      </el-scrollbar>
       <button
         type="button"
         class="admin-menu-toggle"
@@ -305,8 +305,8 @@ onBeforeUnmount(() => {
 
 .admin-menu {
   flex: 1;
+  height: auto;
   min-height: 0;
-  overflow: auto;
 }
 
 .admin-menu-toggle {
