@@ -63,6 +63,7 @@
                   class="room-status-more-item"
                   @click="onMoreStatus(roomRow, roomStatusOption.value)"
                 >
+                  <span class="room-status-more-dot" :class="roomStatusCardClass(roomStatusOption.value)" />
                   {{ roomStatusOption.label }}
                 </button>
               </div>
@@ -680,9 +681,9 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
+  align-self: stretch;
+  height: auto;
+  padding: 0 10px;
   color: #1c2434;
   cursor: pointer;
   background: #e4e7ec;
@@ -817,27 +818,32 @@ onBeforeUnmount(() => {
 }
 
 .room-status-card.is-idle,
-.room-status-count.is-idle {
+.room-status-count.is-idle,
+.room-status-more-dot.is-idle {
   background: #248a4a;
 }
 
 .room-status-card.is-in-use,
-.room-status-count.is-in-use {
+.room-status-count.is-in-use,
+.room-status-more-dot.is-in-use {
   background: #b56a08;
 }
 
 .room-status-card.is-cleaning,
-.room-status-count.is-cleaning {
+.room-status-count.is-cleaning,
+.room-status-more-dot.is-cleaning {
   background: #217eae;
 }
 
 .room-status-card.is-maintenance,
-.room-status-count.is-maintenance {
+.room-status-count.is-maintenance,
+.room-status-more-dot.is-maintenance {
   background: #b84545;
 }
 
 .room-status-card.is-closed,
-.room-status-count.is-closed {
+.room-status-count.is-closed,
+.room-status-more-dot.is-closed {
   background: #5e6772;
 }
 
@@ -911,6 +917,9 @@ onBeforeUnmount(() => {
 }
 
 .room-status-more-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 0;
   font-size: 13px;
   line-height: 20px;
@@ -919,6 +928,13 @@ onBeforeUnmount(() => {
   cursor: pointer;
   background: transparent;
   border: 0;
+}
+
+.room-status-more-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .room-status-more-item:hover {
