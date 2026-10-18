@@ -221,15 +221,10 @@ function alignEndTime(): void {
 }
 
 /**
- * 两边都空可以不填。只填一边，或结束不晚于开始，都不能保存。
+ * 营业时间必须两边都填，且结束要晚于开始。
  */
 function businessHoursInvalid(): boolean {
-  const startTimeEmpty = isEmpty(shopForm.startTime);
-  const endTimeEmpty = isEmpty(shopForm.endTime);
-  if (startTimeEmpty && endTimeEmpty) {
-    return false;
-  }
-  if (startTimeEmpty || endTimeEmpty) {
+  if (isEmpty(shopForm.startTime) || isEmpty(shopForm.endTime)) {
     return true;
   }
   return shopForm.endTime <= shopForm.startTime;
@@ -430,8 +425,24 @@ function shopSaveBody(): Record<string, unknown> {
  * 保存门店。新建后先刷新登录态，再上传选中的图片。
  */
 async function saveShop(): Promise<void> {
+  if (isEmpty(shopForm.timeZone)) {
+    ElMessage.warning('请填写门店时区');
+    return;
+  }
+  if (isEmpty(shopForm.startTime) || isEmpty(shopForm.endTime)) {
+    ElMessage.warning('请填写营业时间');
+    return;
+  }
   if (businessHoursInvalid()) {
     ElMessage.warning('结束时间必须晚于开始时间');
+    return;
+  }
+  if (isEmpty(shopForm.longitude) || isEmpty(shopForm.latitude)) {
+    ElMessage.warning('请选择门店位置');
+    return;
+  }
+  if (isEmpty(shopForm.contactPhone)) {
+    ElMessage.warning('请填写电话');
     return;
   }
   const shopBody = shopSaveBody();
