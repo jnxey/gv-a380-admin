@@ -132,6 +132,80 @@ export const PageSetting = {
 /** 列表里代替真实核销码的展示文字。 */
 export const VerifyCodeMask = '******';
 
+/** 北京时间的标准偏移。 */
+export const BeijingTimeZoneOffset = '+08:00';
+
+/** 门店时区。偏移是保存值，名称只用于展示。 */
+export const TimeZoneOptionList = [
+  { offset: '-12:00', name: '国际日期变更线西' },
+  { offset: '-11:00', name: '萨摩亚' },
+  { offset: '-10:00', name: '夏威夷' },
+  { offset: '-09:30', name: '马克萨斯' },
+  { offset: '-09:00', name: '阿拉斯加' },
+  { offset: '-08:00', name: '太平洋' },
+  { offset: '-07:00', name: '山地' },
+  { offset: '-06:00', name: '中部' },
+  { offset: '-05:00', name: '东部' },
+  { offset: '-04:00', name: '大西洋' },
+  { offset: '-03:30', name: '纽芬兰' },
+  { offset: '-03:00', name: '巴西利亚' },
+  { offset: '-02:00', name: '南乔治亚' },
+  { offset: '-01:00', name: '亚速尔' },
+  { offset: '+00:00', name: '伦敦' },
+  { offset: '+01:00', name: '中欧' },
+  { offset: '+02:00', name: '东欧' },
+  { offset: '+03:00', name: '莫斯科' },
+  { offset: '+03:30', name: '德黑兰' },
+  { offset: '+04:00', name: '迪拜' },
+  { offset: '+04:30', name: '喀布尔' },
+  { offset: '+05:00', name: '卡拉奇' },
+  { offset: '+05:30', name: '新德里' },
+  { offset: '+05:45', name: '加德满都' },
+  { offset: '+06:00', name: '达卡' },
+  { offset: '+06:30', name: '仰光' },
+  { offset: '+07:00', name: '曼谷' },
+  { offset: '+08:00', name: '北京' },
+  { offset: '+09:00', name: '东京' },
+  { offset: '+09:30', name: '阿德莱德' },
+  { offset: '+10:00', name: '悉尼' },
+  { offset: '+10:30', name: '豪勋爵岛' },
+  { offset: '+11:00', name: '努美阿' },
+  { offset: '+12:00', name: '奥克兰' },
+  { offset: '+12:45', name: '查塔姆' },
+  { offset: '+13:00', name: '努库阿洛法' },
+  { offset: '+14:00', name: '基里巴斯' },
+] as const;
+
+/**
+ * 把时区偏移显示成地名加偏移。不认识的偏移原样返回。
+ */
+export function timeZoneLabel(timeZoneOffset: string): string {
+  const matchedOption = TimeZoneOptionList.find((timeZoneOption) => timeZoneOption.offset === timeZoneOffset);
+  if (matchedOption === undefined) {
+    return timeZoneOffset;
+  }
+  return `${matchedOption.name} ${matchedOption.offset}`;
+}
+
+/** 营业时间可选档，从 00:00 到 23:30，每 30 分钟一档。 */
+export const BusinessHourList = Array.from({ length: 48 }, (_, slotIndex) => {
+  const hourText = String(Math.floor(slotIndex / 2)).padStart(2, '0');
+  const minuteText = slotIndex % 2 === 0 ? '00' : '30';
+  return `${hourText}:${minuteText}`;
+});
+
+/** 没有坐标时，地图默认居中北京。 */
+export const BeijingLocation = {
+  LONGITUDE: 116.4074,
+  LATITUDE: 39.9042,
+} as const;
+
+/** 地图代理。瓦片地址里的 {z} {x} {y} 由地图组件替换。 */
+export const MapApiPath = {
+  TILE: '/admin/map/tiles/{z}/{x}/{y}',
+  REVERSE: '/admin/map/reverse',
+} as const;
+
 export const StorageKey = {
   ACCESS_TOKEN: 'gv_a380_admin_access_token',
   CURRENT_SHOP_ID: 'gv_a380_admin_current_shop_id',

@@ -17,6 +17,8 @@
             {{ shopRow.shopCode }}<template v-if="!isEmpty(shopRow.contactPhone)"> · {{ shopRow.contactPhone }}</template>
           </div>
           <div class="shop-address">{{ shopRow.address }}</div>
+          <div v-if="!isEmpty(shopRow.timeZone)" class="shop-address">{{ timeZoneLabel(shopRow.timeZone) }}</div>
+          <div v-if="!isEmpty(shopBusinessHoursText(shopRow))" class="shop-address">{{ shopBusinessHoursText(shopRow) }}</div>
           <div class="shop-foot">
             <el-tag :type="shopRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
               {{ statusLabel(shopRow.status) }}
@@ -32,7 +34,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
+import { PermissionCode, RecordStatus, statusLabel, timeZoneLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -43,6 +45,21 @@ const canSave = sessionStore.hasPermission(PermissionCode.KTV_SHOP_SAVE);
 const shopList = ref<ShopRow[]>([]);
 const dialogVisible = ref(false);
 const editingShop = ref<ShopRow | null>(null);
+
+/**
+ * 营业时间显示成开始到结束。没有时段时返回空字符串。
+ */
+function shopBusinessHoursText(shopRow: ShopRow): string {
+  if (isEmpty(shopRow.businessHours)) {
+    return '';
+  }
+  const startTime = shopRow.businessHours.startTime;
+  const endTime = shopRow.businessHours.endTime;
+  if (isEmpty(startTime) && isEmpty(endTime)) {
+    return '';
+  }
+  return `${startTime} - ${endTime}`;
+}
 
 /**
  * 封面用第一张门店图片。没有图片时返回空字符串。
