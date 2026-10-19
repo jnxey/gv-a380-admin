@@ -97,7 +97,7 @@
           </div>
           <div v-if="isEmpty(pendingBookingList)" class="room-status-empty">暂无待核销订单</div>
           <article v-for="pendingOrder in pendingBookingList" :key="pendingOrder.bookingOrderId" class="room-status-order">
-            <div class="room-status-order-name">{{ pendingOrder.memberName }}</div>
+            <div class="room-status-order-name">{{ pendingOrder.username }}</div>
             <div class="room-status-order-line">{{ pendingOrder.roomTypeName }}</div>
             <div class="room-status-order-line">{{ pendingOrder.bookingDate }} {{ formatClock(pendingOrder.startTime) }} - {{ formatBookingEnd(pendingOrder) }}</div>
             <div class="room-status-order-line">核销码 {{ VerifyCodeMask }}</div>
@@ -154,7 +154,7 @@ interface PendingOrder {
 
 interface PendingBookingOrder {
   bookingOrderId: string;
-  memberName: string;
+  username: string;
   roomTypeId: string;
   roomTypeName: string;
   bookingDate: string;

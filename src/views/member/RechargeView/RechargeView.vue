@@ -7,7 +7,7 @@
           <el-input
             v-model="keyword"
             class="recharge-search-input"
-            placeholder="手机号 / 会员号 / 姓名"
+            placeholder="用户名"
             clearable
             @keyup.enter="searchMember"
           />
@@ -20,15 +20,7 @@
       <template v-else>
         <el-button class="recharge-back" @click="backToSearch">返回</el-button>
         <div class="member-summary">
-          <div class="member-card-name">{{ selectedMember.memberName }}</div>
-          <div class="member-card-meta">
-            <span v-if="isEmpty(selectedMember.mobile) === false">{{ selectedMember.mobile }}</span>
-            <span
-              v-if="isEmpty(selectedMember.mobile) === false && isEmpty(selectedMember.memberNo) === false"
-              class="member-card-separator"
-            >·</span>
-            <span v-if="isEmpty(selectedMember.memberNo) === false">{{ selectedMember.memberNo }}</span>
-          </div>
+          <div class="member-card-name">{{ selectedMember.username }}</div>
           <div class="member-balance-label">余额</div>
           <div class="member-balance-value">{{ selectedMember.balance }}</div>
         </div>
@@ -63,9 +55,7 @@ import http from '../../../utils/request';
 
 interface MemberRow {
   memberId: string;
-  memberNo: string;
-  memberName: string;
-  mobile: string;
+  username: string;
   balance: string;
 }
 
@@ -78,18 +68,14 @@ const amount = ref('');
 const remark = ref('');
 
 /**
- * 按关键字查出列表，只留下会员号、手机号或姓名全等的会员。
+ * 按关键字查出列表，只留下用户名全等的会员。
  */
 async function findExactMemberList(cleanedKeyword: string): Promise<MemberRow[]> {
   const pageResult = (await http.get('/admin/members', {
     params: { keyword: cleanedKeyword, page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.DEFAULT_PAGE_SIZE },
   })) as { list: MemberRow[] };
   return pageResult.list.filter((memberRow) => {
-    return (
-      memberRow.memberNo === cleanedKeyword ||
-      memberRow.mobile === cleanedKeyword ||
-      memberRow.memberName === cleanedKeyword
-    );
+    return memberRow.username === cleanedKeyword;
   });
 }
 

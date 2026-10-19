@@ -10,8 +10,7 @@
       <div v-if="isEmpty(orderList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
         <RecordField label="订单号">{{ orderRow.orderNo }}</RecordField>
-        <RecordField label="会员">{{ orderRow.memberName }}</RecordField>
-        <RecordField label="手机号">{{ orderRow.mobile }}</RecordField>
+        <RecordField label="用户名">{{ orderRow.username }}</RecordField>
         <RecordField label="类型">{{ orderRow.roomTypeName }}</RecordField>
         <RecordField label="包厢">{{ orderRow.roomName }}</RecordField>
         <RecordField label="日期">{{ orderRow.bookingDate }}</RecordField>
@@ -82,8 +81,7 @@ interface FreeRoom {
 interface OrderRow {
   bookingOrderId: string;
   orderNo: string;
-  memberName: string;
-  mobile: string;
+  username: string;
   roomTypeName: string;
   roomName: string;
   bookingDate: string;

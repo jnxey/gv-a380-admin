@@ -5,8 +5,7 @@
       <div v-if="isEmpty(orderList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
         <RecordField label="订单号">{{ orderRow.orderNo }}</RecordField>
-        <RecordField label="会员">{{ orderRow.memberName }}</RecordField>
-        <RecordField label="手机号">{{ orderRow.mobile }}</RecordField>
+        <RecordField label="用户名">{{ orderRow.username }}</RecordField>
         <RecordField label="房型">{{ orderRow.typeName }}</RecordField>
         <RecordField label="房号">{{ orderRow.roomNo }}</RecordField>
         <RecordField label="入住">{{ orderRow.checkInDate }}</RecordField>
@@ -57,8 +56,7 @@ import http from '../../../utils/request';
 interface OrderRow {
   bookingOrderId: string;
   orderNo: string;
-  memberName: string;
-  mobile: string;
+  username: string;
   typeName: string;
   roomTypeId: string;
   roomNo: string;
