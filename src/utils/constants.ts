@@ -317,6 +317,8 @@ export const statusLabelMap: Record<string, string> = {
   KTV: 'KTV',
   HOTEL: '酒店',
   GROUP: '集团',
+  active: '正常',
+  disabled: '禁用',
 };
 
 /**
