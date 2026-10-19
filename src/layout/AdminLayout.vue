@@ -48,6 +48,9 @@
     </aside>
     <div class="admin-main">
       <header class="admin-header">
+        <button v-if="showNarrowBack" type="button" class="header-back" aria-label="返回" @click="goBack">
+          <AppIcon class="header-back-icon" :icon-name="MenuIconName.ARROW_RIGHT" />
+        </button>
         <div v-if="narrowScreen !== true" class="header-left">
           <button type="button" class="header-menu" aria-label="打开菜单" @click="openMenuDrawer">
             <AppIcon class="header-menu-icon" :icon-name="MenuIconName.MENU_HAMBURGER" />
@@ -133,6 +136,13 @@ watch(
 );
 
 /**
+ * 窄屏离开首页时，顶栏左侧显示返回。
+ */
+const showNarrowBack = computed(() => {
+  return narrowScreen.value === true && route.name !== Home.ROUTE_NAME;
+});
+
+/**
  * 顶栏当前页标题。路由没有标题时用系统名。
  */
 const currentPageTitle = computed(() => {
@@ -174,6 +184,18 @@ function syncNarrowScreen(): void {
   if (narrowScreen.value !== true) {
     menuDrawerOpen.value = false;
   }
+}
+
+/**
+ * 返回上一页。没有站内上一页时回到首页。
+ */
+function goBack(): void {
+  const historyState = window.history.state as { back?: string | null } | null;
+  if (isEmpty(historyState) || isEmpty(historyState.back)) {
+    void router.push(Home.PATH);
+    return;
+  }
+  router.back();
 }
 
 /**
@@ -403,6 +425,7 @@ onBeforeUnmount(() => {
 
 .admin-header {
   box-sizing: border-box;
+  position: relative;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -448,6 +471,35 @@ onBeforeUnmount(() => {
   stroke-linejoin: round;
 }
 
+.header-back {
+  position: absolute;
+  left: calc(4px + var(--gv-safe-left, 0px));
+  top: calc(var(--gv-safe-top, 0px) + 6px);
+  z-index: 1;
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--admin-text);
+  cursor: pointer;
+}
+
+.header-back-icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: scaleX(-1);
+}
+
 .admin-title {
   min-width: 0;
   overflow: hidden;
@@ -460,6 +512,7 @@ onBeforeUnmount(() => {
 
 .admin-title-center {
   flex: 1;
+  padding: 0 48px;
   text-align: center;
 }
 

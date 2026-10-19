@@ -48,6 +48,11 @@ label {
   touch-action: manipulation;
 }
 
+*:focus,
+*:focus-visible {
+  outline: none;
+}
+
 .admin-content,
 .admin-menu,
 .el-dialog__body,
