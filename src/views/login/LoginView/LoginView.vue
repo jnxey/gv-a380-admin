@@ -104,6 +104,10 @@ async function onSubmit(): Promise<void> {
   overflow-x: hidden;
   overflow-y: auto;
   padding: 32px 24px;
+  padding-top: calc(32px + var(--gv-safe-top, 0px));
+  padding-right: calc(24px + var(--gv-safe-right, 0px));
+  padding-bottom: calc(32px + var(--gv-safe-bottom, 0px));
+  padding-left: calc(24px + var(--gv-safe-left, 0px));
   box-sizing: border-box;
   color: #f4f1ea;
   background:
@@ -330,6 +334,10 @@ async function onSubmit(): Promise<void> {
   .login-page {
     align-items: flex-start;
     padding: 28px 16px 32px;
+    padding-top: calc(28px + var(--gv-safe-top, 0px));
+    padding-right: calc(16px + var(--gv-safe-right, 0px));
+    padding-bottom: calc(32px + var(--gv-safe-bottom, 0px));
+    padding-left: calc(16px + var(--gv-safe-left, 0px));
   }
 
   .login-layout {
@@ -353,6 +361,10 @@ async function onSubmit(): Promise<void> {
 @media (max-width: 420px) {
   .login-page {
     padding: 20px 12px 24px;
+    padding-top: calc(20px + var(--gv-safe-top, 0px));
+    padding-right: calc(12px + var(--gv-safe-right, 0px));
+    padding-bottom: calc(24px + var(--gv-safe-bottom, 0px));
+    padding-left: calc(12px + var(--gv-safe-left, 0px));
   }
 
   .login-intro h1 {

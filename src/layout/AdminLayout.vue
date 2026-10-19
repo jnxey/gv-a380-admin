@@ -48,13 +48,14 @@
     </aside>
     <div class="admin-main">
       <header class="admin-header">
-        <div class="header-left">
+        <div v-if="narrowScreen !== true" class="header-left">
           <button type="button" class="header-menu" aria-label="打开菜单" @click="openMenuDrawer">
             <AppIcon class="header-menu-icon" :icon-name="MenuIconName.MENU_HAMBURGER" />
           </button>
           <span class="admin-title">{{ currentPageTitle }}</span>
         </div>
-        <div class="header-right">
+        <span v-else class="admin-title admin-title-center">{{ currentPageTitle }}</span>
+        <div v-if="narrowScreen !== true" class="header-right">
           <el-popover v-model:visible="accountMenuVisible" trigger="click" placement="bottom-end" :width="168">
             <template #reference>
               <button type="button" class="header-avatar" aria-label="账号菜单">
@@ -401,14 +402,15 @@ onBeforeUnmount(() => {
 }
 
 .admin-header {
-  height: 56px;
   box-sizing: border-box;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 24px;
+  min-height: calc(56px + var(--gv-safe-top, 0px));
+  padding: 0 calc(24px + var(--gv-safe-right, 0px)) 0 calc(24px + var(--gv-safe-left, 0px));
+  padding-top: var(--gv-safe-top, 0px);
   background: var(--admin-surface);
   border-bottom: 1px solid var(--admin-border);
 }
@@ -454,6 +456,11 @@ onBeforeUnmount(() => {
   font-size: 16px;
   font-weight: 600;
   color: var(--admin-text);
+}
+
+.admin-title-center {
+  flex: 1;
+  text-align: center;
 }
 
 .header-right {
@@ -512,6 +519,9 @@ onBeforeUnmount(() => {
   flex: 1;
   overflow: auto;
   padding: 12px;
+  padding-right: calc(12px + var(--gv-safe-right, 0px));
+  padding-bottom: calc(12px + var(--gv-safe-bottom, 0px));
+  padding-left: calc(12px + var(--gv-safe-left, 0px));
   background: #f4f6f8;
 }
 
@@ -543,12 +553,9 @@ onBeforeUnmount(() => {
     display: none;
   }
 
-  .header-menu {
-    display: inline-flex;
-  }
-
   .admin-header {
-    padding: 0 12px;
+    padding-right: calc(12px + var(--gv-safe-right, 0px));
+    padding-left: calc(12px + var(--gv-safe-left, 0px));
   }
 }
 </style>
