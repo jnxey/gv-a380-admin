@@ -21,6 +21,7 @@
         <el-button class="recharge-back" @click="backToSearch">返回</el-button>
         <div class="member-summary">
           <div class="member-card-name">{{ selectedMember.username }}</div>
+          <div v-if="isEmpty(selectedMember.contact) !== true" class="member-card-meta">{{ selectedMember.contact }}</div>
           <div class="member-balance-label">余额</div>
           <div class="member-balance-value">{{ selectedMember.balance }}</div>
         </div>
@@ -56,6 +57,7 @@ import http from '../../../utils/request';
 interface MemberRow {
   memberId: string;
   username: string;
+  contact: string;
   balance: string;
 }
 

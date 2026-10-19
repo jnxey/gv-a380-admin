@@ -9,6 +9,7 @@
       <div v-if="isEmpty(memberList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="memberRow in memberList" :key="memberRow.username">
         <RecordField label="用户名">{{ memberRow.username }}</RecordField>
+        <RecordField label="联系方式">{{ memberRow.contact }}</RecordField>
         <RecordField label="余额">{{ memberRow.balance }}</RecordField>
         <RecordField label="状态">
           <el-tag :type="memberRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
@@ -33,6 +34,7 @@ import http from '../../../utils/request';
 
 interface MemberRow {
   username: string;
+  contact: string;
   balance: string;
   status: string;
 }
