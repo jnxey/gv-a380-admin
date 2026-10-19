@@ -8,6 +8,7 @@ import './styles/record-list.css';
 import App from './App.vue';
 import placeDirective from './directives/place';
 import router from './router';
+import { enterMiniProgramApp } from './utils/gv-sdk';
 
 const app = createApp(App);
 app.use(createPinia());
@@ -15,3 +16,6 @@ app.use(router);
 app.use(ElementPlus, { locale: zhCn });
 app.directive('place', placeDirective);
 app.mount('#app');
+router.isReady().finally(() => {
+  enterMiniProgramApp();
+});
