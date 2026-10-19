@@ -940,4 +940,41 @@ onBeforeUnmount(() => {
 .room-status-more-item:hover {
   color: #2563eb;
 }
+
+@media (max-width: 768px) {
+  .room-status-main,
+  .room-status-main :deep(.el-card__body) {
+    min-height: auto;
+  }
+
+  .room-status-summary {
+    flex-wrap: wrap;
+  }
+
+  .room-status-body {
+    flex: none;
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .room-status-rooms,
+  .room-status-orders {
+    flex: none;
+    width: auto;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .room-status-orders {
+    margin-top: 16px;
+    padding-top: 16px;
+    padding-left: 0;
+    border-top: 1px solid #e6e8ec;
+    border-left: 0;
+  }
+
+  .room-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>
