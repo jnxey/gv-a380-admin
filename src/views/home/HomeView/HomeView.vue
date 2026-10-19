@@ -21,10 +21,12 @@
       </div>
     </section>
   </el-card>
+  <button type="button" class="home-logout" @click="confirmLogout">退出：{{ sessionStore.username }}</button>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import { viewComponentMap } from '../../../router/view-map';
@@ -93,6 +95,18 @@ function resolveMenuIconName(menuPath: string): string {
 function openEntry(menuPath: string): void {
   void router.push(menuPath);
 }
+
+/**
+ * 确认后再退出当前登录账号。
+ */
+async function confirmLogout(): Promise<void> {
+  try {
+    await ElMessageBox.confirm(`确认退出 ${sessionStore.username}？`, '退出登录');
+  } catch (error) {
+    return;
+  }
+  await sessionStore.logout(router);
+}
 </script>
 
 <style scoped>
@@ -153,6 +167,27 @@ function openEntry(menuPath: string): void {
 
 .home-entry:hover {
   background: #f5f7fa;
+}
+
+.home-logout {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .home-logout {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #e6e8ec;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #b42318;
+    font-size: 14px;
+    line-height: 22px;
+    text-align: center;
+    cursor: pointer;
+  }
 }
 
 @media (min-width: 769px) {
