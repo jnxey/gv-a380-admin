@@ -263,6 +263,7 @@ export const MenuIconName = {
   LOGIN_PASSWORD: 'LOGIN_PASSWORD',
   ARROW_RIGHT: 'ARROW_RIGHT',
   REFRESH: 'REFRESH',
+  SCAN_QR: 'SCAN_QR',
 } as const;
 
 export const menuIconNameByPath: Record<string, string> = {

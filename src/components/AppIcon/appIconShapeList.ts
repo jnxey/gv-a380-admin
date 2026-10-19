@@ -147,6 +147,15 @@ export const menuIconShapeListByName: Record<string, MenuIconShape[]> = {
     { shapeKind: MenuIconShapeKind.RECT, offsetX: 5, offsetY: 10.5, width: 14, height: 9, cornerRadius: 1.6 },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M8.2 10.5V8.2a3.8 3.8 0 0 1 7.6 0v2.3' },
   ],
+  [MenuIconName.SCAN_QR]: [
+    { shapeKind: MenuIconShapeKind.RECT, offsetX: 3.5, offsetY: 3.5, width: 6.5, height: 6.5, cornerRadius: 1 },
+    { shapeKind: MenuIconShapeKind.RECT, offsetX: 14, offsetY: 3.5, width: 6.5, height: 6.5, cornerRadius: 1 },
+    { shapeKind: MenuIconShapeKind.RECT, offsetX: 3.5, offsetY: 14, width: 6.5, height: 6.5, cornerRadius: 1 },
+    { shapeKind: MenuIconShapeKind.RECT, offsetX: 14, offsetY: 14, width: 2.2, height: 2.2, cornerRadius: 0.4 },
+    { shapeKind: MenuIconShapeKind.RECT, offsetX: 17.6, offsetY: 14, width: 2.2, height: 2.2, cornerRadius: 0.4 },
+    { shapeKind: MenuIconShapeKind.RECT, offsetX: 14, offsetY: 17.6, width: 2.2, height: 2.2, cornerRadius: 0.4 },
+    { shapeKind: MenuIconShapeKind.RECT, offsetX: 17.6, offsetY: 17.6, width: 2.2, height: 2.2, cornerRadius: 0.4 },
+  ],
   [MenuIconName.ARROW_RIGHT]: [
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M5 12h14' },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'm13 6 6 6-6 6' },

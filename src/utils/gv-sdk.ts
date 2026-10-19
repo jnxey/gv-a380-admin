@@ -2,6 +2,7 @@ import { isEmpty } from './tools';
 
 type GvSdkBridge = {
   enterApp?: () => Promise<unknown> | void;
+  scanCode?: () => Promise<unknown>;
 };
 
 /** 已经通知过宿主进入应用。 */
@@ -33,6 +34,18 @@ function tryEnterMiniProgramApp(): void {
   miniProgramEntered = true;
   window.removeEventListener('gv-sdk-ready', tryEnterMiniProgramApp);
   Promise.resolve(bridge.enterApp()).catch(() => undefined);
+}
+
+/**
+ * 宿主提供扫码时返回这个方法。没有注入或还没有扫码方法时返回 null。
+ */
+export function readScanCode(): (() => Promise<unknown>) | null {
+  const bridge = readGvSdk();
+  const scanCode = bridge?.scanCode;
+  if (typeof scanCode !== 'function') {
+    return null;
+  }
+  return () => scanCode();
 }
 
 /**

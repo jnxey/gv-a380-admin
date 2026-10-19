@@ -7,12 +7,15 @@
           <el-input
             v-model="keyword"
             class="recharge-search-input"
-            placeholder="用户名"
+            placeholder="用户名/手机号/邮箱"
             clearable
             @keyup.enter="searchMember"
           />
           <el-button type="primary" class="recharge-search-button" aria-label="查找" @click="searchMember">
             <AppIcon :icon-name="MenuIconName.ARROW_RIGHT" />
+          </el-button>
+          <el-button v-if="showScanButton" type="warning" class="recharge-scan-button" aria-label="扫码" @click="scanPayQr">
+            <AppIcon :icon-name="MenuIconName.SCAN_QR" />
           </el-button>
         </div>
         <div v-if="memberMissed === true" class="recharge-empty">没有找到会员</div>
@@ -49,10 +52,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import { MenuIconName, PageSetting } from '../../../utils/constants';
+import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
@@ -64,35 +68,38 @@ interface MemberRow {
   balance: string;
 }
 
+interface ChatUserProfile {
+  username: string;
+}
+
 const rechargeAmountOptionList = ['100', '200', '500', '1000'];
+const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 
 const keyword = ref('');
 const memberMissed = ref(false);
 const selectedMember = ref<MemberRow | null>(null);
 const amount = ref('');
 const remark = ref('');
+const narrowScreen = ref(false);
+const scanReady = ref(false);
+const showScanButton = computed(() => narrowScreen.value === true && scanReady.value === true);
 
 /**
- * 按关键字查出列表，只留下用户名全等的会员。
+ * 窄屏且宿主提供扫码时才显示二维码按钮。
  */
-async function findExactMemberList(cleanedKeyword: string): Promise<MemberRow[]> {
-  const pageResult = (await http.get('/admin/members', {
-    params: { keyword: cleanedKeyword, page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.DEFAULT_PAGE_SIZE },
-  })) as { list: MemberRow[] };
-  return pageResult.list.filter((memberRow) => {
-    return memberRow.username === cleanedKeyword;
-  });
+function syncScanButton(): void {
+  narrowScreen.value = narrowScreenQuery.matches;
+  scanReady.value = readScanCode() !== null;
 }
 
 /**
- * 全等命中唯一会员时进入充值，否则留在查找。
+ * 按用户名取唯一余额账户。没有或不止一条时留在查找。
  */
-async function searchMember(): Promise<void> {
-  const cleanedKeyword = keyword.value.trim();
-  if (isEmpty(cleanedKeyword)) {
-    return;
-  }
-  const exactMemberList = await findExactMemberList(cleanedKeyword);
+async function openMemberByUsername(username: string): Promise<void> {
+  const pageResult = (await http.get('/admin/members', {
+    params: { username, page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.DEFAULT_PAGE_SIZE },
+  })) as { list: MemberRow[] };
+  const exactMemberList = pageResult.list.filter((memberRow) => memberRow.username === username);
   if (exactMemberList.length !== 1) {
     memberMissed.value = true;
     selectedMember.value = null;
@@ -100,6 +107,57 @@ async function searchMember(): Promise<void> {
   }
   memberMissed.value = false;
   selectedMember.value = exactMemberList[0];
+}
+
+/**
+ * 先按用户名、手机号或邮箱取聊天用户，再用用户名进入充值。
+ */
+async function searchMember(): Promise<void> {
+  const cleanedKeyword = keyword.value.trim();
+  if (isEmpty(cleanedKeyword)) {
+    return;
+  }
+  try {
+    const chatUserProfile = (await http.get('/admin/members/chat-user', {
+      params: { keyword: cleanedKeyword },
+    })) as ChatUserProfile;
+    await openMemberByUsername(chatUserProfile.username);
+  } catch {
+    memberMissed.value = true;
+    selectedMember.value = null;
+  }
+}
+
+/**
+ * 扫付款码。取消不提示。解开后按用户名进入充值。
+ */
+async function scanPayQr(): Promise<void> {
+  const scanCode = readScanCode();
+  if (scanCode === null) {
+    return;
+  }
+  let cipherText = '';
+  try {
+    const scanResult = await scanCode();
+    if (typeof scanResult !== 'string') {
+      return;
+    }
+    cipherText = scanResult.trim();
+  } catch (error) {
+    if (error instanceof Error && error.message === 'cancelled') {
+      return;
+    }
+    return;
+  }
+  if (isEmpty(cipherText)) {
+    return;
+  }
+  try {
+    const payQr = (await http.post('/admin/members/pay-qr', { cipherText })) as { username: string };
+    await openMemberByUsername(payQr.username);
+  } catch {
+    memberMissed.value = false;
+  }
 }
 
 /**
@@ -120,13 +178,14 @@ function fillAmount(amountOption: string): void {
 }
 
 /**
- * 按当前门店给会员入账，并刷新这位会员的余额。
+ * 按当前门店给会员入账，并按用户名刷新余额。
  */
 async function submitRecharge(): Promise<void> {
   if (isEmpty(selectedMember.value) || isEmpty(amount.value)) {
     return;
   }
   const memberId = selectedMember.value.memberId;
+  const username = selectedMember.value.username;
   await http.post('/admin/members/recharge', {
     memberId,
     amount: amount.value,
@@ -135,16 +194,25 @@ async function submitRecharge(): Promise<void> {
   ElMessage.success('充值成功');
   amount.value = '';
   remark.value = '';
-  const cleanedKeyword = keyword.value.trim();
-  if (isEmpty(cleanedKeyword)) {
-    return;
-  }
-  const exactMemberList = await findExactMemberList(cleanedKeyword);
-  const refreshedMember = exactMemberList.find((memberRow) => memberRow.memberId === memberId);
+  const pageResult = (await http.get('/admin/members', {
+    params: { username, page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.DEFAULT_PAGE_SIZE },
+  })) as { list: MemberRow[] };
+  const refreshedMember = pageResult.list.find((memberRow) => memberRow.memberId === memberId);
   if (!isEmpty(refreshedMember)) {
     selectedMember.value = refreshedMember;
   }
 }
+
+onMounted(() => {
+  syncScanButton();
+  narrowScreenQuery.addEventListener('change', syncScanButton);
+  window.addEventListener('gv-sdk-ready', syncScanButton);
+});
+
+onBeforeUnmount(() => {
+  narrowScreenQuery.removeEventListener('change', syncScanButton);
+  window.removeEventListener('gv-sdk-ready', syncScanButton);
+});
 </script>
 
 <style scoped>
@@ -189,14 +257,21 @@ async function submitRecharge(): Promise<void> {
   font-size: 16px;
 }
 
-.recharge-search-button {
+.recharge-search :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
+.recharge-search-button,
+.recharge-scan-button {
   width: 100%;
   height: 44px;
   padding: 0;
+  margin: 0;
   border-radius: 12px;
 }
 
-.recharge-search-button svg {
+.recharge-search-button svg,
+.recharge-scan-button svg {
   width: 22px;
   height: 22px;
   fill: none;
