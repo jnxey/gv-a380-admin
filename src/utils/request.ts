@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
-import { HttpStatusCode, ResponseCode, StorageKey } from './constants';
+import { ensureAccessToken } from './access-token';
+import { AuthApiPath, HttpStatusCode, ResponseCode, StorageKey } from './constants';
 import { isEmpty } from './tools';
 
 const http = axios.create({
@@ -11,7 +12,12 @@ const http = axios.create({
 /**
  * 自动附带后台令牌和当前门店。单门店账号也会带上门店头。
  */
-http.interceptors.request.use((config) => {
+http.interceptors.request.use(async (config) => {
+  // 1. 登录和退出不刷新。退出要作废当前这张，不能先换成新的
+  if (config.url !== AuthApiPath.LOGIN && config.url !== AuthApiPath.LOGOUT) {
+    await ensureAccessToken();
+  }
+  // 2. 附带本地令牌和当前门店
   const accessToken = window.localStorage.getItem(StorageKey.ACCESS_TOKEN);
   const currentShopId = window.localStorage.getItem(StorageKey.CURRENT_SHOP_ID);
   config.headers = config.headers || {};
@@ -38,6 +44,9 @@ http.interceptors.response.use(
     return responseBody.data;
   },
   (error) => {
+    if (error?.isAccessTokenRefreshError === true) {
+      return Promise.reject(error);
+    }
     const statusCode = error?.response?.status;
     const failMessage = error?.response?.data?.message;
     if (statusCode === HttpStatusCode.UNAUTHORIZED) {

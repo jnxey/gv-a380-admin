@@ -211,6 +211,18 @@ export const StorageKey = {
   CURRENT_SHOP_ID: 'gv_a380_admin_current_shop_id',
 } as const;
 
+export const AuthApiPath = {
+  LOGIN: '/admin/auth/login',
+  LOGOUT: '/admin/auth/logout',
+  REFRESH: '/admin/auth/refresh',
+} as const;
+
+/** 后台令牌剩余不超过 30 分钟时再换一张。 */
+export const AccessTokenLifetime = {
+  REFRESH_BEFORE_SECONDS: 30 * 60,
+  MILLISECONDS_PER_SECOND: 1000,
+} as const;
+
 export const AccountCenter = {
   PATH: '/account',
   TITLE: '个人中心',
