@@ -105,8 +105,8 @@
           </article>
         </aside>
       </div>
-      <el-dialog v-model="deductVisible" title="扣款" :width="deductDialogWidth" :trap-focus="false" destroy-on-close>
-        <DeductView />
+      <el-dialog v-model="deductVisible" title="扣款" :width="deductDialogWidth" :trap-focus="false" destroy-on-close @opened="focusDeductAmount">
+        <DeductView ref="deductView" @close="deductVisible = false" />
       </el-dialog>
       <el-dialog v-model="openRoomVisible" :title="openRoomTitle" width="360px">
       <el-input v-model="verifyCode" placeholder="核销码，线下开包厢可不填" />
@@ -200,6 +200,7 @@ const pendingBookingList = ref<PendingBookingOrder[]>([]);
 const verifyCode = ref('');
 const openRoomVisible = ref(false);
 const deductVisible = ref(false);
+const deductView = ref<{ focusAmount: () => void } | null>(null);
 const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 const deductDialogWidth = ref('460px');
 const openingRoom = ref<RoomStatusRow | null>(null);
@@ -616,6 +617,13 @@ function stopRoomStatusRefresh(): void {
 }
 
 /**
+ * 扣款弹窗打开后，把焦点放进金额输入框。
+ */
+function focusDeductAmount(): void {
+  deductView.value?.focusAmount();
+}
+
+/**
  * 窄屏时扣款弹窗跟页面差不多宽，宽屏固定 460。
  */
 function syncDeductDialogWidth(): void {
@@ -703,20 +711,28 @@ onBeforeUnmount(() => {
   align-self: stretch;
   height: auto;
   padding: 0 10px;
-  color: #1c2434;
   cursor: pointer;
-  background: #e4e7ec;
   border: 0;
   border-radius: 8px;
 }
 
 .room-status-deduct {
   padding: 0 14px;
+  color: #ffffff;
+  background: #2563eb;
   font-size: 14px;
   font-weight: 600;
 }
 
-.room-status-deduct:hover,
+.room-status-deduct:hover {
+  background: #1d4ed8;
+}
+
+.room-status-refresh {
+  color: #1c2434;
+  background: #e4e7ec;
+}
+
 .room-status-refresh:hover {
   background: #d5d9e0;
 }

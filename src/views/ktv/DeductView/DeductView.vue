@@ -1,29 +1,21 @@
 <template>
   <div class="deduct-page">
-    <div class="deduct-panel">
+    <div v-if="isEmpty(deductedAmount)" class="deduct-panel">
       <div class="deduct-amount-label">扣款金额</div>
-      <el-input v-model="amount" class="deduct-amount" placeholder="请输入金额" />
-      <div class="deduct-amount-options">
-        <button
-          v-for="amountOption in deductAmountOptionList"
-          :key="amountOption"
-          type="button"
-          class="deduct-amount-option"
-          :class="{ 'is-active': amount === amountOption }"
-          @click="fillAmount(amountOption)"
-        >
-          {{ amountOption }}
-        </button>
-      </div>
-      <el-input v-model="remark" class="deduct-remark" placeholder="备注（选填）" />
+      <el-input ref="amountInput" v-model="amount" class="deduct-amount" placeholder="请输入金额" @keydown.enter="submitDeduct" />
+      <el-input v-model="remark" class="deduct-remark" placeholder="备注（选填）" @keydown.enter="submitDeduct" />
       <el-button type="primary" class="deduct-submit" :disabled="isEmpty(amount) || deducting" @click="submitDeduct">扫码扣款</el-button>
+    </div>
+    <div v-else class="deduct-panel deduct-result">
+      <div class="deduct-result-title">扣款成功</div>
+      <div class="deduct-result-amount">{{ deductedAmount }}</div>
+      <el-button class="deduct-submit" @click="emit('close')">关闭</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { ElMessage } from 'element-plus';
 import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
 import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
@@ -33,19 +25,28 @@ interface MemberRow {
   memberId: string;
 }
 
-const deductAmountOptionList = ['100', '200', '500', '1000'];
 const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 
+const emit = defineEmits<{
+  close: [];
+}>();
+
+const amountInput = ref<{ focus: () => void } | null>(null);
 const amount = ref('');
 const remark = ref('');
 const deducting = ref(false);
+const deductedAmount = ref('');
 
 /**
- * 把快捷金额填进输入框。
+ * 弹窗打开动画结束后，把焦点放进金额输入框。
  */
-function fillAmount(amountOption: string): void {
-  amount.value = amountOption;
+function focusAmount(): void {
+  amountInput.value?.focus();
 }
+
+defineExpose({
+  focusAmount,
+});
 
 /**
  * 窄屏且宿主提供扫码时用相机，否则等扫码枪。取消或失焦返回空字符串。
@@ -70,12 +71,13 @@ async function readPayCipher(): Promise<string> {
 }
 
 /**
- * 先扫付款码找到会员，再按当前门店扣款。成功后清空金额和备注。
+ * 先扫付款码找到会员，再按当前门店扣款。成功后留在结果页。
  */
 async function submitDeduct(): Promise<void> {
   if (isEmpty(amount.value) || deducting.value) {
     return;
   }
+  const paidAmount = amount.value.trim();
   deducting.value = true;
   try {
     const cipherText = await readPayCipher();
@@ -85,12 +87,10 @@ async function submitDeduct(): Promise<void> {
     const memberRow = (await http.post('/admin/ktv/pay-qr', { cipherText })) as MemberRow;
     await http.post('/admin/ktv/deduct', {
       memberId: memberRow.memberId,
-      amount: amount.value,
+      amount: paidAmount,
       remark: remark.value,
     });
-    ElMessage.success('扣款成功');
-    amount.value = '';
-    remark.value = '';
+    deductedAmount.value = paidAmount;
   } catch {
     return;
   } finally {
@@ -129,33 +129,25 @@ async function submitDeduct(): Promise<void> {
   font-weight: 600;
 }
 
-.deduct-amount-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.deduct-amount-option {
-  min-width: 72px;
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid #e6e8ec;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #1c2434;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.deduct-amount-option.is-active {
-  border-color: #2563eb;
-  background: #e8f0fe;
-  color: #2563eb;
-}
-
 .deduct-remark {
   margin-top: 16px;
+}
+
+.deduct-result-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 32px;
+  color: #1c2434;
+}
+
+.deduct-result-amount {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 48px;
+  color: #1c2434;
 }
 
 .deduct-submit {
