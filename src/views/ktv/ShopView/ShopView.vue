@@ -23,18 +23,38 @@
             <el-tag :type="shopRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
               {{ statusLabel(shopRow.status) }}
             </el-tag>
-            <el-button v-if="canSave" link type="primary" @click="openEdit(shopRow)">编辑</el-button>
+            <div class="shop-actions">
+              <el-button link type="primary" @click="openPayQr(shopRow)">收款码</el-button>
+              <el-button v-if="canSave" link type="primary" @click="openEdit(shopRow)">编辑</el-button>
+            </div>
           </div>
         </div>
       </article>
     </div>
     <ShopDialog v-model="dialogVisible" :shop="editingShop" @saved="loadShops" />
+    <el-dialog v-model="payQrVisible" title="门店收款二维码" width="360px">
+      <div class="shop-pay-qr-dialog">
+        <div class="shop-pay-qr" :style="{ backgroundColor: ShopPayQr.BACKGROUND_COLOR }">
+          <div class="shop-pay-qr-name">{{ payQrShopName }}</div>
+          <div class="shop-pay-qr-code">
+            <img v-if="!isEmpty(payQrImageUrl)" :src="payQrImageUrl" :width="ShopPayQr.IMAGE_WIDTH" :height="ShopPayQr.IMAGE_WIDTH" alt="" />
+            <span class="shop-pay-qr-logo" :style="{ width: `${ShopPayQr.LOGO_SIZE}px`, height: `${ShopPayQr.LOGO_SIZE}px` }">
+              <img :src="ShopPayQr.LOGO_URL" alt="" />
+            </span>
+          </div>
+          <div class="shop-pay-qr-hint">{{ ShopPayQr.HINT }}</div>
+        </div>
+        <el-button class="shop-pay-qr-download" type="primary" round @click="downloadPayQrPoster">下载</el-button>
+      </div>
+    </el-dialog>
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { PermissionCode, RecordStatus, statusLabel, timeZoneLabel } from '../../../utils/constants';
+import { ElMessage } from 'element-plus';
+import QRCode from 'qrcode';
+import { PermissionCode, RecordStatus, ShopPayQr, statusLabel, timeZoneLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -45,6 +65,10 @@ const canSave = sessionStore.hasPermission(PermissionCode.KTV_SHOP_SAVE);
 const shopList = ref<ShopRow[]>([]);
 const dialogVisible = ref(false);
 const editingShop = ref<ShopRow | null>(null);
+const payQrVisible = ref(false);
+const payQrShopName = ref('');
+const payQrImageUrl = ref('');
+const payQrFileName = ref('');
 
 /**
  * 营业时间显示成开始到结束。没有时段时返回空字符串。
@@ -92,6 +116,139 @@ function openCreate(): void {
 function openEdit(shopRow: ShopRow): void {
   editingShop.value = shopRow;
   dialogVisible.value = true;
+}
+
+/**
+ * 拼出门店收款二维码文案。前缀加门店编码。
+ */
+function buildShopPayQrText(shopCode: string): string {
+  return `${ShopPayQr.PREFIX}${shopCode}`;
+}
+
+/**
+ * 按门店编码生成收款二维码。编码为空时只提示。
+ */
+async function openPayQr(shopRow: ShopRow): Promise<void> {
+  const shopCode = shopRow.shopCode.trim();
+  if (isEmpty(shopCode)) {
+    ElMessage.warning('请填写门店编码');
+    return;
+  }
+  const payQrContent = buildShopPayQrText(shopCode);
+  const payQrDataUrl = await QRCode.toDataURL(payQrContent, { width: ShopPayQr.IMAGE_WIDTH, margin: ShopPayQr.MARGIN, errorCorrectionLevel: ShopPayQr.ERROR_CORRECTION_LEVEL });
+  payQrShopName.value = shopRow.shopName;
+  payQrImageUrl.value = payQrDataUrl;
+  payQrFileName.value = payQrContent;
+  payQrVisible.value = true;
+}
+
+/**
+ * 读一张海报用图。地址打不开时拒绝。
+ */
+function loadPayQrPosterImage(imageUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const posterImage = new Image();
+    posterImage.onload = () => resolve(posterImage);
+    posterImage.onerror = () => reject(new Error(imageUrl));
+    posterImage.src = imageUrl;
+  });
+}
+
+/**
+ * 把当前紫色海报画成图片并保存。文件名是 GP_ 加门店编码，画面不含下载按钮。
+ */
+async function downloadPayQrPoster(): Promise<void> {
+  if (isEmpty(payQrImageUrl.value) || isEmpty(payQrFileName.value)) {
+    return;
+  }
+  // 步骤 1：读出二维码和中间图标。
+  const qrImage = await loadPayQrPosterImage(payQrImageUrl.value);
+  const logoImage = await loadPayQrPosterImage(ShopPayQr.LOGO_URL);
+  const posterScale = ShopPayQr.POSTER_SCALE;
+  const posterWidth = 320 * posterScale;
+  const horizontalPadding = 20 * posterScale;
+  const topPadding = 28 * posterScale;
+  const bottomPadding = 24 * posterScale;
+  const blockGap = 16 * posterScale;
+  const nameFontSize = 20 * posterScale;
+  const hintFontSize = 14 * posterScale;
+  const qrEdge = ShopPayQr.IMAGE_WIDTH * posterScale;
+  const qrCardPadding = 12 * posterScale;
+  const logoWidth = ShopPayQr.LOGO_SIZE * posterScale;
+  const logoHeight = logoWidth;
+  const textMaxWidth = posterWidth - horizontalPadding * 2;
+  const posterFont = '"Microsoft YaHei", sans-serif';
+  const measureCanvas = document.createElement('canvas');
+  const measureContext = measureCanvas.getContext('2d');
+  if (measureContext === null) {
+    return;
+  }
+  // 步骤 2：按宽度把店名折成多行，用来算海报高度。
+  measureContext.font = `${nameFontSize}px ${posterFont}`;
+  const shopNameLineList: string[] = [];
+  let currentShopNameLine = '';
+  const shopNameText = payQrShopName.value;
+  for (const shopNameCharacter of shopNameText) {
+    const nextShopNameLine = `${currentShopNameLine}${shopNameCharacter}`;
+    if (measureContext.measureText(nextShopNameLine).width > textMaxWidth && currentShopNameLine !== '') {
+      shopNameLineList.push(currentShopNameLine);
+      currentShopNameLine = shopNameCharacter;
+    } else {
+      currentShopNameLine = nextShopNameLine;
+    }
+  }
+  if (currentShopNameLine !== '') {
+    shopNameLineList.push(currentShopNameLine);
+  }
+  if (shopNameLineList.length === 0) {
+    shopNameLineList.push('');
+  }
+  const nameLineHeight = Math.round(nameFontSize * 1.3);
+  const nameBlockHeight = shopNameLineList.length * nameLineHeight;
+  const qrCardEdge = qrEdge + qrCardPadding * 2;
+  const posterHeight = topPadding + nameBlockHeight + blockGap + qrCardEdge + blockGap + hintFontSize + bottomPadding;
+  // 步骤 3：铺紫底，写下店名、白底二维码、中间图标和底部提示。
+  const posterCanvas = document.createElement('canvas');
+  posterCanvas.width = posterWidth;
+  posterCanvas.height = posterHeight;
+  const posterContext = posterCanvas.getContext('2d');
+  if (posterContext === null) {
+    return;
+  }
+  posterContext.fillStyle = ShopPayQr.BACKGROUND_COLOR;
+  posterContext.fillRect(0, 0, posterWidth, posterHeight);
+  posterContext.fillStyle = '#ffffff';
+  posterContext.textAlign = 'center';
+  posterContext.textBaseline = 'top';
+  posterContext.font = `600 ${nameFontSize}px ${posterFont}`;
+  let textTop = topPadding;
+  for (const shopNameLine of shopNameLineList) {
+    posterContext.fillText(shopNameLine, posterWidth / 2, textTop);
+    textTop += nameLineHeight;
+  }
+  const qrCardLeft = (posterWidth - qrCardEdge) / 2;
+  const qrCardTop = topPadding + nameBlockHeight + blockGap;
+  posterContext.fillStyle = '#ffffff';
+  posterContext.beginPath();
+  posterContext.roundRect(qrCardLeft, qrCardTop, qrCardEdge, qrCardEdge, 12 * posterScale);
+  posterContext.fill();
+  posterContext.drawImage(qrImage, qrCardLeft + qrCardPadding, qrCardTop + qrCardPadding, qrEdge, qrEdge);
+  const logoLeft = (posterWidth - logoWidth) / 2;
+  const logoTop = qrCardTop + (qrCardEdge - logoHeight) / 2;
+  const logoRim = 2 * posterScale;
+  posterContext.fillStyle = '#ffffff';
+  posterContext.beginPath();
+  posterContext.roundRect(logoLeft - logoRim, logoTop - logoRim, logoWidth + logoRim * 2, logoHeight + logoRim * 2, 6 * posterScale);
+  posterContext.fill();
+  posterContext.drawImage(logoImage, logoLeft, logoTop, logoWidth, logoHeight);
+  posterContext.fillStyle = '#ffffff';
+  posterContext.font = `${hintFontSize}px ${posterFont}`;
+  posterContext.fillText(ShopPayQr.HINT, posterWidth / 2, qrCardTop + qrCardEdge + blockGap);
+  // 步骤 4：按 GP_ 加门店编码保存。
+  const downloadLink = document.createElement('a');
+  downloadLink.href = posterCanvas.toDataURL('image/png');
+  downloadLink.download = `${payQrFileName.value}${ShopPayQr.FILE_EXTENSION}`;
+  downloadLink.click();
 }
 
 onMounted(() => {
@@ -179,6 +336,72 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-top: 12px;
+}
+
+.shop-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shop-pay-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 20px 24px;
+  border-radius: 16px;
+}
+
+.shop-pay-qr-name,
+.shop-pay-qr-hint {
+  color: #ffffff;
+  text-align: center;
+  word-break: break-word;
+}
+
+.shop-pay-qr-name {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.shop-pay-qr-hint {
+  font-size: 14px;
+}
+
+.shop-pay-qr-code {
+  position: relative;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+}
+
+.shop-pay-qr-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shop-pay-qr-download {
+  width: 100%;
+}
+
+.shop-pay-qr-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  padding: 2px;
+  background: #ffffff;
+  border-radius: 6px;
+  transform: translate(-50%, -50%);
+}
+
+.shop-pay-qr-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .shop-empty {

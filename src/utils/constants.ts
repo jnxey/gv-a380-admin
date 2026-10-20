@@ -21,6 +21,22 @@ export const ShopType = {
 } as const;
 
 /**
+ * 门店收款二维码。文案是前缀加门店编码，海报是紫底白码。
+ */
+export const ShopPayQr = {
+  PREFIX: 'GP_',
+  IMAGE_WIDTH: 240,
+  MARGIN: 1,
+  ERROR_CORRECTION_LEVEL: 'H',
+  BACKGROUND_COLOR: '#6B2BD9',
+  HINT: '打开WV Chat扫一扫',
+  LOGO_URL: '/wv-chat-logo.png',
+  LOGO_SIZE: 48,
+  POSTER_SCALE: 2,
+  FILE_EXTENSION: '.png',
+} as const;
+
+/**
  * 图片数量、文件大小和宽度上限。数量和大小与服务端一致，宽度在上传前压缩。
  */
 export const ShopImageLimit = {
