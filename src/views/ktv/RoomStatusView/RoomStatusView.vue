@@ -12,6 +12,7 @@
           <span class="room-status-count-label">{{ roomStatusCount.label }}</span>
           <span class="room-status-count-value">{{ roomStatusCount.count }}</span>
         </span>
+        <button type="button" class="room-status-deduct" @click="deductVisible = true">扣款</button>
         <button type="button" class="room-status-refresh" title="刷新" @click="reloadPage">
           <AppIcon class="room-status-refresh-icon" :icon-name="MenuIconName.REFRESH" />
         </button>
@@ -104,6 +105,9 @@
           </article>
         </aside>
       </div>
+      <el-dialog v-model="deductVisible" title="扣款" :width="deductDialogWidth" destroy-on-close>
+        <DeductView />
+      </el-dialog>
       <el-dialog v-model="openRoomVisible" :title="openRoomTitle" width="360px">
       <el-input v-model="verifyCode" placeholder="核销码，线下开包厢可不填" />
       <template #footer>
@@ -120,6 +124,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
+import DeductView from '../DeductView/DeductView.vue';
 import { KtvOrderStatus, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
@@ -194,6 +199,9 @@ const roomTypeList = ref<RoomTypeOption[]>([]);
 const pendingBookingList = ref<PendingBookingOrder[]>([]);
 const verifyCode = ref('');
 const openRoomVisible = ref(false);
+const deductVisible = ref(false);
+const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
+const deductDialogWidth = ref('460px');
 const openingRoom = ref<RoomStatusRow | null>(null);
 
 /**
@@ -607,12 +615,22 @@ function stopRoomStatusRefresh(): void {
   roomStatusTimer = 0;
 }
 
+/**
+ * 窄屏时扣款弹窗跟页面差不多宽，宽屏固定 460。
+ */
+function syncDeductDialogWidth(): void {
+  deductDialogWidth.value = narrowScreenQuery.matches ? '92%' : '460px';
+}
+
 onMounted(() => {
+  syncDeductDialogWidth();
+  narrowScreenQuery.addEventListener('change', syncDeductDialogWidth);
   void loadRooms();
   startRoomStatusRefresh();
 });
 
 onBeforeUnmount(() => {
+  narrowScreenQuery.removeEventListener('change', syncDeductDialogWidth);
   stopRoomStatusRefresh();
 });
 </script>
@@ -677,6 +695,7 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
+.room-status-deduct,
 .room-status-refresh {
   display: inline-flex;
   align-items: center;
@@ -691,6 +710,13 @@ onBeforeUnmount(() => {
   border-radius: 8px;
 }
 
+.room-status-deduct {
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.room-status-deduct:hover,
 .room-status-refresh:hover {
   background: #d5d9e0;
 }
