@@ -33,7 +33,6 @@
         <div v-if="memberMissed === true" class="recharge-empty">没有找到会员</div>
       </template>
       <template v-else>
-        <el-button class="recharge-back" text @click="backToSearch">返回</el-button>
         <div class="member-summary">
           <div class="member-summary-main">
             <div class="member-card-name">
@@ -47,7 +46,7 @@
           </div>
         </div>
         <div class="recharge-amount-label">充值金额</div>
-        <el-input v-model="amount" class="recharge-amount" placeholder="请输入金额" @input="onAmountInput" />
+        <el-input ref="amountInput" v-model="amount" class="recharge-amount" placeholder="请输入金额" @input="onAmountInput" />
         <div class="recharge-amount-options">
           <button
             v-for="amountOption in rechargeAmountOptionList"
@@ -61,14 +60,17 @@
           </button>
         </div>
         <el-input v-model="remark" class="recharge-remark" placeholder="备注（选填）" />
-        <el-button type="primary" class="recharge-submit" :disabled="isEmpty(amount)" @click="submitRecharge">确认充值</el-button>
+        <div class="recharge-actions">
+          <el-button class="recharge-back" @click="backToSearch">返回</el-button>
+          <el-button type="primary" class="recharge-submit" :disabled="isEmpty(amount)" @click="submitRecharge">确认充值</el-button>
+        </div>
       </template>
     </div>
   </el-card>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
 import { MenuIconName, PageSetting } from '../../../utils/constants';
@@ -94,9 +96,26 @@ const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 const keyword = ref('');
 const memberMissed = ref(false);
 const selectedMember = ref<MemberRow | null>(null);
+const amountInput = ref<{ focus: () => void } | null>(null);
 const amount = ref('');
 const remark = ref('');
 const rechargedAmount = ref('');
+
+/**
+ * 进入充值步骤后，把焦点放进金额输入框。
+ */
+function focusAmount(): void {
+  amountInput.value?.focus();
+}
+
+watch(selectedMember, (member) => {
+  if (isEmpty(member)) {
+    return;
+  }
+  void nextTick(() => {
+    focusAmount();
+  });
+});
 
 /**
  * 窄屏且宿主提供扫码时用相机，否则等扫码枪。取消或空结果不提示。
@@ -315,11 +334,22 @@ async function submitRecharge(): Promise<void> {
   color: #667085;
 }
 
+.recharge-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.recharge-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
 .recharge-back {
-  height: auto;
-  margin-bottom: 12px;
-  padding: 0;
-  color: #2563eb;
+  flex: none;
+  height: 48px;
+  margin: 0;
+  padding: 0 20px;
+  border-radius: 12px;
   font-weight: 600;
 }
 
@@ -418,7 +448,20 @@ async function submitRecharge(): Promise<void> {
   margin-top: 16px;
 }
 
-.recharge-submit,
+.recharge-submit {
+  flex: 1;
+  height: 48px;
+  margin: 0;
+  border-radius: 12px;
+  font-weight: 600;
+  --el-button-bg-color: #2563eb;
+  --el-button-border-color: #2563eb;
+  --el-button-hover-bg-color: #1d4ed8;
+  --el-button-hover-border-color: #1d4ed8;
+  --el-button-active-bg-color: #1d4ed8;
+  --el-button-active-border-color: #1d4ed8;
+}
+
 .recharge-result-back {
   width: 100%;
   height: 48px;
