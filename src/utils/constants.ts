@@ -140,6 +140,13 @@ export const KtvOccupyDuration = {
 } as const;
 
 /**
+ * 包厢状态页待核销查询的开唱时间窗口，现在往前和往后各这么多小时。
+ */
+export const KtvPendingVerifyWindow = {
+  HOURS: 4,
+} as const;
+
+/**
  * 使用中包厢到点提醒。剩余不超过这个分钟数时改成倒计时。
  */
 export const KtvOccupyRemind = {

@@ -162,7 +162,7 @@ import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
 import DeductView from '../DeductView/DeductView.vue';
-import { KtvOccupyDuration, KtvOccupyRemind, KtvOrderStatus, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask } from '../../../utils/constants';
+import { KtvOccupyDuration, KtvOccupyRemind, KtvOrderStatus, KtvPendingVerifyWindow, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask } from '../../../utils/constants';
 import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
@@ -401,7 +401,7 @@ async function loadRooms(): Promise<void> {
 }
 
 /**
- * 翻页取完全部待核销订单。某一页没有数据时停止，避免空页死循环。
+ * 翻页取开唱时间落在现在前后窗口内的待核销订单。某一页没有数据时停止，避免空页死循环。
  */
 async function loadAllPendingOrders(): Promise<PendingBookingOrder[]> {
   const pendingOrderList: PendingBookingOrder[] = [];
@@ -411,6 +411,7 @@ async function loadAllPendingOrders(): Promise<PendingBookingOrder[]> {
     const pageResult = (await http.get('/admin/ktv/booking-orders', {
       params: {
         orderStatus: KtvOrderStatus.PENDING_VERIFY,
+        recentHours: KtvPendingVerifyWindow.HOURS,
         page,
         pageSize: PageSetting.ROOM_LOOKUP_PAGE_SIZE,
       },
