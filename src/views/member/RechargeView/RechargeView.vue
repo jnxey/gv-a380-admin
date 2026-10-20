@@ -14,7 +14,7 @@
           <el-button type="primary" class="recharge-search-button" aria-label="查找" @click="searchMember">
             <AppIcon :icon-name="MenuIconName.ARROW_RIGHT" />
           </el-button>
-          <el-button v-if="showScanButton" type="warning" class="recharge-scan-button" aria-label="扫码" @click="scanPayQr">
+          <el-button type="warning" class="recharge-scan-button" aria-label="扫码" @click="scanPayQr">
             <AppIcon :icon-name="MenuIconName.SCAN_QR" />
           </el-button>
         </div>
@@ -52,9 +52,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
+import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
 import { MenuIconName, PageSetting } from '../../../utils/constants';
 import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
@@ -80,16 +81,27 @@ const memberMissed = ref(false);
 const selectedMember = ref<MemberRow | null>(null);
 const amount = ref('');
 const remark = ref('');
-const narrowScreen = ref(false);
-const scanReady = ref(false);
-const showScanButton = computed(() => narrowScreen.value === true && scanReady.value === true);
 
 /**
- * 窄屏且宿主提供扫码时才显示二维码按钮。
+ * 窄屏且宿主提供扫码时用相机，否则等扫码枪。取消或空结果不提示。
  */
-function syncScanButton(): void {
-  narrowScreen.value = narrowScreenQuery.matches;
-  scanReady.value = readScanCode() !== null;
+async function readPayCipher(): Promise<string> {
+  const scanCode = readScanCode();
+  if (narrowScreenQuery.matches === true && scanCode !== null) {
+    try {
+      const scanResult = await scanCode();
+      if (typeof scanResult !== 'string') {
+        return '';
+      }
+      return scanResult.trim();
+    } catch (error) {
+      if (error instanceof Error && error.message === 'cancelled') {
+        return '';
+      }
+      return '';
+    }
+  }
+  return openScanGun();
 }
 
 /**
@@ -132,23 +144,7 @@ async function searchMember(): Promise<void> {
  * 扫付款码。取消不提示。解开后按用户名进入充值。
  */
 async function scanPayQr(): Promise<void> {
-  const scanCode = readScanCode();
-  if (scanCode === null) {
-    return;
-  }
-  let cipherText = '';
-  try {
-    const scanResult = await scanCode();
-    if (typeof scanResult !== 'string') {
-      return;
-    }
-    cipherText = scanResult.trim();
-  } catch (error) {
-    if (error instanceof Error && error.message === 'cancelled') {
-      return;
-    }
-    return;
-  }
+  const cipherText = await readPayCipher();
   if (isEmpty(cipherText)) {
     return;
   }
@@ -203,16 +199,6 @@ async function submitRecharge(): Promise<void> {
   }
 }
 
-onMounted(() => {
-  syncScanButton();
-  narrowScreenQuery.addEventListener('change', syncScanButton);
-  window.addEventListener('gv-sdk-ready', syncScanButton);
-});
-
-onBeforeUnmount(() => {
-  narrowScreenQuery.removeEventListener('change', syncScanButton);
-  window.removeEventListener('gv-sdk-ready', syncScanButton);
-});
 </script>
 
 <style scoped>
