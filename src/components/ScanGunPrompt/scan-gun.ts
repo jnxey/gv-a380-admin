@@ -19,7 +19,7 @@ export function unregisterScanGun(): void {
 }
 
 /**
- * 结束这一次扫码。空字符串表示焦点离开，没有扫成。
+ * 结束这一次扫码。空字符串表示中途取消，没有扫成。
  */
 export function completeScanGun(cipherText: string): void {
   const finish = finishScanGun;
@@ -31,7 +31,7 @@ export function completeScanGun(cipherText: string): void {
 }
 
 /**
- * 打开扫码枪浮窗，等扫码枪以换行结束。没挂上浮窗、已经在扫，或中途失焦时返回空字符串。
+ * 打开扫码枪浮窗，等扫码枪以换行结束。没挂上浮窗、已经在扫，或中途取消时返回空字符串。
  */
 export function openScanGun(): Promise<string> {
   if (beginScanGun === null || finishScanGun !== null) {

@@ -1,18 +1,7 @@
 <template>
-  <div v-if="sessionActive" class="scan-gun-layer" :class="{ 'is-focused': inputFocused }" @mousedown.self="releaseFocus">
-    <div class="scan-gun-card" @mousedown.prevent>
+  <div v-if="sessionActive" class="scan-gun-layer" @mousedown.self="cancelScan">
+    <div ref="scanCard" class="scan-gun-card" tabindex="-1" @blur="onCardBlur">
       <p class="scan-gun-text">扫码中</p>
-      <input
-        ref="gunInput"
-        v-model="gunText"
-        class="scan-gun-input"
-        tabindex="-1"
-        autocomplete="off"
-        aria-label="扫码枪输入"
-        @focus="onInputFocus"
-        @blur="onInputBlur"
-        @keydown.enter.prevent="finishByEnter"
-      />
     </div>
   </div>
 </template>
@@ -22,88 +11,207 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { completeScanGun, registerScanGun, unregisterScanGun } from './scan-gun';
 import { isEmpty } from '../../utils/tools';
 
-const sessionActive = ref(false);
-const inputFocused = ref(false);
-const gunText = ref('');
-const gunInput = ref<HTMLInputElement | null>(null);
-let scanSettled = false;
+const unshiftedCharByCode: Record<string, string> = {
+  Digit0: '0',
+  Digit1: '1',
+  Digit2: '2',
+  Digit3: '3',
+  Digit4: '4',
+  Digit5: '5',
+  Digit6: '6',
+  Digit7: '7',
+  Digit8: '8',
+  Digit9: '9',
+  Minus: '-',
+  Equal: '=',
+  BracketLeft: '[',
+  BracketRight: ']',
+  Backslash: '\\',
+  Semicolon: ';',
+  Quote: "'",
+  Comma: ',',
+  Period: '.',
+  Slash: '/',
+  Backquote: '`',
+  Space: ' ',
+  Numpad0: '0',
+  Numpad1: '1',
+  Numpad2: '2',
+  Numpad3: '3',
+  Numpad4: '4',
+  Numpad5: '5',
+  Numpad6: '6',
+  Numpad7: '7',
+  Numpad8: '8',
+  Numpad9: '9',
+  NumpadAdd: '+',
+  NumpadSubtract: '-',
+  NumpadMultiply: '*',
+  NumpadDivide: '/',
+  NumpadDecimal: '.',
+};
+
+const shiftedCharByCode: Record<string, string> = {
+  Digit0: ')',
+  Digit1: '!',
+  Digit2: '@',
+  Digit3: '#',
+  Digit4: '$',
+  Digit5: '%',
+  Digit6: '^',
+  Digit7: '&',
+  Digit8: '*',
+  Digit9: '(',
+  Minus: '_',
+  Equal: '+',
+  BracketLeft: '{',
+  BracketRight: '}',
+  Backslash: '|',
+  Semicolon: ':',
+  Quote: '"',
+  Comma: '<',
+  Period: '>',
+  Slash: '?',
+  Backquote: '~',
+  Space: ' ',
+  NumpadAdd: '+',
+  NumpadSubtract: '-',
+  NumpadMultiply: '*',
+  NumpadDivide: '/',
+  NumpadDecimal: '.',
+};
+
+for (let letterCode = 65; letterCode <= 90; letterCode += 1) {
+  const letter = String.fromCharCode(letterCode);
+  unshiftedCharByCode[`Key${letter}`] = letter.toLowerCase();
+  shiftedCharByCode[`Key${letter}`] = letter;
+}
 
 /**
- * 挂上浮窗并让隐藏输入框拿到焦点。拿到焦点才把浮窗亮出来。
+ * 按美式键盘的物理键还原一个字符。不看输入法组出来的字，也不看 Caps Lock。
+ */
+function readEnglishScanChar(keyboardEvent: KeyboardEvent): string {
+  const charByCode = keyboardEvent.shiftKey ? shiftedCharByCode : unshiftedCharByCode;
+  return charByCode[keyboardEvent.code] ?? '';
+}
+
+const sessionActive = ref(false);
+const scanCard = ref<HTMLElement | null>(null);
+let scanSettled = false;
+let scanBuffer = '';
+
+/**
+ * 打开浮窗，让提示卡片拿到焦点，并开始听键盘。
  */
 function beginScan(): void {
   scanSettled = false;
-  gunText.value = '';
-  inputFocused.value = false;
+  scanBuffer = '';
   sessionActive.value = true;
+  document.addEventListener('keydown', onScanKeydown, true);
+  window.addEventListener('blur', cancelScan);
   void nextTick(() => {
-    const input = gunInput.value;
-    input?.focus();
-    if (input === null || document.activeElement !== input) {
-      closeScanGun();
-      completeScanGun('');
+    const card = scanCard.value;
+    card?.focus();
+    if (sessionActive.value !== true) {
       return;
     }
-    inputFocused.value = true;
+    if (card === null || document.activeElement !== card) {
+      cancelScan();
+      return;
+    }
+    document.addEventListener('focusin', onFocusIn, true);
   });
 }
 
 /**
- * 隐藏输入框拿到焦点后才把浮窗亮出来。
+ * 焦点进到卡片外面时关掉浮窗。
  */
-function onInputFocus(): void {
-  inputFocused.value = true;
+function onFocusIn(focusEvent: FocusEvent): void {
+  const card = scanCard.value;
+  const target = focusEvent.target;
+  if (card !== null && target instanceof Node && (target === card || card.contains(target))) {
+    return;
+  }
+  cancelScan();
 }
 
 /**
- * 收起浮窗，并清掉这一轮扫到的字符。
+ * 焦点离开提示卡片时，当作没扫成。已经交过结果时不再交一次空串。
+ */
+function onCardBlur(): void {
+  if (scanSettled || sessionActive.value !== true) {
+    return;
+  }
+  void nextTick(() => {
+    const card = scanCard.value;
+    if (scanSettled || sessionActive.value !== true) {
+      return;
+    }
+    if (card !== null && (document.activeElement === card || card.contains(document.activeElement))) {
+      return;
+    }
+    cancelScan();
+  });
+}
+
+/**
+ * 收起浮窗，并停掉这一轮的键盘监听。
  */
 function closeScanGun(): void {
-  inputFocused.value = false;
   sessionActive.value = false;
-  gunText.value = '';
+  scanBuffer = '';
+  document.removeEventListener('keydown', onScanKeydown, true);
+  document.removeEventListener('focusin', onFocusIn, true);
+  window.removeEventListener('blur', cancelScan);
 }
 
 /**
- * 点在提示卡片外面时丢掉焦点，浮窗跟着收起。
+ * 焦点离开卡片、点在提示外面，或窗口失焦时，关掉浮窗。
  */
-function releaseFocus(): void {
+function cancelScan(): void {
   if (sessionActive.value !== true) {
     return;
   }
   scanSettled = true;
-  gunInput.value?.blur();
   closeScanGun();
   completeScanGun('');
-  scanSettled = false;
 }
 
 /**
- * 焦点离开就关掉。已经用换行交过结果时不再交一次空串。
+ * 拦住按键，不让它进到页面上的输入框。认得出的物理键自己拼上，换行表示扫完。
  */
-function onInputBlur(): void {
-  const settled = scanSettled;
-  scanSettled = false;
-  closeScanGun();
-  if (settled) {
+function onScanKeydown(keyboardEvent: KeyboardEvent): void {
+  if (sessionActive.value !== true) {
     return;
   }
-  completeScanGun('');
+  keyboardEvent.preventDefault();
+  keyboardEvent.stopPropagation();
+  if (keyboardEvent.repeat) {
+    return;
+  }
+  if (keyboardEvent.code === 'Enter' || keyboardEvent.code === 'NumpadEnter') {
+    finishByEnter();
+    return;
+  }
+  const scanChar = readEnglishScanChar(keyboardEvent);
+  if (scanChar === '') {
+    return;
+  }
+  scanBuffer += scanChar;
 }
 
 /**
- * 扫码枪以换行结束。去掉首尾空白后交回去，并让输入框失焦。
+ * 扫码枪以换行结束。交出去的是物理键拼出来的字符。
  */
 function finishByEnter(): void {
-  const cipherText = (gunInput.value?.value ?? gunText.value).trim();
+  const cipherText = scanBuffer.trim();
   if (isEmpty(cipherText)) {
-    gunText.value = '';
+    scanBuffer = '';
     return;
   }
   scanSettled = true;
   completeScanGun(cipherText);
   closeScanGun();
-  gunInput.value?.blur();
 }
 
 onMounted(() => {
@@ -111,7 +219,9 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  if (scanSettled !== true) {
+  const scanning = sessionActive.value;
+  closeScanGun();
+  if (scanning && scanSettled !== true) {
     completeScanGun('');
   }
   unregisterScanGun();
@@ -126,19 +236,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.scan-gun-layer.is-focused {
-  opacity: 1;
-  pointer-events: auto;
   background: rgba(16, 24, 40, 0.45);
 }
 
 .scan-gun-card {
-  position: relative;
   min-width: 220px;
+  outline: none;
   padding: 28px 36px;
   border-radius: 16px;
   background: #ffffff;
@@ -152,15 +255,5 @@ onBeforeUnmount(() => {
   font-weight: 600;
   line-height: 28px;
   color: #1c2434;
-}
-
-.scan-gun-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  opacity: 0;
 }
 </style>
