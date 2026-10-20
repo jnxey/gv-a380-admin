@@ -132,6 +132,21 @@ export const KtvRoomStatus = {
   CLOSED: 'CLOSED',
 } as const;
 
+/**
+ * 线下开包厢可选的演唱小时。
+ */
+export const KtvOccupyDuration = {
+  HOUR_LIST: [2, 3, 4, 5, 6],
+} as const;
+
+/**
+ * 使用中包厢到点提醒。剩余不超过这个分钟数时改成倒计时。
+ */
+export const KtvOccupyRemind = {
+  LEAD_MINUTES: 30,
+  MINUTE_MILLISECONDS: 60 * 1000,
+} as const;
+
 export const FinanceBizType = {
   RECHARGE: 'RECHARGE',
   KTV_BOOKING: 'KTV_BOOKING',

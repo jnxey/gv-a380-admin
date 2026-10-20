@@ -79,11 +79,23 @@
             <template v-if="isEmpty(roomHourlyPrice(roomRow.roomTypeId)) !== true"> {{ roomHourlyPrice(roomRow.roomTypeId) }}/小时</template>
           </div>
           <div class="room-status-text">{{ roomStatusLabel(roomRow.roomStatus) }}</div>
+          <div v-if="isEmpty(roomOccupyEndText(roomRow)) !== true" class="room-status-occupy">{{ roomOccupyEndText(roomRow) }}</div>
+          <div v-if="isEmpty(roomOccupyRemindText(roomRow)) !== true" class="room-status-occupy">{{ roomOccupyRemindText(roomRow) }}</div>
         </article>
             </div>
           </section>
         </div>
         <aside class="room-status-orders">
+          <div v-if="isEmpty(occupyRemindRoomList) !== true" class="room-status-due">
+            <div class="room-status-order-stat">
+              <span class="room-status-order-stat-label">即将到点</span>
+              <span class="room-status-order-stat-count">{{ occupyRemindRoomList.length }}</span>
+            </div>
+            <article v-for="occupyRemindRoom in occupyRemindRoomList" :key="occupyRemindRoom.roomId" class="room-status-order">
+              <div class="room-status-order-name">{{ occupyRemindRoom.roomNo }} {{ occupyRemindRoom.roomName }}</div>
+              <div class="room-status-order-line">{{ occupyRemindRoom.remindText }}</div>
+            </article>
+          </div>
           <div class="room-status-order-stat">
             <span class="room-status-order-stat-label">待核销</span>
             <span class="room-status-order-stat-count">{{ pendingBookingList.length }}</span>
@@ -125,7 +137,13 @@
             <span>扫码</span>
           </el-button>
         </div>
-        <p class="room-status-verify-hint">有预约就扫顾客核销码。线下开包厢可以不填，直接确认。</p>
+        <template v-if="isEmpty(verifyCode.trim())">
+          <div class="room-status-verify-label room-status-duration-label">演唱时长</div>
+          <el-radio-group v-model="occupyDurationHours" class="room-status-duration">
+            <el-radio-button v-for="hourCount in KtvOccupyDuration.HOUR_LIST" :key="hourCount" :value="hourCount">{{ hourCount }} 小时</el-radio-button>
+          </el-radio-group>
+        </template>
+        <p class="room-status-verify-hint">有预约就扫核销码；线下开包厢不填核销码，请选择 {{ KtvOccupyDuration.HOUR_LIST.join('、') }} 小时。</p>
         <template #footer>
           <div class="room-status-open-actions">
             <el-button size="large" @click="openRoomVisible = false">取消</el-button>
@@ -144,7 +162,7 @@ import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
 import DeductView from '../DeductView/DeductView.vue';
-import { KtvOrderStatus, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask } from '../../../utils/constants';
+import { KtvOccupyDuration, KtvOccupyRemind, KtvOrderStatus, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask } from '../../../utils/constants';
 import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
@@ -157,6 +175,15 @@ interface RoomStatusRow {
   roomTypeId: string;
   status: string;
   roomStatus: string;
+  occupyEndAt: string | null;
+}
+
+interface OccupyRemindRoom {
+  roomId: string;
+  roomNo: string;
+  roomName: string;
+  endMs: number;
+  remindText: string;
 }
 
 interface RoomTypeOption {
@@ -218,6 +245,7 @@ const roomList = ref<RoomStatusRow[]>([]);
 const roomTypeList = ref<RoomTypeOption[]>([]);
 const pendingBookingList = ref<PendingBookingOrder[]>([]);
 const verifyCode = ref('');
+const occupyDurationHours = ref<number | undefined>(undefined);
 const openRoomVisible = ref(false);
 const deductVisible = ref(false);
 const deductView = ref<{ focusAmount: () => void } | null>(null);
@@ -225,6 +253,38 @@ const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 const deductDialogWidth = ref('460px');
 const openRoomDialogWidth = ref('420px');
 const openingRoom = ref<RoomStatusRow | null>(null);
+
+/**
+ * 使用中且已到提醒窗口的包厢，按结束时间从早到晚排。
+ */
+const occupyRemindRoomList = computed<OccupyRemindRoom[]>(() => {
+  const nowMs = Date.now();
+  const leadMilliseconds = KtvOccupyRemind.LEAD_MINUTES * KtvOccupyRemind.MINUTE_MILLISECONDS;
+  const remindRoomList = roomList.value.flatMap((roomRow) => {
+    if (roomRow.roomStatus !== KtvRoomStatus.IN_USE || isEmpty(roomRow.occupyEndAt)) {
+      return [];
+    }
+    const endMs = occupyEndMs(roomRow.occupyEndAt);
+    if (Number.isNaN(endMs)) {
+      return [];
+    }
+    const remainMilliseconds = endMs - nowMs;
+    if (remainMilliseconds > leadMilliseconds) {
+      return [];
+    }
+    return [
+      {
+        roomId: roomRow.id,
+        roomNo: roomRow.roomNo,
+        roomName: roomRow.roomName,
+        endMs,
+        remindText: occupyRemindText(roomRow.occupyEndAt, nowMs),
+      },
+    ];
+  });
+  remindRoomList.sort((leftRoom, rightRoom) => leftRoom.endMs - rightRoom.endMs);
+  return remindRoomList;
+});
 
 /**
  * 开包厢弹窗标题带上当前包厢编号。还没选中包厢时只显示开包厢。
@@ -363,6 +423,109 @@ async function loadAllPendingOrders(): Promise<PendingBookingOrder[]> {
     page += 1;
   } while (pendingOrderList.length < total);
   return pendingOrderList;
+}
+
+/**
+ * 线下演唱时长必须是可选小时里的一档。
+ */
+function isOccupyDurationHours(durationHours: number | undefined): boolean {
+  if (isEmpty(durationHours)) {
+    return false;
+  }
+  return KtvOccupyDuration.HOUR_LIST.some((hourCount) => hourCount === durationHours);
+}
+
+/**
+ * 把包厢结束时间解析成本地毫秒。接口里的时间带时区，按原样解析；无法解析时返回 NaN。
+ */
+function occupyEndMs(occupyEndAt: string): number {
+  const dateTimeText = occupyEndAt.trim();
+  // 1. 带 T 或 Z 的是接口序列化后的时间，不能把秒后面的时区当成数字
+  if (dateTimeText.includes('T') || dateTimeText.endsWith('Z')) {
+    const parsedMs = Date.parse(dateTimeText);
+    if (Number.isNaN(parsedMs)) {
+      return Number.NaN;
+    }
+    return parsedMs;
+  }
+  // 2. 纯日期时间按本地钟面拆开
+  const datePartList = dateTimeText.slice(0, 10).split('-');
+  const timePartList = dateTimeText.slice(11).split(':');
+  const year = Number(datePartList[0]);
+  const month = Number(datePartList[1]);
+  const day = Number(datePartList[2]);
+  const hour = Number(timePartList[0]);
+  const minute = Number(timePartList[1]);
+  const secondText = isEmpty(timePartList[2]) ? '0' : timePartList[2].split('.')[0];
+  const second = Number(secondText);
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day) || Number.isNaN(hour) || Number.isNaN(minute) || Number.isNaN(second)) {
+    return Number.NaN;
+  }
+  return new Date(year, month - 1, day, hour, minute, second).getTime();
+}
+
+/**
+ * 结束钟点。不是今天就写成次日。
+ */
+function occupyEndClockText(occupyEndAt: string, nowMs: number): string {
+  const endAt = new Date(occupyEndMs(occupyEndAt));
+  const now = new Date(nowMs);
+  const hourText = String(endAt.getHours()).padStart(2, '0');
+  const minuteText = String(endAt.getMinutes()).padStart(2, '0');
+  const endClock = `${hourText}:${minuteText}`;
+  const sameDay = endAt.getFullYear() === now.getFullYear() && endAt.getMonth() === now.getMonth() && endAt.getDate() === now.getDate();
+  if (sameDay) {
+    return `${endClock} 结束`;
+  }
+  return `次日 ${endClock} 结束`;
+}
+
+/**
+ * 临近或超时的提醒句。还早于提醒窗口时为空。
+ */
+function occupyRemindText(occupyEndAt: string, nowMs: number): string {
+  const endMs = occupyEndMs(occupyEndAt);
+  if (Number.isNaN(endMs)) {
+    return '';
+  }
+  const remainMilliseconds = endMs - nowMs;
+  const leadMilliseconds = KtvOccupyRemind.LEAD_MINUTES * KtvOccupyRemind.MINUTE_MILLISECONDS;
+  if (remainMilliseconds > leadMilliseconds) {
+    return '';
+  }
+  if (remainMilliseconds > 0) {
+    const remainMinutes = Math.ceil(remainMilliseconds / KtvOccupyRemind.MINUTE_MILLISECONDS);
+    return `还剩 ${remainMinutes} 分钟`;
+  }
+  if (-remainMilliseconds < KtvOccupyRemind.MINUTE_MILLISECONDS) {
+    return '已到点';
+  }
+  const overtimeMinutes = Math.floor(-remainMilliseconds / KtvOccupyRemind.MINUTE_MILLISECONDS);
+  return `已超时 ${overtimeMinutes} 分钟`;
+}
+
+/**
+ * 卡片上的到点钟点。不是使用中或没有结束时间时为空。
+ */
+function roomOccupyEndText(roomRow: RoomStatusRow): string {
+  if (roomRow.roomStatus !== KtvRoomStatus.IN_USE || isEmpty(roomRow.occupyEndAt)) {
+    return '';
+  }
+  const endMs = occupyEndMs(roomRow.occupyEndAt);
+  if (Number.isNaN(endMs)) {
+    return '';
+  }
+  return occupyEndClockText(roomRow.occupyEndAt, Date.now());
+}
+
+/**
+ * 卡片上的临近或超时提醒。不是使用中或没有结束时间时为空。
+ */
+function roomOccupyRemindText(roomRow: RoomStatusRow): string {
+  if (roomRow.roomStatus !== KtvRoomStatus.IN_USE || isEmpty(roomRow.occupyEndAt)) {
+    return '';
+  }
+  return occupyRemindText(roomRow.occupyEndAt, Date.now());
 }
 
 /**
@@ -557,6 +720,7 @@ async function scanVerifyCode(): Promise<void> {
 function showOpenRoom(roomRow: RoomStatusRow): void {
   openingRoom.value = roomRow;
   verifyCode.value = '';
+  occupyDurationHours.value = undefined;
   openRoomVisible.value = true;
 }
 
@@ -584,10 +748,18 @@ async function submitOpenRoom(): Promise<void> {
       ElMessage.warning('请填写核销码');
       return;
     }
-    await http.put(`/admin/ktv/rooms/${openingRoom.value.id}/room-status`, { roomStatus: KtvRoomStatus.IN_USE });
+    if (isOccupyDurationHours(occupyDurationHours.value) !== true) {
+      ElMessage.warning(`请选择${KtvOccupyDuration.HOUR_LIST.join('、')}小时`);
+      return;
+    }
+    await http.put(`/admin/ktv/rooms/${openingRoom.value.id}/room-status`, {
+      roomStatus: KtvRoomStatus.IN_USE,
+      durationHours: occupyDurationHours.value,
+    });
     ElMessage.success('开包厢成功');
     openRoomVisible.value = false;
     verifyCode.value = '';
+    occupyDurationHours.value = undefined;
     await loadRooms();
     return;
   }
@@ -764,11 +936,42 @@ onBeforeUnmount(() => {
   vertical-align: -3px;
 }
 
+.room-status-duration-label {
+  margin-top: 16px;
+}
+
+.room-status-duration {
+  display: flex;
+  width: 100%;
+}
+
+.room-status-duration :deep(.el-radio-button) {
+  flex: 1;
+}
+
+.room-status-duration :deep(.el-radio-button__inner) {
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .room-status-verify-hint {
   margin: 8px 0 0;
   font-size: 12px;
   line-height: 18px;
   color: #667085;
+}
+
+.room-status-occupy {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #fff;
+}
+
+.room-status-due {
+  margin-bottom: 16px;
 }
 
 .room-status-open-actions {
