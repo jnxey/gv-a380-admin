@@ -2,8 +2,8 @@
   <div class="deduct-page">
     <div v-if="isEmpty(deductedAmount)" class="deduct-panel">
       <div class="deduct-amount-label">扣款金额</div>
-      <el-input ref="amountInput" v-model="amount" class="deduct-amount" placeholder="请输入金额" @keydown.enter="submitDeduct" />
-      <el-input v-model="remark" class="deduct-remark" placeholder="备注（选填）" @keydown.enter="submitDeduct" />
+      <el-input ref="amountInput" v-model="amount" class="deduct-amount" placeholder="请输入金额" @keydown="onDeductEnter" />
+      <el-input v-model="remark" class="deduct-remark" placeholder="备注（选填）" @keydown="onDeductEnter" />
       <el-button type="primary" class="deduct-submit" :disabled="isEmpty(amount) || deducting" @click="submitDeduct">扫码扣款</el-button>
     </div>
     <div v-else class="deduct-panel deduct-result">
@@ -44,6 +44,20 @@ function focusAmount(): void {
   amountInput.value?.focus();
 }
 
+/**
+ * 物理 Enter 开始扫码。输入法还在组字时不触发。
+ */
+function onDeductEnter(keyboardEvent: KeyboardEvent): void {
+  if (keyboardEvent.isComposing) {
+    return;
+  }
+  if (keyboardEvent.code !== 'Enter' && keyboardEvent.code !== 'NumpadEnter') {
+    return;
+  }
+  keyboardEvent.preventDefault();
+  void submitDeduct();
+}
+
 defineExpose({
   focusAmount,
 });
@@ -82,6 +96,7 @@ async function submitDeduct(): Promise<void> {
   try {
     const cipherText = await readPayCipher();
     if (isEmpty(cipherText)) {
+      focusAmount();
       return;
     }
     const memberRow = (await http.post('/admin/ktv/pay-qr', { cipherText })) as MemberRow;

@@ -8,8 +8,19 @@
 
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { focusableStack } from 'element-plus/es/components/focus-trap/index.mjs';
 import { completeScanGun, registerScanGun, unregisterScanGun } from './scan-gun';
 import { isEmpty } from '../../utils/tools';
+
+const dialogFocusLayer = {
+  paused: false,
+  pause(): void {
+    this.paused = true;
+  },
+  resume(): void {
+    this.paused = false;
+  },
+};
 
 const unshiftedCharByCode: Record<string, string> = {
   Digit0: '0',
@@ -107,6 +118,8 @@ function beginScan(): void {
   scanSettled = false;
   scanBuffer = '';
   sessionActive.value = true;
+  // 压住对话框的焦点陷阱，避免它把焦点拉回金额框。
+  focusableStack.push(dialogFocusLayer);
   document.addEventListener('keydown', onScanKeydown, true);
   window.addEventListener('blur', cancelScan);
   void nextTick(() => {
@@ -160,6 +173,7 @@ function onCardBlur(): void {
 function closeScanGun(): void {
   sessionActive.value = false;
   scanBuffer = '';
+  focusableStack.remove(dialogFocusLayer);
   document.removeEventListener('keydown', onScanKeydown, true);
   document.removeEventListener('focusin', onFocusIn, true);
   window.removeEventListener('blur', cancelScan);
