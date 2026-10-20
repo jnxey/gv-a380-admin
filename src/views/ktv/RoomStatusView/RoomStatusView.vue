@@ -108,13 +108,31 @@
       <el-dialog v-model="deductVisible" title="扣款" :width="deductDialogWidth" :trap-focus="false" destroy-on-close @opened="focusDeductAmount">
         <DeductView ref="deductView" @close="deductVisible = false" />
       </el-dialog>
-      <el-dialog v-model="openRoomVisible" :title="openRoomTitle" width="360px">
-      <el-input v-model="verifyCode" placeholder="核销码，线下开包厢可不填" />
-      <template #footer>
-        <el-button size="large" @click="openRoomVisible = false">取消</el-button>
-        <el-button size="large" type="primary" @click="submitOpenRoom">确认开包厢</el-button>
-      </template>
-    </el-dialog>
+      <el-dialog v-model="openRoomVisible" :title="openRoomTitle" :width="openRoomDialogWidth" align-center>
+        <div v-if="isEmpty(openingRoom) !== true" class="room-status-open-room" :class="roomStatusCardClass(openingRoom.roomStatus)">
+          <div class="room-status-open-no">{{ openingRoom.roomNo }}</div>
+          <div class="room-status-open-meta">
+            {{ openingRoom.roomName }}
+            <template v-if="isEmpty(roomHourlyPrice(openingRoom.roomTypeId)) !== true"> · {{ roomHourlyPrice(openingRoom.roomTypeId) }}/小时</template>
+            · {{ roomStatusLabel(openingRoom.roomStatus) }}
+          </div>
+        </div>
+        <div class="room-status-verify-label">核销码</div>
+        <div class="room-status-verify">
+          <el-input v-model="verifyCode" class="room-status-verify-input" size="large" clearable placeholder="扫码或手动输入" />
+          <el-button type="warning" size="large" class="room-status-verify-scan" aria-label="扫码" @click="scanVerifyCode">
+            <AppIcon :icon-name="MenuIconName.SCAN_QR" />
+            <span>扫码</span>
+          </el-button>
+        </div>
+        <p class="room-status-verify-hint">有预约就扫顾客核销码。线下开包厢可以不填，直接确认。</p>
+        <template #footer>
+          <div class="room-status-open-actions">
+            <el-button size="large" @click="openRoomVisible = false">取消</el-button>
+            <el-button size="large" type="primary" @click="submitOpenRoom">确认开包厢</el-button>
+          </div>
+        </template>
+      </el-dialog>
     </el-card>
   </div>
 </template>
@@ -124,8 +142,10 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
+import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
 import DeductView from '../DeductView/DeductView.vue';
 import { KtvOrderStatus, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask } from '../../../utils/constants';
+import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -203,6 +223,7 @@ const deductVisible = ref(false);
 const deductView = ref<{ focusAmount: () => void } | null>(null);
 const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 const deductDialogWidth = ref('460px');
+const openRoomDialogWidth = ref('420px');
 const openingRoom = ref<RoomStatusRow | null>(null);
 
 /**
@@ -498,6 +519,39 @@ function moreStatusOptionList(roomStatus: string): RoomStatusOption[] {
 }
 
 /**
+ * 窄屏且宿主提供扫码时用相机，否则等扫码枪。取消或空结果返回空字符串。
+ */
+async function readVerifyCodeScan(): Promise<string> {
+  const scanCode = readScanCode();
+  if (narrowScreenQuery.matches && scanCode !== null) {
+    try {
+      const scanResult = await scanCode();
+      if (typeof scanResult !== 'string') {
+        return '';
+      }
+      return scanResult.trim();
+    } catch (error) {
+      if (error instanceof Error && error.message === 'cancelled') {
+        return '';
+      }
+      return '';
+    }
+  }
+  return openScanGun();
+}
+
+/**
+ * 扫核销码。扫到内容才写入输入框，取消或空结果不改原来的字。
+ */
+async function scanVerifyCode(): Promise<void> {
+  const scannedVerifyCode = await readVerifyCodeScan();
+  if (isEmpty(scannedVerifyCode)) {
+    return;
+  }
+  verifyCode.value = scannedVerifyCode;
+}
+
+/**
  * 打开核销码输入。空闲按钮和更多里的使用中都走这里。
  */
 function showOpenRoom(roomRow: RoomStatusRow): void {
@@ -630,20 +684,104 @@ function syncDeductDialogWidth(): void {
   deductDialogWidth.value = narrowScreenQuery.matches ? '92%' : '460px';
 }
 
+/**
+ * 窄屏时开包厢弹窗跟页面差不多宽，宽屏固定 420。
+ */
+function syncOpenRoomDialogWidth(): void {
+  openRoomDialogWidth.value = narrowScreenQuery.matches ? '92%' : '420px';
+}
+
 onMounted(() => {
   syncDeductDialogWidth();
+  syncOpenRoomDialogWidth();
   narrowScreenQuery.addEventListener('change', syncDeductDialogWidth);
+  narrowScreenQuery.addEventListener('change', syncOpenRoomDialogWidth);
   void loadRooms();
   startRoomStatusRefresh();
 });
 
 onBeforeUnmount(() => {
   narrowScreenQuery.removeEventListener('change', syncDeductDialogWidth);
+  narrowScreenQuery.removeEventListener('change', syncOpenRoomDialogWidth);
   stopRoomStatusRefresh();
 });
 </script>
 
 <style scoped>
+.room-status-open-room {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  color: #fff;
+}
+
+.room-status-open-no {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.room-status-open-meta {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.room-status-verify-label {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #1c2434;
+}
+
+.room-status-verify {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.room-status-verify-input {
+  flex: 1;
+}
+
+.room-status-verify-scan {
+  height: 40px;
+  margin: 0;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.room-status-verify-scan svg {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -3px;
+}
+
+.room-status-verify-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: #667085;
+}
+
+.room-status-open-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.room-status-open-actions .el-button {
+  flex: 1;
+  margin: 0;
+}
+
 .room-status-page {
   display: flex;
   flex-direction: column;
@@ -861,31 +999,36 @@ onBeforeUnmount(() => {
 
 .room-status-card.is-idle,
 .room-status-count.is-idle,
-.room-status-more-dot.is-idle {
+.room-status-more-dot.is-idle,
+.room-status-open-room.is-idle {
   background: #248a4a;
 }
 
 .room-status-card.is-in-use,
 .room-status-count.is-in-use,
-.room-status-more-dot.is-in-use {
+.room-status-more-dot.is-in-use,
+.room-status-open-room.is-in-use {
   background: #b56a08;
 }
 
 .room-status-card.is-cleaning,
 .room-status-count.is-cleaning,
-.room-status-more-dot.is-cleaning {
+.room-status-more-dot.is-cleaning,
+.room-status-open-room.is-cleaning {
   background: #217eae;
 }
 
 .room-status-card.is-maintenance,
 .room-status-count.is-maintenance,
-.room-status-more-dot.is-maintenance {
+.room-status-more-dot.is-maintenance,
+.room-status-open-room.is-maintenance {
   background: #b84545;
 }
 
 .room-status-card.is-closed,
 .room-status-count.is-closed,
-.room-status-more-dot.is-closed {
+.room-status-more-dot.is-closed,
+.room-status-open-room.is-closed {
   background: #5e6772;
 }
 
