@@ -105,7 +105,7 @@
           </article>
         </aside>
       </div>
-      <el-dialog v-model="deductVisible" title="扣款" :width="deductDialogWidth" destroy-on-close>
+      <el-dialog v-model="deductVisible" title="扣款" :width="deductDialogWidth" :trap-focus="false" destroy-on-close>
         <DeductView />
       </el-dialog>
       <el-dialog v-model="openRoomVisible" :title="openRoomTitle" width="360px">
