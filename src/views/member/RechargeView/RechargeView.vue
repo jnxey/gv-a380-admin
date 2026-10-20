@@ -1,7 +1,15 @@
 <template>
   <el-card class="recharge-page">
     <div class="recharge-panel">
-      <template v-if="isEmpty(selectedMember)">
+      <div v-if="isEmpty(rechargedAmount) !== true" class="recharge-result">
+        <div class="recharge-result-title">
+          <span class="recharge-result-mark"></span>
+          <span>充值成功</span>
+        </div>
+        <div class="recharge-result-amount">{{ rechargedAmount }}</div>
+        <el-button class="recharge-result-back" type="primary" @click="backToSearch">返回</el-button>
+      </div>
+      <template v-else-if="isEmpty(selectedMember)">
         <h2 class="recharge-title">查找会员</h2>
         <div class="recharge-search">
           <el-input
@@ -11,27 +19,35 @@
             clearable
             @keyup.enter="searchMember"
           />
-          <el-button type="primary" class="recharge-search-button" aria-label="查找" @click="searchMember">
-            <AppIcon :icon-name="MenuIconName.ARROW_RIGHT" />
-          </el-button>
-          <el-button type="warning" class="recharge-scan-button" aria-label="扫码" @click="scanPayQr">
-            <AppIcon :icon-name="MenuIconName.SCAN_QR" />
-          </el-button>
+          <div class="recharge-search-actions">
+            <el-button type="primary" class="recharge-search-button" aria-label="查找" @click="searchMember">
+              <AppIcon :icon-name="MenuIconName.ARROW_RIGHT" />
+              <span>查找</span>
+            </el-button>
+            <el-button type="warning" class="recharge-scan-button" aria-label="扫码" @click="scanPayQr">
+              <AppIcon :icon-name="MenuIconName.SCAN_QR" />
+              <span>扫码</span>
+            </el-button>
+          </div>
         </div>
         <div v-if="memberMissed === true" class="recharge-empty">没有找到会员</div>
       </template>
       <template v-else>
-        <el-button class="recharge-back" @click="backToSearch">返回</el-button>
+        <el-button class="recharge-back" text @click="backToSearch">返回</el-button>
         <div class="member-summary">
-          <div class="member-card-name">
-            <span v-if="isEmpty(selectedMember.nickname) !== true">{{ selectedMember.nickname }} </span>{{ selectedMember.username }}
+          <div class="member-summary-main">
+            <div class="member-card-name">
+              <span v-if="isEmpty(selectedMember.nickname) !== true">{{ selectedMember.nickname }} </span>{{ selectedMember.username }}
+            </div>
+            <div v-if="isEmpty(selectedMember.contact) !== true" class="member-card-meta">{{ selectedMember.contact }}</div>
           </div>
-          <div v-if="isEmpty(selectedMember.contact) !== true" class="member-card-meta">{{ selectedMember.contact }}</div>
-          <div class="member-balance-label">余额</div>
-          <div class="member-balance-value">{{ selectedMember.balance }}</div>
+          <div class="member-summary-balance">
+            <div class="member-balance-label">余额</div>
+            <div class="member-balance-value">{{ selectedMember.balance }}</div>
+          </div>
         </div>
         <div class="recharge-amount-label">充值金额</div>
-        <el-input v-model="amount" class="recharge-amount" placeholder="请输入金额" />
+        <el-input v-model="amount" class="recharge-amount" placeholder="请输入金额" @input="onAmountInput" />
         <div class="recharge-amount-options">
           <button
             v-for="amountOption in rechargeAmountOptionList"
@@ -53,7 +69,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { ElMessage } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
 import { MenuIconName, PageSetting } from '../../../utils/constants';
@@ -81,6 +96,7 @@ const memberMissed = ref(false);
 const selectedMember = ref<MemberRow | null>(null);
 const amount = ref('');
 const remark = ref('');
+const rechargedAmount = ref('');
 
 /**
  * 窄屏且宿主提供扫码时用相机，否则等扫码枪。取消或空结果不提示。
@@ -164,6 +180,28 @@ function backToSearch(): void {
   memberMissed.value = false;
   amount.value = '';
   remark.value = '';
+  rechargedAmount.value = '';
+}
+
+/**
+ * 金额只留数字和一个小数点，小数最多两位。
+ */
+function keepMoneyText(rawText: string): string {
+  const moneyText = rawText.replace(/[^\d.]/g, '');
+  const dotIndex = moneyText.indexOf('.');
+  if (dotIndex < 0) {
+    return moneyText;
+  }
+  const wholeText = moneyText.slice(0, dotIndex);
+  const fractionText = moneyText.slice(dotIndex + 1).replace(/\./g, '').slice(0, 2);
+  return `${wholeText}.${fractionText}`;
+}
+
+/**
+ * 输入金额时丢掉字母、符号和中文。
+ */
+function onAmountInput(value: string): void {
+  amount.value = keepMoneyText(value);
 }
 
 /**
@@ -174,29 +212,19 @@ function fillAmount(amountOption: string): void {
 }
 
 /**
- * 按当前门店给会员入账，并按用户名刷新余额。
+ * 按当前门店给会员入账。成功后停在结果页。
  */
 async function submitRecharge(): Promise<void> {
   if (isEmpty(selectedMember.value) || isEmpty(amount.value)) {
     return;
   }
-  const memberId = selectedMember.value.memberId;
-  const username = selectedMember.value.username;
+  const paidAmount = amount.value.trim();
   await http.post('/admin/members/recharge', {
-    memberId,
-    amount: amount.value,
+    memberId: selectedMember.value.memberId,
+    amount: paidAmount,
     remark: remark.value,
   });
-  ElMessage.success('充值成功');
-  amount.value = '';
-  remark.value = '';
-  const pageResult = (await http.get('/admin/members', {
-    params: { username, page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.DEFAULT_PAGE_SIZE },
-  })) as { list: MemberRow[] };
-  const refreshedMember = pageResult.list.find((memberRow) => memberRow.memberId === memberId);
-  if (!isEmpty(refreshedMember)) {
-    selectedMember.value = refreshedMember;
-  }
+  rechargedAmount.value = paidAmount;
 }
 
 </script>
@@ -225,13 +253,25 @@ async function submitRecharge(): Promise<void> {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 16px;
+  gap: 12px;
+}
+
+.recharge-search-actions {
+  display: flex;
+  gap: 12px;
 }
 
 .recharge-search-input :deep(.el-input__wrapper),
-.recharge-remark :deep(.el-input__wrapper),
+.recharge-amount {
+  --el-input-text-color: #1c2434;
+}
+
 .recharge-amount :deep(.el-input__wrapper) {
   border-radius: 12px;
+}
+
+.recharge-remark :deep(.el-input__wrapper) {
+  border-radius: 999px;
 }
 
 .recharge-search-input :deep(.el-input__wrapper) {
@@ -243,28 +283,30 @@ async function submitRecharge(): Promise<void> {
   font-size: 16px;
 }
 
-.recharge-search :deep(.el-button + .el-button) {
+.recharge-search-actions :deep(.el-button + .el-button) {
   margin-left: 0;
 }
 
 .recharge-search-button,
 .recharge-scan-button {
-  width: 100%;
+  flex: 1;
   height: 44px;
-  padding: 0;
   margin: 0;
   border-radius: 12px;
+  font-weight: 600;
 }
 
 .recharge-search-button svg,
 .recharge-scan-button svg {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+  vertical-align: -3px;
 }
 
 .recharge-empty {
@@ -274,17 +316,30 @@ async function submitRecharge(): Promise<void> {
 }
 
 .recharge-back {
-  width: 100%;
-  height: 44px;
-  margin-bottom: 16px;
-  border-radius: 12px;
+  height: auto;
+  margin-bottom: 12px;
+  padding: 0;
+  color: #2563eb;
+  font-weight: 600;
 }
 
 .member-summary {
-  padding: 16px;
-  border: 1px solid #e6e8ec;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
   border-radius: 16px;
-  background: #ffffff;
+  background: #f4f7fb;
+}
+
+.member-summary-main {
+  min-width: 0;
+}
+
+.member-summary-balance {
+  flex-shrink: 0;
+  text-align: right;
 }
 
 .member-card-name {
@@ -306,17 +361,16 @@ async function submitRecharge(): Promise<void> {
 }
 
 .member-balance-label {
-  margin-top: 16px;
   font-size: 13px;
   line-height: 20px;
   color: #667085;
 }
 
 .member-balance-value {
-  margin-top: 4px;
-  font-size: 32px;
+  margin-top: 2px;
+  font-size: 28px;
   font-weight: 600;
-  line-height: 40px;
+  line-height: 36px;
   color: #1c2434;
 }
 
@@ -329,44 +383,82 @@ async function submitRecharge(): Promise<void> {
 }
 
 .recharge-amount :deep(.el-input__inner) {
-  height: 48px;
-  font-size: 24px;
+  height: 56px;
+  font-size: 28px;
   font-weight: 600;
+  color: #1c2434;
 }
 
 .recharge-amount-options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-top: 12px;
 }
 
 .recharge-amount-option {
-  min-width: 72px;
-  height: 36px;
-  padding: 0 12px;
+  height: 40px;
+  padding: 0;
   border: 1px solid #e6e8ec;
-  border-radius: 999px;
+  border-radius: 10px;
   background: #ffffff;
   color: #1c2434;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .recharge-amount-option.is-active {
   border-color: #2563eb;
-  background: #e8f0fe;
-  color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
 }
 
 .recharge-remark {
   margin-top: 16px;
 }
 
-.recharge-submit {
+.recharge-submit,
+.recharge-result-back {
   width: 100%;
-  height: 44px;
+  height: 48px;
   margin-top: 20px;
   border-radius: 12px;
+  font-weight: 600;
+  --el-button-bg-color: #2563eb;
+  --el-button-border-color: #2563eb;
+  --el-button-hover-bg-color: #1d4ed8;
+  --el-button-hover-border-color: #1d4ed8;
+  --el-button-active-bg-color: #1d4ed8;
+  --el-button-active-border-color: #1d4ed8;
+}
+
+.recharge-result-mark {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.recharge-result-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 32px;
+  color: #1c2434;
+}
+
+.recharge-result-amount {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 48px;
+  color: #1c2434;
 }
 </style>
