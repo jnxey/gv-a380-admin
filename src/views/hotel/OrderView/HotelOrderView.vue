@@ -143,11 +143,15 @@ async function submitCheckIn(): Promise<void> {
 }
 
 /**
- * 打开续住弹窗。
+ * 打开续住弹窗，并默认选中当前离店日。
  */
 function openExtend(orderRow: OrderRow): void {
   activeOrderId.value = orderRow.bookingOrderId;
-  extendDate.value = '';
+  if (isEmpty(orderRow.checkOutDate)) {
+    extendDate.value = '';
+  } else {
+    extendDate.value = orderRow.checkOutDate.slice(0, 10);
+  }
   extendVisible.value = true;
 }
 

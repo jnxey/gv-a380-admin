@@ -708,11 +708,16 @@ async function finishCleaning(roomRow: RoomRow): Promise<void> {
 }
 
 /**
- * 打开在住房的续住日期。
+ * 打开在住房的续住日期，并默认选中当前离店日。
  */
 function showExtend(roomRow: RoomRow): void {
   extendingRoom.value = roomRow;
-  extendDate.value = '';
+  const stayOrder = occupiedOrder(roomRow);
+  if (isEmpty(stayOrder) || isEmpty(stayOrder.checkOutDate)) {
+    extendDate.value = '';
+  } else {
+    extendDate.value = stayOrder.checkOutDate.slice(0, 10);
+  }
   extendVisible.value = true;
 }
 
