@@ -8,8 +8,8 @@
         <RecordField label="用户名">{{ orderRow.username }}</RecordField>
         <RecordField label="房型">{{ orderRow.typeName }}</RecordField>
         <RecordField label="房号">{{ orderRow.roomNo }}</RecordField>
-        <RecordField label="入住">{{ orderRow.checkInDate }}</RecordField>
-        <RecordField label="离店">{{ orderRow.checkOutDate }}</RecordField>
+        <RecordField label="入住">{{ formatLocalDateTime(orderRow.checkInDate) }}</RecordField>
+        <RecordField label="离店">{{ formatLocalDateTime(orderRow.checkOutDate) }}</RecordField>
         <RecordField label="房费">{{ orderRow.amount }}</RecordField>
         <RecordField label="订单状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
         <RecordField label="入住状态">{{ statusLabel(orderRow.stayStatus) }}</RecordField>
@@ -49,7 +49,7 @@ import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
 import { HotelOrderStatus, HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { isEmpty, formatLocalDateTime } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 

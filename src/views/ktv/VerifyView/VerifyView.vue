@@ -13,8 +13,8 @@
         <RecordField label="用户名">{{ orderRow.username }}</RecordField>
         <RecordField label="类型">{{ orderRow.roomTypeName }}</RecordField>
         <RecordField label="包厢">{{ orderRow.roomName }}</RecordField>
-        <RecordField label="日期">{{ orderRow.bookingDate }}</RecordField>
-        <RecordField label="开始">{{ orderRow.startTime }}</RecordField>
+        <RecordField label="日期">{{ formatLocalDateTime(orderRow.bookingDate) }}</RecordField>
+        <RecordField label="开始">{{ formatLocalDateTime(orderRow.startTime) }}</RecordField>
         <RecordField label="小时">{{ orderRow.durationHours }}</RecordField>
         <RecordField label="结束">{{ formatBookingEnd(orderRow) }}</RecordField>
         <RecordField label="包厢费">{{ orderRow.amount }}</RecordField>
@@ -69,7 +69,7 @@ import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
 import { KtvOrderStatus, PageSetting, PermissionCode, VerifyCodeMask, statusLabel } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { isEmpty, formatLocalDateTime } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -115,10 +115,11 @@ const consumeRemark = ref('');
  * 结束钟点不晚于开唱钟点时，表示已经跨到第二天。
  */
 function formatBookingEnd(orderRow: OrderRow): string {
+  const endTimeText = formatLocalDateTime(orderRow.endTime);
   if (orderRow.endTime <= orderRow.startTime) {
-    return `次日 ${orderRow.endTime}`;
+    return `次日 ${endTimeText}`;
   }
-  return orderRow.endTime;
+  return endTimeText;
 }
 
 /**
