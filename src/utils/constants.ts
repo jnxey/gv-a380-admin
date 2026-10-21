@@ -163,6 +163,14 @@ export const FinanceBizType = {
   SHOP_SCAN_PAY: 'SHOP_SCAN_PAY',
 } as const;
 
+/**
+ * 财务流水方向。
+ */
+export const FinanceDirection = {
+  IN: 'IN',
+  OUT: 'OUT',
+} as const;
+
 export const PageSetting = {
   DEFAULT_PAGE: 1,
   DEFAULT_PAGE_SIZE: 10,
