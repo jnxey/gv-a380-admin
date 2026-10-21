@@ -14,7 +14,7 @@
         </span>
         <button type="button" class="room-status-deduct" @click="deductVisible = true">
           <AppIcon class="room-status-deduct-icon" :icon-name="MenuIconName.FINANCE_BILL" />
-          扣款
+          付款
         </button>
         <button type="button" class="room-status-refresh" title="刷新" @click="reloadPage">
           <AppIcon class="room-status-refresh-icon" :icon-name="MenuIconName.REFRESH" />
@@ -134,7 +134,7 @@
           </article>
         </aside>
       </div>
-      <el-dialog v-model="deductVisible" title="扣款" :width="deductDialogWidth" :trap-focus="false" destroy-on-close @opened="focusDeductAmount">
+      <el-dialog v-model="deductVisible" title="付款" :width="deductDialogWidth" :trap-focus="false" destroy-on-close @opened="focusDeductAmount">
         <DeductView ref="deductView" @close="deductVisible = false" />
       </el-dialog>
       <el-dialog v-model="openRoomVisible" :title="openRoomTitle" :width="openRoomDialogWidth" align-center>
@@ -1066,14 +1066,14 @@ function stopRoomStatusRefresh(): void {
 }
 
 /**
- * 扣款弹窗打开后，把焦点放进金额输入框。
+ * 付款弹窗打开后，把焦点放进金额输入框。
  */
 function focusDeductAmount(): void {
   deductView.value?.focusAmount();
 }
 
 /**
- * 窄屏时扣款弹窗跟页面差不多宽，宽屏固定 460。
+ * 窄屏时付款弹窗跟页面差不多宽，宽屏固定 460。
  */
 function syncDeductDialogWidth(): void {
   deductDialogWidth.value = narrowScreenQuery.matches ? '92%' : '460px';

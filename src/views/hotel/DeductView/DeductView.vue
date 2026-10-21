@@ -1,16 +1,16 @@
 <template>
   <div class="deduct-page">
     <div v-if="isEmpty(deductedAmount)" class="deduct-panel">
-      <div class="deduct-amount-label">扣款金额</div>
+      <div class="deduct-amount-label">付款金额</div>
       <el-input ref="amountInput" v-model="amount" class="deduct-amount" placeholder="请输入金额" @input="onAmountInput" @keydown="onDeductEnter" />
       <div class="deduct-remark-label">备注</div>
       <el-input v-model="remark" class="deduct-remark" placeholder="选填" @keydown="onDeductEnter" />
-      <el-button type="primary" class="deduct-submit" :disabled="isEmpty(amount) || deducting" @click="submitDeduct">扫码扣款</el-button>
+      <el-button type="primary" class="deduct-submit" :disabled="isEmpty(amount) || deducting" @click="submitDeduct">扫码付款</el-button>
     </div>
     <div v-else class="deduct-panel deduct-result">
       <div class="deduct-result-title">
         <span class="deduct-result-mark"></span>
-        <span>扣款成功</span>
+        <span>付款成功</span>
       </div>
       <div class="deduct-result-amount">-{{ deductedAmount }}</div>
       <el-button class="deduct-close" type="primary" @click="emit('close')">关闭</el-button>
@@ -110,7 +110,7 @@ async function readPayCipher(): Promise<string> {
 }
 
 /**
- * 先扫付款码找到会员，再按当前门店扣款。成功后留在结果页。
+ * 先扫付款码找到会员，再按当前门店付款。成功后留在结果页。
  */
 async function submitDeduct(): Promise<void> {
   if (isEmpty(amount.value) || deducting.value) {

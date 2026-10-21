@@ -14,7 +14,7 @@
         </span>
         <button type="button" class="room-status-deduct" @click="deductVisible = true">
           <AppIcon class="room-status-deduct-icon" :icon-name="MenuIconName.FINANCE_BILL" />
-          扣款
+          付款
         </button>
         <button type="button" class="room-status-refresh" title="刷新" @click="reloadPage">
           <AppIcon class="room-status-refresh-icon" :icon-name="MenuIconName.REFRESH" />
@@ -118,7 +118,7 @@
           </article>
         </aside>
       </div>
-      <el-dialog v-model="deductVisible" title="扣款" :width="deductDialogWidth" :trap-focus="false" destroy-on-close @opened="focusDeductAmount">
+      <el-dialog v-model="deductVisible" title="付款" :width="deductDialogWidth" :trap-focus="false" destroy-on-close @opened="focusDeductAmount">
         <DeductView ref="deductView" @close="deductVisible = false" />
       </el-dialog>
       <el-dialog v-model="checkInVisible" :title="checkInTitle" width="420px" align-center>
@@ -163,7 +163,7 @@
           <div class="room-status-open-meta">{{ extendRoomMeta(extendingRoom) }}</div>
         </div>
         <el-date-picker v-model="extendDate" type="date" value-format="YYYY-MM-DD" placeholder="新的离店日期" />
-        <p class="room-status-verify-hint">新的离店日期必须晚于当前离店日期。续住不扣款，退房时再结算房费。</p>
+        <p class="room-status-verify-hint">新的离店日期必须晚于当前离店日期。续住和退房都不扣款。</p>
         <template #footer>
           <div class="room-status-open-actions">
             <el-button size="large" @click="extendVisible = false">取消</el-button>
@@ -778,14 +778,14 @@ function reloadPage(): void {
 }
 
 /**
- * 扣款弹窗打开后，把焦点放进金额输入框。
+ * 付款弹窗打开后，把焦点放进金额输入框。
  */
 function focusDeductAmount(): void {
   deductView.value?.focusAmount();
 }
 
 /**
- * 窄屏时扣款弹窗跟页面差不多宽，宽屏固定 460。
+ * 窄屏时付款弹窗跟页面差不多宽，宽屏固定 460。
  */
 function syncDeductDialogWidth(): void {
   deductDialogWidth.value = narrowScreenQuery.matches ? '92%' : '460px';
