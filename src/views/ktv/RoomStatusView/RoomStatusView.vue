@@ -82,7 +82,21 @@
             <template v-if="isEmpty(roomHourlyPrice(roomRow.roomTypeId)) !== true"> {{ roomHourlyPrice(roomRow.roomTypeId) }}/小时</template>
           </div>
           <div class="room-status-text">{{ roomStatusLabel(roomRow.roomStatus) }}</div>
-          <div v-if="isEmpty(roomOccupyEndText(roomRow)) !== true" class="room-status-occupy">{{ roomOccupyEndText(roomRow) }}</div>
+          <div
+            v-if="isEmpty(roomOccupyEndText(roomRow)) !== true || isEmpty(roomExtendHourText(roomRow)) !== true || (roomRow.roomStatus === KtvRoomStatus.IN_USE && canVerify)"
+            class="room-status-occupy-line"
+          >
+            <span v-if="isEmpty(roomOccupyEndText(roomRow)) !== true" class="room-status-occupy">{{ roomOccupyEndText(roomRow) }}</span>
+            <span v-if="isEmpty(roomExtendHourText(roomRow)) !== true" class="room-status-occupy">{{ roomExtendHourText(roomRow) }}</span>
+            <button
+              v-if="roomRow.roomStatus === KtvRoomStatus.IN_USE && canVerify"
+              type="button"
+              class="room-status-extend"
+              @click="showExtendOccupy(roomRow)"
+            >
+              延长
+            </button>
+          </div>
           <div v-if="isEmpty(roomOccupyRemindText(roomRow)) !== true" class="room-status-occupy">{{ roomOccupyRemindText(roomRow) }}</div>
         </article>
             </div>
@@ -154,6 +168,23 @@
           </div>
         </template>
       </el-dialog>
+      <el-dialog v-model="extendRoomVisible" :title="extendRoomTitle" :width="openRoomDialogWidth" align-center>
+        <div v-if="isEmpty(extendingRoom) !== true" class="room-status-open-room" :class="roomStatusCardClass(extendingRoom.roomStatus)">
+          <div class="room-status-open-no">{{ extendingRoom.roomNo }}</div>
+          <div class="room-status-open-meta">
+            {{ extendingRoom.roomName }}
+            <template v-if="isEmpty(roomOccupyEndText(extendingRoom)) !== true"> · {{ roomOccupyEndText(extendingRoom) }}</template>
+            <template v-if="isEmpty(roomExtendHourText(extendingRoom)) !== true"> · {{ roomExtendHourText(extendingRoom) }}</template>
+          </div>
+        </div>
+        <p class="room-status-verify-hint">每次延长 {{ KtvOccupyDuration.EXTEND_HOURS }} 小时，从当前到期时间往后加。多次延长只累计小时数。</p>
+        <template #footer>
+          <div class="room-status-open-actions">
+            <el-button size="large" @click="extendRoomVisible = false">取消</el-button>
+            <el-button size="large" type="primary" @click="submitExtendOccupy">确认延长</el-button>
+          </div>
+        </template>
+      </el-dialog>
     </el-card>
   </div>
 </template>
@@ -179,6 +210,7 @@ interface RoomStatusRow {
   status: string;
   roomStatus: string;
   occupyEndAt: string | null;
+  occupyExtendHours: number;
 }
 
 interface OccupyRemindRoom {
@@ -250,12 +282,24 @@ const pendingBookingList = ref<PendingBookingOrder[]>([]);
 const verifyCode = ref('');
 const occupyDurationHours = ref<number | undefined>(undefined);
 const openRoomVisible = ref(false);
+const extendRoomVisible = ref(false);
 const deductVisible = ref(false);
 const deductView = ref<{ focusAmount: () => void } | null>(null);
 const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 const deductDialogWidth = ref('460px');
 const openRoomDialogWidth = ref('420px');
 const openingRoom = ref<RoomStatusRow | null>(null);
+const extendingRoom = ref<RoomStatusRow | null>(null);
+
+/**
+ * 延长弹窗标题。没有选中包厢时只显示延长。
+ */
+const extendRoomTitle = computed(() => {
+  if (isEmpty(extendingRoom.value)) {
+    return '延长';
+  }
+  return `延长 ${extendingRoom.value.roomNo}`;
+});
 
 /**
  * 使用中且已到提醒窗口的包厢，按结束时间从早到晚排。
@@ -533,6 +577,20 @@ function roomOccupyRemindText(roomRow: RoomStatusRow): string {
 }
 
 /**
+ * 使用中包厢累计延长的小时。没有延长或不是使用中时为空。
+ */
+function roomExtendHourText(roomRow: RoomStatusRow): string {
+  if (roomRow.roomStatus !== KtvRoomStatus.IN_USE) {
+    return '';
+  }
+  const extendHours = Number(roomRow.occupyExtendHours);
+  if (Number.isInteger(extendHours) !== true || extendHours <= 0) {
+    return '';
+  }
+  return `已延长 ${extendHours} 小时`;
+}
+
+/**
  * 把钟点收成 HH:mm。
  */
 function formatClock(timeText: string): string {
@@ -729,6 +787,14 @@ function showOpenRoom(roomRow: RoomStatusRow): void {
 }
 
 /**
+ * 打开使用中包厢的延长确认。每次固定延长 1 小时。
+ */
+function showExtendOccupy(roomRow: RoomStatusRow): void {
+  extendingRoom.value = roomRow;
+  extendRoomVisible.value = true;
+}
+
+/**
  * 更多操作。使用中不直接改状态，其余状态调用改状态接口。
  */
 function onMoreStatus(roomRow: RoomStatusRow, roomStatus: string): void {
@@ -787,6 +853,21 @@ async function submitOpenRoom(): Promise<void> {
   ElMessage.success('开包厢成功');
   openRoomVisible.value = false;
   verifyCode.value = '';
+  await loadRooms();
+}
+
+/**
+ * 延长使用中包厢。固定加 1 小时到当前到期时间，并累计延长小时。
+ */
+async function submitExtendOccupy(): Promise<void> {
+  if (isEmpty(extendingRoom.value)) {
+    return;
+  }
+  await http.post(`/admin/ktv/rooms/${extendingRoom.value.id}/extend-occupy`, {
+    durationHours: KtvOccupyDuration.EXTEND_HOURS,
+  });
+  ElMessage.success('延长成功');
+  extendRoomVisible.value = false;
   await loadRooms();
 }
 
@@ -1106,12 +1187,43 @@ onBeforeUnmount(() => {
   color: #667085;
 }
 
+.room-status-occupy-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.room-status-occupy-line .room-status-occupy,
+.room-status-occupy-line .room-status-extend {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
 .room-status-occupy {
   margin-top: 4px;
   font-size: 13px;
   font-weight: 600;
   line-height: 20px;
   color: #fff;
+}
+
+.room-status-extend {
+  margin-top: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #1c2434;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.72);
+  border: 0;
+  border-radius: 6px;
+}
+
+.room-status-extend:hover {
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .room-status-due {
