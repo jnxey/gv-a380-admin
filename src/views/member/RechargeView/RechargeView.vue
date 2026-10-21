@@ -140,9 +140,9 @@ async function readPayCipher(): Promise<string> {
 }
 
 /**
- * 按用户名取唯一余额账户。没有或不止一条时留在查找。
+ * 按用户名取唯一余额账户。没有或不止一条时留在查找，并返回匹配条数。
  */
-async function openMemberByUsername(username: string): Promise<void> {
+async function openMemberByUsername(username: string): Promise<number> {
   const pageResult = (await http.get('/admin/members', {
     params: { username, page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.DEFAULT_PAGE_SIZE },
   })) as { list: MemberRow[] };
@@ -150,14 +150,15 @@ async function openMemberByUsername(username: string): Promise<void> {
   if (exactMemberList.length !== 1) {
     memberMissed.value = true;
     selectedMember.value = null;
-    return;
+    return exactMemberList.length;
   }
   memberMissed.value = false;
   selectedMember.value = exactMemberList[0];
+  return exactMemberList.length;
 }
 
 /**
- * 先按用户名、手机号或邮箱取聊天用户，再用用户名进入充值。
+ * 先按用户名、手机号或邮箱取聊天用户，再用用户名进入充值。聊天里有、A380 还没有账户时先开户。
  */
 async function searchMember(): Promise<void> {
   const cleanedKeyword = keyword.value.trim();
@@ -168,7 +169,15 @@ async function searchMember(): Promise<void> {
     const chatUserProfile = (await http.get('/admin/members/chat-user', {
       params: { keyword: cleanedKeyword },
     })) as ChatUserProfile;
-    await openMemberByUsername(chatUserProfile.username);
+    const matchedCount = await openMemberByUsername(chatUserProfile.username);
+    if (matchedCount !== 0) {
+      return;
+    }
+    const openedMember = (await http.post('/admin/members/open', {
+      username: chatUserProfile.username,
+    })) as MemberRow;
+    memberMissed.value = false;
+    selectedMember.value = openedMember;
   } catch {
     memberMissed.value = true;
     selectedMember.value = null;
