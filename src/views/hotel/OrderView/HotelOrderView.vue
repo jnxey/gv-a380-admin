@@ -5,19 +5,18 @@
       <div v-if="isEmpty(orderList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
         <RecordField label="订单号">{{ orderRow.orderNo }}</RecordField>
-        <RecordField label="用户名">{{ orderRow.username }}</RecordField>
+        <RecordField label="用户名">{{ orderGuestText(orderRow) }}</RecordField>
         <RecordField label="房型">{{ orderRow.typeName }}</RecordField>
-        <RecordField label="房号">{{ orderRow.roomNo }}</RecordField>
-        <RecordField label="入住">{{ formatLocalDateTime(orderRow.checkInDate) }}</RecordField>
-        <RecordField label="离店">{{ formatLocalDateTime(orderRow.checkOutDate) }}</RecordField>
+        <RecordField label="房间">{{ orderRow.roomNo }}</RecordField>
+        <RecordField label="入住日">{{ formatLocalDateTime(orderRow.checkInDate) }}</RecordField>
+        <RecordField label="离店日">{{ formatLocalDateTime(orderRow.checkOutDate) }}</RecordField>
         <RecordField label="房费">{{ orderRow.amount }}</RecordField>
-        <RecordField label="订单状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
-        <RecordField label="入住状态">{{ statusLabel(orderRow.stayStatus) }}</RecordField>
+        <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
         <template #actions>
-          <el-button v-if="canCheckIn && orderRow.orderStatus === HotelOrderStatus.BOOKED" link type="primary" @click="openCheckIn(orderRow)">入住</el-button>
-          <el-button v-if="canExtend && orderRow.orderStatus === HotelOrderStatus.CHECKED_IN" link type="primary" @click="openExtend(orderRow)">续住</el-button>
-          <el-button v-if="canCheckOut && orderRow.orderStatus === HotelOrderStatus.CHECKED_IN" link type="primary" @click="checkOut(orderRow.bookingOrderId)">退房结算</el-button>
+          <el-button v-if="canCheckIn && orderRow.orderStatus === HotelOrderStatus.BOOKED" link type="primary" @click="openCheckIn(orderRow)">办理入住</el-button>
           <el-button v-if="canCancel && orderRow.orderStatus === HotelOrderStatus.BOOKED" link type="danger" @click="cancelOrder(orderRow.bookingOrderId)">取消</el-button>
+          <el-button v-if="canExtend && orderRow.orderStatus === HotelOrderStatus.CHECKED_IN" link type="primary" @click="openExtend(orderRow)">续住</el-button>
+          <el-button v-if="canCheckOut && orderRow.orderStatus === HotelOrderStatus.CHECKED_IN" link type="primary" @click="checkOut(orderRow.bookingOrderId)">退房</el-button>
         </template>
       </RecordCard>
     </div>
@@ -57,6 +56,7 @@ interface OrderRow {
   bookingOrderId: string;
   orderNo: string;
   username: string;
+  contact: string;
   typeName: string;
   roomTypeId: string;
   roomNo: string;
@@ -64,7 +64,6 @@ interface OrderRow {
   checkOutDate: string;
   amount: string;
   orderStatus: string;
-  stayStatus: string;
 }
 
 interface RoomRow {
@@ -89,6 +88,16 @@ const activeOrderId = ref('');
 const selectedRoomId = ref('');
 const extendDate = ref('');
 const idleRoomList = ref<RoomRow[]>([]);
+
+/**
+ * 订单上的客人。有会员用户名用用户名，现场入住没有会员时用联系方式。
+ */
+function orderGuestText(orderRow: OrderRow): string {
+  if (isEmpty(orderRow.username) !== true) {
+    return orderRow.username;
+  }
+  return isEmpty(orderRow.contact) ? '' : orderRow.contact;
+}
 
 /**
  * 查询当前酒店订单。
@@ -123,6 +132,10 @@ async function openCheckIn(orderRow: OrderRow): Promise<void> {
  * 确认入住。
  */
 async function submitCheckIn(): Promise<void> {
+  if (isEmpty(selectedRoomId.value)) {
+    ElMessage.warning('请选择空闲房间');
+    return;
+  }
   await http.post(`/admin/hotel/booking-orders/${activeOrderId.value}/check-in`, { roomId: selectedRoomId.value });
   ElMessage.success('已入住');
   checkInVisible.value = false;
@@ -139,9 +152,13 @@ function openExtend(orderRow: OrderRow): void {
 }
 
 /**
- * 确认续住，不扣款。
+ * 确认续住。新的离店日必须晚于当前离店日，此时不扣款。
  */
 async function submitExtend(): Promise<void> {
+  if (isEmpty(extendDate.value)) {
+    ElMessage.warning('请选择新的离店日期');
+    return;
+  }
   await http.post(`/admin/hotel/booking-orders/${activeOrderId.value}/extend`, { checkOutDate: extendDate.value });
   ElMessage.success('已续住');
   extendVisible.value = false;
@@ -152,7 +169,7 @@ async function submitExtend(): Promise<void> {
  * 退房并按实际晚数扣房费。
  */
 async function checkOut(bookingOrderId: string): Promise<void> {
-  await ElMessageBox.confirm('确认退房并扣减房费？', '退房结算');
+  await ElMessageBox.confirm('确认退房并扣减房费？', '退房');
   await http.post(`/admin/hotel/booking-orders/${bookingOrderId}/check-out`);
   ElMessage.success('已退房');
   await loadOrders();
@@ -180,4 +197,3 @@ onMounted(() => {
   void loadOrders();
 });
 </script>
-

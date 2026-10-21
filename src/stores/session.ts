@@ -13,6 +13,7 @@ export interface ShopOption {
   shopCode: string;
   shopName: string;
   shopType: string;
+  timeZone: string;
 }
 
 /**

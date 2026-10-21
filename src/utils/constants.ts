@@ -118,7 +118,29 @@ export const HotelOrderStatus = {
 export const HotelRoomStatus = {
   IDLE: 'IDLE',
   OCCUPIED: 'OCCUPIED',
+  CLEANING: 'CLEANING',
   MAINTENANCE: 'MAINTENANCE',
+} as const;
+
+/**
+ * 酒店入住日。门店当地早上这个钟点前，仍算前一天。没有时区时用东八区。
+ */
+export const HotelBusinessDay = {
+  START_HOUR: 6,
+  DEFAULT_TIME_ZONE_OFFSET: '+08:00',
+  DEFAULT_OFFSET_MINUTES: 480,
+  MILLISECONDS_PER_MINUTE: 60000,
+  MILLISECONDS_PER_DAY: 86400000,
+} as const;
+
+/**
+ * 没有预订时当场入住可选的晚数。预设 1 到 5 晚，自定义仍受上下限约束。
+ */
+export const HotelWalkInNight = {
+  MIN_COUNT: 1,
+  MAX_COUNT: 30,
+  PRESET_COUNT_LIST: [1, 2, 3, 4, 5],
+  CUSTOM: 'CUSTOM',
 } as const;
 
 /**
@@ -160,6 +182,7 @@ export const FinanceBizType = {
   KTV_BOOKING: 'KTV_BOOKING',
   KTV_IN_STORE: 'KTV_IN_STORE',
   HOTEL_ROOM_FEE: 'HOTEL_ROOM_FEE',
+  HOTEL_IN_STORE: 'HOTEL_IN_STORE',
   REFUND: 'REFUND',
   SHOP_SCAN_PAY: 'SHOP_SCAN_PAY',
 } as const;
@@ -334,7 +357,9 @@ export const menuIconNameByPath: Record<string, string> = {
   '/hotel/shop': MenuIconName.KTV_SHOP,
   '/hotel/room-type': MenuIconName.HOTEL_ROOM_TYPE,
   '/hotel/room': MenuIconName.HOTEL_ROOM,
-  '/hotel/stay': MenuIconName.HOTEL_STAY,
+  '/hotel/room-status': MenuIconName.HOTEL_ROOM,
+  '/hotel/order': MenuIconName.HOTEL_STAY,
+  '/hotel/bill': MenuIconName.FINANCE_BILL,
   '/system': MenuIconName.SYSTEM,
   '/system/user': MenuIconName.SYSTEM_USER,
   '/system/role': MenuIconName.SYSTEM_ROLE,
@@ -364,6 +389,7 @@ export const statusLabelMap: Record<string, string> = {
   KTV_IN_STORE: 'KTV店内消费',
   SHOP_SCAN_PAY: '门店扫码付款',
   HOTEL_ROOM_FEE: '酒店房费',
+  HOTEL_IN_STORE: '酒店店内消费',
   REFUND: '退款',
   IN: '收入',
   OUT: '支出',

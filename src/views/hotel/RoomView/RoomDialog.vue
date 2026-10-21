@@ -12,6 +12,7 @@
         <el-select v-model="roomForm.roomStatus">
           <el-option label="空闲" :value="HotelRoomStatus.IDLE" />
           <el-option label="在住" :value="HotelRoomStatus.OCCUPIED" />
+          <el-option label="打扫中" :value="HotelRoomStatus.CLEANING" />
           <el-option label="维修" :value="HotelRoomStatus.MAINTENANCE" />
         </el-select>
       </el-form-item>

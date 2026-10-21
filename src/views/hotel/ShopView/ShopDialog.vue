@@ -1,17 +1,44 @@
 <template>
-  <el-dialog v-model="visible" :title="isEmpty(shop) ? '新建门店' : '编辑门店'" width="480px">
-    <el-form label-position="top">
-      <el-form-item label="编码"><el-input v-model="shopForm.shopCode" /></el-form-item>
-      <el-form-item label="名称"><el-input v-model="shopForm.shopName" /></el-form-item>
-      <el-form-item label="地址"><el-input v-model="shopForm.address" /></el-form-item>
-      <el-form-item label="电话"><el-input v-model="shopForm.contactPhone" /></el-form-item>
-      <el-form-item label="状态">
-        <el-select v-model="shopForm.status">
-          <el-option label="启用" :value="RecordStatus.ENABLED" />
-          <el-option label="停用" :value="RecordStatus.DISABLED" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="图片">
+  <el-dialog v-model="visible" :title="isEmpty(shop) ? '新建门店' : '编辑门店'" width="720px">
+    <el-form class="shop-form" label-position="top">
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="编码"><el-input v-model="shopForm.shopCode" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="名称"><el-input v-model="shopForm.shopName" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="门店时区">
+            <el-select v-model="shopForm.timeZone">
+              <el-option v-for="timeZoneOption in timeZoneOptionList" :key="timeZoneOption.offset" :label="timeZoneOption.label" :value="timeZoneOption.offset" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="位置">
+            <div class="shop-location">
+              <span class="shop-location-text">{{ locationLabel }}</span>
+              <el-button @click="locationDialogVisible = true">地图选点</el-button>
+            </div>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="地址描述"><el-input v-model="shopForm.addressText" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="电话"><el-input v-model="shopForm.contactPhone" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="状态">
+            <el-select v-model="shopForm.status">
+              <el-option label="启用" :value="RecordStatus.ENABLED" />
+              <el-option label="停用" :value="RecordStatus.DISABLED" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="图片">
         <el-upload
           v-model:file-list="shopImageFileList"
           :class="{ 'shop-image-full': shopImageFileList.length >= ShopImageLimit.MAX_COUNT }"
@@ -26,7 +53,9 @@
         >
           <span class="shop-image-add">+</span>
         </el-upload>
-      </el-form-item>
+          </el-form-item>
+        </el-col>
+      </el-row>
     </el-form>
     <template #footer>
       <el-button size="large" @click="visible = false">取消</el-button>
@@ -36,22 +65,35 @@
   <el-dialog v-model="previewVisible" title="图片预览" width="480px">
     <img class="shop-image-preview" :src="previewUrl" alt="" />
   </el-dialog>
+  <ShopLocationDialog
+    v-model="locationDialogVisible"
+    :longitude="shopForm.longitude"
+    :latitude="shopForm.latitude"
+    @confirm="applyPickedLocation"
+  />
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { UploadRequestOptions, UploadUserFile } from 'element-plus';
 import { useRouter } from 'vue-router';
-import { RecordStatus, ShopImageLimit, ShopImageMime } from '../../../utils/constants';
+import { BeijingTimeZoneOffset, RecordStatus, ShopImageLimit, ShopImageMime, TimeZoneOptionList, timeZoneLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { limitImageWidth, replaceUploadRawFile } from '../../../utils/image';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
+import ShopLocationDialog from '../../ktv/ShopView/ShopLocationDialog.vue';
 
 export interface ShopImageView {
   imageId: string;
   imageUrl: string;
+}
+
+export interface ShopAddressLocation {
+  longitude: number | null;
+  latitude: number | null;
+  addressText: string;
 }
 
 export interface ShopRow {
@@ -61,6 +103,8 @@ export interface ShopRow {
   address: string;
   contactPhone: string;
   status: string;
+  timeZone: string;
+  shopAddress: ShopAddressLocation | null;
   imageList: ShopImageView[];
 }
 
@@ -83,12 +127,41 @@ const editingShopId = ref('');
 const shopImageFileList = ref<ShopImageFileItem[]>([]);
 const previewVisible = ref(false);
 const previewUrl = ref('');
+const locationDialogVisible = ref(false);
 const shopForm = reactive({
   shopCode: '',
   shopName: '',
-  address: '',
+  timeZone: '',
+  longitude: '',
+  latitude: '',
+  addressText: '',
   contactPhone: '',
   status: RecordStatus.ENABLED as string,
+});
+
+/**
+ * 时区下拉。已保存但不在列表里的偏移，补到最前面。
+ */
+const timeZoneOptionList = computed(() => {
+  const optionList = TimeZoneOptionList.map((timeZoneOption) => ({
+    offset: timeZoneOption.offset,
+    label: timeZoneLabel(timeZoneOption.offset),
+  }));
+  const knownTimeZone = TimeZoneOptionList.some((timeZoneOption) => timeZoneOption.offset === shopForm.timeZone);
+  if (isEmpty(shopForm.timeZone) || knownTimeZone) {
+    return optionList;
+  }
+  return [{ offset: shopForm.timeZone, label: shopForm.timeZone }, ...optionList];
+});
+
+/**
+ * 已选经纬度。还没选点时显示未选择。
+ */
+const locationLabel = computed(() => {
+  if (isEmpty(shopForm.longitude) || isEmpty(shopForm.latitude)) {
+    return '未选择';
+  }
+  return `${shopForm.longitude}, ${shopForm.latitude}`;
 });
 
 /**
@@ -109,7 +182,10 @@ function fillShopForm(shopRow: ShopRow | null): void {
     editingShopId.value = '';
     shopForm.shopCode = '';
     shopForm.shopName = '';
-    shopForm.address = '';
+    shopForm.timeZone = BeijingTimeZoneOffset;
+    shopForm.longitude = '';
+    shopForm.latitude = '';
+    shopForm.addressText = '';
     shopForm.contactPhone = '';
     shopForm.status = RecordStatus.ENABLED;
     shopImageFileList.value = [];
@@ -118,7 +194,10 @@ function fillShopForm(shopRow: ShopRow | null): void {
   editingShopId.value = shopRow.shopId;
   shopForm.shopCode = shopRow.shopCode;
   shopForm.shopName = shopRow.shopName;
-  shopForm.address = shopRow.address;
+  shopForm.timeZone = isEmpty(shopRow.timeZone) ? BeijingTimeZoneOffset : shopRow.timeZone;
+  shopForm.longitude = coordinateText(isEmpty(shopRow.shopAddress) ? null : shopRow.shopAddress.longitude);
+  shopForm.latitude = coordinateText(isEmpty(shopRow.shopAddress) ? null : shopRow.shopAddress.latitude);
+  shopForm.addressText = addressDescription(shopRow);
   shopForm.contactPhone = shopRow.contactPhone;
   shopForm.status = shopRow.status;
   const imageList = isEmpty(shopRow.imageList) ? [] : shopRow.imageList;
@@ -220,17 +299,75 @@ async function uploadPendingShopImages(shopId: string): Promise<void> {
 }
 
 /**
+ * 把地图上选中的经纬度写回表单。有解析出的地址时，填进地址描述。
+ */
+function applyPickedLocation(longitude: string, latitude: string, addressText: string): void {
+  shopForm.longitude = longitude;
+  shopForm.latitude = latitude;
+  if (isEmpty(addressText) !== true) {
+    shopForm.addressText = addressText;
+  }
+}
+
+/**
+ * 经纬度显示成文字。没有坐标时留空。
+ */
+function coordinateText(coordinate: number | null): string {
+  if (isEmpty(coordinate)) {
+    return '';
+  }
+  return String(coordinate);
+}
+
+/**
+ * 地址描述优先用 JSON。旧门店只有地址文本时，用那一列填上。
+ */
+function addressDescription(shopRow: ShopRow): string {
+  if (isEmpty(shopRow.shopAddress) || isEmpty(shopRow.shopAddress.addressText)) {
+    return isEmpty(shopRow.address) ? '' : shopRow.address;
+  }
+  return shopRow.shopAddress.addressText;
+}
+
+/**
+ * 把表单收成保存请求。空的经纬度不传数字。
+ */
+function shopSaveBody(): Record<string, unknown> {
+  return {
+    shopCode: shopForm.shopCode,
+    shopName: shopForm.shopName,
+    contactPhone: shopForm.contactPhone,
+    status: shopForm.status,
+    timeZone: shopForm.timeZone,
+    shopAddress: {
+      longitude: isEmpty(shopForm.longitude) ? null : Number(shopForm.longitude),
+      latitude: isEmpty(shopForm.latitude) ? null : Number(shopForm.latitude),
+      addressText: shopForm.addressText,
+    },
+  };
+}
+
+/**
  * 保存门店。新建后先刷新登录态，再上传选中的图片。
  */
 async function saveShop(): Promise<void> {
+  if (isEmpty(shopForm.timeZone)) {
+    ElMessage.warning('请填写门店时区');
+    return;
+  }
+  if (isEmpty(shopForm.longitude) || isEmpty(shopForm.latitude)) {
+    ElMessage.warning('请选择门店位置');
+    return;
+  }
+  const shopBody = shopSaveBody();
   if (isEmpty(editingShopId.value)) {
-    const createdShop = (await http.post('/admin/hotel/shops', shopForm)) as ShopRow;
+    const createdShop = (await http.post('/admin/hotel/shops', shopBody)) as ShopRow;
     editingShopId.value = createdShop.shopId;
     sessionStore.menuLoaded = false;
     await sessionStore.loadSession(router);
     await uploadPendingShopImages(createdShop.shopId);
   } else {
-    await http.put(`/admin/hotel/shops/${editingShopId.value}`, shopForm);
+    await http.put(`/admin/hotel/shops/${editingShopId.value}`, shopBody);
   }
   ElMessage.success('保存成功');
   visible.value = false;
@@ -239,10 +376,27 @@ async function saveShop(): Promise<void> {
 </script>
 
 <style scoped>
+.shop-form :deep(.el-form-item__content > .el-select) {
+  width: 100%;
+}
+
 .shop-image-add {
   font-size: 28px;
   line-height: 1;
   color: #909399;
+}
+
+.shop-location {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.shop-location-text {
+  color: #344054;
+  word-break: break-all;
 }
 
 .shop-image-full :deep(.el-upload--picture-card) {
