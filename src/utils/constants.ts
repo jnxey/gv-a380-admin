@@ -160,6 +160,7 @@ export const FinanceBizType = {
   KTV_IN_STORE: 'KTV_IN_STORE',
   HOTEL_ROOM_FEE: 'HOTEL_ROOM_FEE',
   REFUND: 'REFUND',
+  SHOP_SCAN_PAY: 'SHOP_SCAN_PAY',
 } as const;
 
 export const PageSetting = {
@@ -350,6 +351,7 @@ export const statusLabelMap: Record<string, string> = {
   RECHARGE: '充值',
   KTV_BOOKING: 'KTV预订',
   KTV_IN_STORE: 'KTV店内消费',
+  SHOP_SCAN_PAY: '门店扫码付款',
   HOTEL_ROOM_FEE: '酒店房费',
   REFUND: '退款',
   IN: '收入',

@@ -1,5 +1,5 @@
 <template>
-  <div class="room-status-page">
+  <div class="room-status-page" @pointerdown="preparePaymentAudio">
     <ShopSwitcher />
     <el-card class="room-status-main">
       <div class="room-status-summary">
@@ -12,7 +12,10 @@
           <span class="room-status-count-label">{{ roomStatusCount.label }}</span>
           <span class="room-status-count-value">{{ roomStatusCount.count }}</span>
         </span>
-        <button type="button" class="room-status-deduct" @click="deductVisible = true">扣款</button>
+        <button type="button" class="room-status-deduct" @click="deductVisible = true">
+          <AppIcon class="room-status-deduct-icon" :icon-name="MenuIconName.FINANCE_BILL" />
+          扣款
+        </button>
         <button type="button" class="room-status-refresh" title="刷新" @click="reloadPage">
           <AppIcon class="room-status-refresh-icon" :icon-name="MenuIconName.REFRESH" />
         </button>
@@ -157,12 +160,12 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
 import DeductView from '../DeductView/DeductView.vue';
-import { KtvOccupyDuration, KtvOccupyRemind, KtvOrderStatus, KtvPendingVerifyWindow, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask } from '../../../utils/constants';
+import { KtvOccupyDuration, KtvOccupyRemind, KtvOrderStatus, KtvPendingVerifyWindow, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask, statusLabel } from '../../../utils/constants';
 import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
@@ -806,13 +809,150 @@ function reloadPage(): void {
   window.location.reload();
 }
 
-/** 包厢状态和待核销订单的轮询间隔，单位毫秒。 */
+/** 包厢状态、待核销订单和到账提示的轮询间隔，单位毫秒。 */
 const roomStatusRefreshInterval = 3000;
+/** 收款播报语言。 */
+const paymentNoticeSpeechLanguage = 'zh-CN';
+/** 收款播报开头。 */
+const paymentNoticeSpeechPrefix = '收款';
+/** 收款播报结尾。 */
+const paymentNoticeSpeechSuffix = '元';
 let roomStatusTimer = 0;
 let roomStatusRefreshing = false;
+let paymentNoticeBaselineReady = false;
+let paymentNoticeLoading = false;
+let latestPaymentNoticeId = 0n;
+let paymentSpeechUnlocked = false;
+
+interface PaymentNoticeRow {
+  id: string;
+  bizType: string;
+  amount: string;
+  remark: string;
+}
 
 /**
- * 同时刷新包厢状态和待核销订单。上一轮还没回来时跳过，避免请求叠在一起。
+ * 把账单主键收成整数，用来判断哪条更新。
+ */
+function billIdValue(billIdText: string): bigint {
+  if (isEmpty(billIdText)) {
+    return 0n;
+  }
+  if (!/^\d+$/.test(billIdText)) {
+    return 0n;
+  }
+  return BigInt(billIdText);
+}
+
+/**
+ * 选出中文语音。还没有中文语音时返回空，交给浏览器默认语音。
+ */
+function findChineseVoice(): SpeechSynthesisVoice | null {
+  const voiceList = window.speechSynthesis.getVoices();
+  for (const voice of voiceList) {
+    if (voice.lang === paymentNoticeSpeechLanguage || voice.lang.startsWith('zh')) {
+      return voice;
+    }
+  }
+  return null;
+}
+
+/**
+ * 第一次点击页面时解锁语音。浏览器要有过操作才允许出声。
+ */
+function preparePaymentAudio(): void {
+  if (paymentSpeechUnlocked) {
+    return;
+  }
+  paymentSpeechUnlocked = true;
+  window.speechSynthesis.getVoices();
+  const unlockUtterance = new SpeechSynthesisUtterance('');
+  unlockUtterance.volume = 0;
+  window.speechSynthesis.speak(unlockUtterance);
+}
+
+/**
+ * 用中文播报收款金额。多笔会按调用顺序排成队列。
+ */
+function playPaymentNoticeSound(amountText: string): void {
+  const spokenAmount = isEmpty(amountText) ? '' : amountText.trim();
+  if (isEmpty(spokenAmount)) {
+    return;
+  }
+  const utterance = new SpeechSynthesisUtterance(`${paymentNoticeSpeechPrefix}${spokenAmount}${paymentNoticeSpeechSuffix}`);
+  utterance.lang = paymentNoticeSpeechLanguage;
+  const chineseVoice = findChineseVoice();
+  if (chineseVoice !== null) {
+    utterance.voice = chineseVoice;
+  }
+  window.speechSynthesis.speak(utterance);
+}
+
+/**
+ * 停掉还没播完的收款播报。离开页面时调用。
+ */
+function stopPaymentAudio(): void {
+  window.speechSynthesis.cancel();
+}
+
+/**
+ * 检查新的店内消费和扫码付款。第一次只记住最大账单，之后才响并弹出通知。
+ */
+async function loadPaymentNotices(): Promise<void> {
+  if (paymentNoticeLoading) {
+    return;
+  }
+  paymentNoticeLoading = true;
+  const isBaseline = !paymentNoticeBaselineReady;
+  try {
+    const noticeList = (await http.get('/admin/ktv/payment-notices')) as PaymentNoticeRow[];
+    if (Array.isArray(noticeList) !== true) {
+      return;
+    }
+    // 1. 记下这一批里最大的账单主键
+    let maxBillId = latestPaymentNoticeId;
+    for (const noticeRow of noticeList) {
+      const billId = billIdValue(noticeRow.id);
+      if (billId > maxBillId) {
+        maxBillId = billId;
+      }
+    }
+    // 2. 第一次进入只建立基线，不把历史账报出来
+    if (isBaseline) {
+      paymentNoticeBaselineReady = true;
+      latestPaymentNoticeId = maxBillId;
+      return;
+    }
+    const freshNoticeList = noticeList.filter((noticeRow) => billIdValue(noticeRow.id) > latestPaymentNoticeId);
+    latestPaymentNoticeId = maxBillId;
+    if (freshNoticeList.length === 0) {
+      return;
+    }
+    // 3. 按账单先后各播一句，每条新账各弹一次
+    freshNoticeList.sort((leftNotice, rightNotice) => {
+      const leftBillId = billIdValue(leftNotice.id);
+      const rightBillId = billIdValue(rightNotice.id);
+      if (leftBillId < rightBillId) {
+        return -1;
+      }
+      if (leftBillId > rightBillId) {
+        return 1;
+      }
+      return 0;
+    });
+    for (const noticeRow of freshNoticeList) {
+      playPaymentNoticeSound(noticeRow.amount);
+      const remarkText = isEmpty(noticeRow.remark) ? '' : noticeRow.remark.trim();
+      const noticeMessage = isEmpty(remarkText) ? noticeRow.amount : `${noticeRow.amount} ${remarkText}`;
+      ElNotification({ title: statusLabel(noticeRow.bizType), message: noticeMessage, type: 'success' });
+    }
+  } finally {
+    paymentNoticeLoading = false;
+  }
+}
+
+/**
+ * 同时刷新包厢状态，并检查新的店内消费和扫码付款。上一轮还没回来时跳过，避免请求叠在一起。
  */
 async function refreshRoomStatusPage(): Promise<void> {
   if (roomStatusRefreshing) {
@@ -821,6 +961,7 @@ async function refreshRoomStatusPage(): Promise<void> {
   roomStatusRefreshing = true;
   try {
     await loadRooms();
+    await loadPaymentNotices();
   } finally {
     roomStatusRefreshing = false;
   }
@@ -870,6 +1011,7 @@ onMounted(() => {
   narrowScreenQuery.addEventListener('change', syncDeductDialogWidth);
   narrowScreenQuery.addEventListener('change', syncOpenRoomDialogWidth);
   void loadRooms();
+  void loadPaymentNotices();
   startRoomStatusRefresh();
 });
 
@@ -877,6 +1019,7 @@ onBeforeUnmount(() => {
   narrowScreenQuery.removeEventListener('change', syncDeductDialogWidth);
   narrowScreenQuery.removeEventListener('change', syncOpenRoomDialogWidth);
   stopRoomStatusRefresh();
+  stopPaymentAudio();
 });
 </script>
 
@@ -1079,9 +1222,14 @@ onBeforeUnmount(() => {
   background: #d5d9e0;
 }
 
+.room-status-deduct-icon,
 .room-status-refresh-icon {
   width: 18px;
   height: 18px;
+}
+
+.room-status-deduct-icon {
+  margin-right: 6px;
 }
 
 .room-status-body {
