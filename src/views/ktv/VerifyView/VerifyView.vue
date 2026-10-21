@@ -22,7 +22,6 @@
         <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
         <template #actions>
           <el-button v-if="canVerify && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="primary" @click="openVerify(orderRow.bookingOrderId)">核销</el-button>
-          <el-button v-if="canConsume && orderRow.orderStatus === KtvOrderStatus.VERIFIED" link type="primary" @click="openConsume(orderRow.bookingOrderId)">店内消费</el-button>
           <el-button v-if="canCancel && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="danger" @click="cancelOrder(orderRow.bookingOrderId)">取消退款</el-button>
         </template>
       </RecordCard>
@@ -40,16 +39,6 @@
       <template #footer>
         <el-button size="large" @click="verifyVisible = false">取消</el-button>
         <el-button size="large" type="primary" :disabled="isEmpty(freeRoomList)" @click="submitVerify">确认核销</el-button>
-      </template>
-    </el-dialog>
-    <el-dialog v-model="consumeVisible" title="店内消费" width="420px">
-      <el-form label-position="top">
-        <el-form-item label="金额"><el-input v-model="consumeAmount" /></el-form-item>
-        <el-form-item label="备注"><el-input v-model="consumeRemark" /></el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button size="large" @click="consumeVisible = false">取消</el-button>
-        <el-button size="large" type="primary" @click="submitConsume">确认扣款</el-button>
       </template>
     </el-dialog>
   </el-card>
@@ -90,7 +79,6 @@ interface OrderRow {
 
 const sessionStore = useSessionStore();
 const canVerify = sessionStore.hasPermission(PermissionCode.KTV_ORDER_VERIFY);
-const canConsume = sessionStore.hasPermission(PermissionCode.KTV_ORDER_CONSUME);
 const canCancel = sessionStore.hasPermission(PermissionCode.KTV_ORDER_CANCEL);
 const verifyCode = ref('');
 const orderList = ref<OrderRow[]>([]);
@@ -101,10 +89,6 @@ const verifyVisible = ref(false);
 const verifyOrderId = ref('');
 const verifyRoomId = ref('');
 const freeRoomList = ref<FreeRoom[]>([]);
-const consumeVisible = ref(false);
-const consumeOrderId = ref('');
-const consumeAmount = ref('');
-const consumeRemark = ref('');
 
 /**
  * 结束钟点不晚于开唱钟点时，表示已经跨到第二天。
@@ -154,29 +138,6 @@ async function submitVerify(): Promise<void> {
   });
   ElMessage.success('核销成功');
   verifyVisible.value = false;
-  await loadOrders();
-}
-
-/**
- * 打开店内消费弹窗。
- */
-function openConsume(bookingOrderId: string): void {
-  consumeOrderId.value = bookingOrderId;
-  consumeAmount.value = '';
-  consumeRemark.value = '';
-  consumeVisible.value = true;
-}
-
-/**
- * 提交店内消费扣款。
- */
-async function submitConsume(): Promise<void> {
-  await http.post(`/admin/ktv/booking-orders/${consumeOrderId.value}/consume`, {
-    amount: consumeAmount.value,
-    remark: consumeRemark.value,
-  });
-  ElMessage.success('消费已入账');
-  consumeVisible.value = false;
   await loadOrders();
 }
 

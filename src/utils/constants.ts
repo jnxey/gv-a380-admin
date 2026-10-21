@@ -321,6 +321,7 @@ export const menuIconNameByPath: Record<string, string> = {
   '/member/recharge': MenuIconName.MEMBER_RECHARGE,
   '/finance': MenuIconName.FINANCE,
   '/finance/bill': MenuIconName.FINANCE_BILL,
+  '/finance/member-bill': MenuIconName.FINANCE_BILL,
   '/ktv': MenuIconName.KTV,
   '/ktv/shop': MenuIconName.KTV_SHOP,
   '/ktv/room-type': MenuIconName.HOTEL_ROOM_TYPE,

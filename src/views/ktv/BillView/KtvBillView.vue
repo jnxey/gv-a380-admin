@@ -24,16 +24,16 @@
     <div v-if="isEmpty(summaryList) !== true" class="bill-summary-line">
       <div class="bill-total is-in">
         <span class="bill-total-label">收入</span>
-        <span class="bill-total-amount">{{ summaryInAmount }}</span>
+        <span class="bill-total-amount">{{ summaryOutAmount }}</span>
       </div>
       <div class="bill-total is-out">
         <span class="bill-total-label">支出</span>
-        <span class="bill-total-amount">{{ summaryOutAmount }}</span>
+        <span class="bill-total-amount">{{ summaryInAmount }}</span>
       </div>
       <div v-for="summaryRow in summaryList" :key="summaryRow.shopId" class="bill-shop-chip">
         <span class="bill-shop-name">{{ displayText(summaryRow.shopName) }}</span>
-        <span class="bill-shop-amount is-in">收入 {{ summaryRow.inAmount }}</span>
-        <span class="bill-shop-amount is-out">支出 {{ summaryRow.outAmount }}</span>
+        <span class="bill-shop-amount is-in">收入 {{ summaryRow.outAmount }}</span>
+        <span class="bill-shop-amount is-out">支出 {{ summaryRow.inAmount }}</span>
       </div>
     </div>
     <section class="bill-section">
@@ -45,12 +45,12 @@
             <div class="bill-item-main">
               <div class="bill-item-title">{{ displayText(billRow.shopName) }} · {{ displayText(billRow.username) }}</div>
               <div class="bill-item-sub">
-                <el-tag :type="billAmountTagType(billRow.direction)" effect="plain">{{ statusLabel(billRow.direction) }}</el-tag>
+                <el-tag :type="billAmountTagType(shopDirection(billRow.direction))" effect="plain">{{ statusLabel(shopDirection(billRow.direction)) }}</el-tag>
                 <span>{{ statusLabel(billRow.bizType) }}</span>
                 <span>{{ formatLocalDateTime(billRow.createdAt) }}</span>
               </div>
             </div>
-            <div class="bill-item-amount" :class="billAmountClass(billRow.direction)">{{ formatBillAmount(billRow) }}</div>
+            <div class="bill-item-amount" :class="billAmountClass(shopDirection(billRow.direction))">{{ formatBillAmount(billRow) }}</div>
           </div>
           <div class="bill-item-meta">
             <span>账单号 {{ displayText(billRow.billNo) }}</span>
@@ -119,6 +119,19 @@ function displayText(text: string): string {
 }
 
 /**
+ * 把会员余额方向换成门店口径。会员支出是门店收入，会员收入是门店支出。
+ */
+function shopDirection(memberDirection: string): string {
+  if (memberDirection === FinanceDirection.OUT) {
+    return FinanceDirection.IN;
+  }
+  if (memberDirection === FinanceDirection.IN) {
+    return FinanceDirection.OUT;
+  }
+  return memberDirection;
+}
+
+/**
  * 收入用绿色，支出用红色。
  */
 function billAmountClass(direction: string): string {
@@ -148,10 +161,11 @@ function billAmountTagType(direction: string): 'success' | 'danger' | 'info' {
  * 收入金额前加正号，支出前加负号。
  */
 function formatBillAmount(billRow: BillRow): string {
-  if (billRow.direction === FinanceDirection.IN) {
+  const direction = shopDirection(billRow.direction);
+  if (direction === FinanceDirection.IN) {
     return `+${billRow.amount}`;
   }
-  if (billRow.direction === FinanceDirection.OUT) {
+  if (direction === FinanceDirection.OUT) {
     return `-${billRow.amount}`;
   }
   return billRow.amount;
