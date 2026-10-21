@@ -23,12 +23,7 @@
         <template #actions>
           <el-button v-if="canVerify && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="primary" @click="openVerify(orderRow.bookingOrderId)">核销</el-button>
           <el-button v-if="canConsume && orderRow.orderStatus === KtvOrderStatus.VERIFIED" link type="primary" @click="openConsume(orderRow.bookingOrderId)">店内消费</el-button>
-          <el-button
-            v-if="canCancel && (orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY || orderRow.orderStatus === KtvOrderStatus.VERIFIED)"
-            link
-            type="danger"
-            @click="cancelOrder(orderRow.bookingOrderId)"
-          >取消退款</el-button>
+          <el-button v-if="canCancel && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="danger" @click="cancelOrder(orderRow.bookingOrderId)">取消退款</el-button>
         </template>
       </RecordCard>
     </div>

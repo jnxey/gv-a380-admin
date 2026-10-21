@@ -11,6 +11,7 @@ export const viewComponentMap: Record<string, () => Promise<unknown>> = {
   'ktv/room': () => import('../views/ktv/RoomView/RoomView.vue'),
   'ktv/room-status': () => import('../views/ktv/RoomStatusView/RoomStatusView.vue'),
   'ktv/verify': () => import('../views/ktv/VerifyView/VerifyView.vue'),
+  'ktv/bill': () => import('../views/ktv/BillView/KtvBillView.vue'),
   'hotel/shop': () => import('../views/hotel/ShopView/ShopView.vue'),
   'hotel/room-type': () => import('../views/hotel/RoomTypeView/RoomTypeView.vue'),
   'hotel/room': () => import('../views/hotel/RoomView/RoomView.vue'),

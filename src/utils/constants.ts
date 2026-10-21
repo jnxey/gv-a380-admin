@@ -327,6 +327,7 @@ export const menuIconNameByPath: Record<string, string> = {
   '/ktv/room': MenuIconName.KTV_ROOM,
   '/ktv/room-status': MenuIconName.KTV_ROOM,
   '/ktv/verify': MenuIconName.KTV_VERIFY,
+  '/ktv/bill': MenuIconName.FINANCE_BILL,
   '/hotel': MenuIconName.HOTEL,
   '/hotel/shop': MenuIconName.KTV_SHOP,
   '/hotel/room-type': MenuIconName.HOTEL_ROOM_TYPE,
