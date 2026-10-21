@@ -6,12 +6,24 @@
       <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
         <RecordField label="订单号">{{ orderRow.orderNo }}</RecordField>
         <RecordField label="用户名">{{ orderGuestText(orderRow) }}</RecordField>
+        <RecordField label="预定人">{{ orderRow.guestName }}</RecordField>
+        <RecordField label="联系方式">{{ orderRow.contact }}</RecordField>
         <RecordField label="房型">{{ orderRow.typeName }}</RecordField>
         <RecordField label="房间">{{ orderRow.roomNo }}</RecordField>
         <RecordField label="入住日">{{ formatLocalDateTime(orderRow.checkInDate) }}</RecordField>
         <RecordField label="离店日">{{ formatLocalDateTime(orderRow.checkOutDate) }}</RecordField>
         <RecordField label="房费">{{ orderRow.amount }}</RecordField>
         <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
+        <RecordField v-if="canCheckIn && orderRow.orderStatus === HotelOrderStatus.BOOKED" label="入住房间">
+          <el-select
+            :model-value="selectedRoomIdFor(orderRow.bookingOrderId)"
+            placeholder="选择空闲房间"
+            style="width: 180px"
+            @update:model-value="setSelectedRoomId(orderRow.bookingOrderId, $event)"
+          >
+            <el-option v-for="room in idleRoomListFor(orderRow)" :key="room.id" :label="room.roomNo" :value="room.id" />
+          </el-select>
+        </RecordField>
         <template #actions>
           <el-button v-if="canCheckIn && orderRow.orderStatus === HotelOrderStatus.BOOKED" link type="primary" @click="openCheckIn(orderRow)">办理入住</el-button>
           <el-button v-if="canCancel && orderRow.orderStatus === HotelOrderStatus.BOOKED" link type="danger" @click="cancelOrder(orderRow.bookingOrderId)">取消</el-button>
@@ -22,9 +34,14 @@
     </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
     <el-dialog v-model="checkInVisible" title="办理入住" width="420px">
-      <el-select v-model="selectedRoomId" placeholder="选择空闲房间" style="width: 100%">
-        <el-option v-for="room in idleRoomList" :key="room.id" :label="room.roomNo" :value="room.id" />
-      </el-select>
+      <template v-if="isEmpty(activeOrderRow) !== true">
+        <RecordField label="房间">{{ confirmRoomNo }}</RecordField>
+        <RecordField label="预定人">{{ activeOrderRow.guestName }}</RecordField>
+        <RecordField label="联系方式">{{ activeOrderRow.contact }}</RecordField>
+        <RecordField label="房型">{{ activeOrderRow.typeName }}</RecordField>
+        <RecordField label="入住日">{{ formatLocalDateTime(activeOrderRow.checkInDate) }}</RecordField>
+        <RecordField label="离店日">{{ formatLocalDateTime(activeOrderRow.checkOutDate) }}</RecordField>
+      </template>
       <template #footer>
         <el-button size="large" @click="checkInVisible = false">取消</el-button>
         <el-button size="large" type="primary" @click="submitCheckIn">确认入住</el-button>
@@ -57,6 +74,7 @@ interface OrderRow {
   orderNo: string;
   username: string;
   contact: string;
+  guestName: string;
   typeName: string;
   roomTypeId: string;
   roomNo: string;
@@ -85,9 +103,12 @@ const pageSize = ref<number>(PageSetting.DEFAULT_PAGE_SIZE);
 const checkInVisible = ref(false);
 const extendVisible = ref(false);
 const activeOrderId = ref('');
+const activeOrderRow = ref<OrderRow | null>(null);
 const selectedRoomId = ref('');
+const confirmRoomNo = ref('');
 const extendDate = ref('');
 const idleRoomList = ref<RoomRow[]>([]);
+const selectedRoomIdByOrder = ref<Record<string, string>>({});
 
 /**
  * 订单上的客人。有会员用户名用用户名，现场入住没有会员时用联系方式。
@@ -108,23 +129,62 @@ async function loadOrders(): Promise<void> {
   })) as { list: OrderRow[]; total: number };
   orderList.value = pageResult.list;
   total.value = pageResult.total;
+  await loadIdleRooms();
 }
 
 /**
- * 打开入住弹窗，只列出同房型空闲房间。
+ * 读取当前门店空闲房间，供各订单在页面上选择。
  */
-async function openCheckIn(orderRow: OrderRow): Promise<void> {
-  activeOrderId.value = orderRow.bookingOrderId;
-  selectedRoomId.value = '';
+async function loadIdleRooms(): Promise<void> {
   const pageResult = (await http.get('/admin/hotel/rooms', {
     params: {
       roomStatus: HotelRoomStatus.IDLE,
-      roomTypeId: orderRow.roomTypeId,
       page: PageSetting.DEFAULT_PAGE,
       pageSize: PageSetting.ROOM_LOOKUP_PAGE_SIZE,
     },
   })) as { list: RoomRow[] };
-  idleRoomList.value = pageResult.list;
+  idleRoomList.value = isEmpty(pageResult.list) ? [] : pageResult.list;
+}
+
+/**
+ * 这张订单同房型的空闲房间。
+ */
+function idleRoomListFor(orderRow: OrderRow): RoomRow[] {
+  return idleRoomList.value.filter((room) => room.roomTypeId === orderRow.roomTypeId);
+}
+
+/**
+ * 这张订单已经选中的房间。还没选时为空。
+ */
+function selectedRoomIdFor(bookingOrderId: string): string {
+  const roomId = selectedRoomIdByOrder.value[bookingOrderId];
+  return isEmpty(roomId) ? '' : roomId;
+}
+
+/**
+ * 记下这张订单选中的空闲房间。
+ */
+function setSelectedRoomId(bookingOrderId: string, roomId: string): void {
+  selectedRoomIdByOrder.value = {
+    ...selectedRoomIdByOrder.value,
+    [bookingOrderId]: roomId,
+  };
+}
+
+/**
+ * 打开入住确认。房间已在页面上选好。
+ */
+function openCheckIn(orderRow: OrderRow): void {
+  const roomId = selectedRoomIdFor(orderRow.bookingOrderId);
+  const room = idleRoomList.value.find((item) => item.id === roomId);
+  if (isEmpty(roomId) || isEmpty(room)) {
+    ElMessage.warning('请选择空闲房间');
+    return;
+  }
+  activeOrderId.value = orderRow.bookingOrderId;
+  activeOrderRow.value = orderRow;
+  selectedRoomId.value = room.id;
+  confirmRoomNo.value = room.roomNo;
   checkInVisible.value = true;
 }
 
@@ -139,6 +199,11 @@ async function submitCheckIn(): Promise<void> {
   await http.post(`/admin/hotel/booking-orders/${activeOrderId.value}/check-in`, { roomId: selectedRoomId.value });
   ElMessage.success('已入住');
   checkInVisible.value = false;
+  const checkedInOrderId = activeOrderId.value;
+  selectedRoomIdByOrder.value = {
+    ...selectedRoomIdByOrder.value,
+    [checkedInOrderId]: '',
+  };
   await loadOrders();
 }
 
