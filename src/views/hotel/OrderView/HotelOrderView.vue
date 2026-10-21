@@ -170,10 +170,10 @@ async function submitExtend(): Promise<void> {
 }
 
 /**
- * 退房并按实际晚数扣房费。
+ * 退房。不扣房费。
  */
 async function checkOut(bookingOrderId: string): Promise<void> {
-  await ElMessageBox.confirm('确认退房并扣减房费？', '退房');
+  await ElMessageBox.confirm('确认退房？', '退房');
   await http.post(`/admin/hotel/booking-orders/${bookingOrderId}/check-out`);
   ElMessage.success('已退房');
   await loadOrders();
