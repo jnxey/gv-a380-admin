@@ -11,17 +11,16 @@
         </el-select>
       </el-form-item>
     </QueryBar>
-    <div v-if="canSave" class="product-toolbar">
-      <el-button type="primary" @click="openCreate">新建商品</el-button>
-    </div>
-    <div v-if="isEmpty(productList)" class="record-empty">暂无数据</div>
+    <div v-if="isEmpty(productGroupList)" class="record-empty">暂无数据</div>
     <div v-else class="product-group-list">
       <ProductCategoryBlock
         v-for="productGroup in productGroupList"
         :key="productGroup.categoryId"
+        :category-id="productGroup.categoryId"
         :category-name="productGroup.categoryName"
         :product-list="productGroup.productList"
         :can-save="canSave"
+        @create="openCreate(productGroup.categoryId)"
         @edit="openEdit"
         @reload="loadProducts"
       />
@@ -138,16 +137,16 @@ const productForm = reactive({
 });
 
 /**
- * 按分类排序把商品分成多块，只保留有商品的分类；找不到分类的商品归到未分类。
+ * 按分类排序把商品分成多块；空分类也保留，方便在分类下新建；筛了分类时只出该块。
  */
 const productGroupList = computed((): ProductGroup[] => {
   const groupList: ProductGroup[] = [];
   const usedProductIdSet = new Set<string>();
   categoryList.value.forEach((categoryRow) => {
-    const categoryProductList = productList.value.filter((productRow) => productRow.categoryId === categoryRow.categoryId);
-    if (isEmpty(categoryProductList)) {
+    if (isEmpty(filterCategoryId.value) !== true && categoryRow.categoryId !== filterCategoryId.value) {
       return;
     }
+    const categoryProductList = productList.value.filter((productRow) => productRow.categoryId === categoryRow.categoryId);
     categoryProductList.forEach((productRow) => {
       usedProductIdSet.add(productRow.productId);
     });
@@ -157,13 +156,15 @@ const productGroupList = computed((): ProductGroup[] => {
       productList: categoryProductList,
     });
   });
-  const unknownProductList = productList.value.filter((productRow) => usedProductIdSet.has(productRow.productId) !== true);
-  if (isEmpty(unknownProductList) !== true) {
-    groupList.push({
-      categoryId: unknownCategoryId,
-      categoryName: unknownCategoryName,
-      productList: unknownProductList,
-    });
+  if (isEmpty(filterCategoryId.value)) {
+    const unknownProductList = productList.value.filter((productRow) => usedProductIdSet.has(productRow.productId) !== true);
+    if (isEmpty(unknownProductList) !== true) {
+      groupList.push({
+        categoryId: unknownCategoryId,
+        categoryName: unknownCategoryName,
+        productList: unknownProductList,
+      });
+    }
   }
   return groupList;
 });
@@ -214,11 +215,11 @@ function onBarcodeScanned(scanText: string): void {
 }
 
 /**
- * 打开新建商品。
+ * 打开新建商品，并预选当前分类。
  */
-function openCreate(): void {
+function openCreate(categoryId: string): void {
   editingProductId.value = '';
-  productForm.categoryId = '';
+  productForm.categoryId = categoryId;
   productForm.productName = '';
   productForm.barcode = '';
   productForm.salePrice = '';
@@ -376,10 +377,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.product-toolbar {
-  margin-bottom: 12px;
-}
-
 .barcode-row {
   display: flex;
   align-items: stretch;

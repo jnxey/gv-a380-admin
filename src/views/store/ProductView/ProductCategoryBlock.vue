@@ -2,6 +2,15 @@
   <section class="product-category-block">
     <h3 class="product-category-title">{{ categoryName }}</h3>
     <div ref="sortListRef" class="product-list">
+      <button
+        v-if="canSave && isEmpty(categoryId) !== true"
+        type="button"
+        class="product-card room-type-create"
+        @click="emit('create')"
+      >
+        <span class="room-type-create-plus">+</span>
+        <span>新建商品</span>
+      </button>
       <article v-for="productRow in localProductList" :key="productRow.productId" class="product-card">
         <div class="product-cover">
           <img v-if="!isEmpty(coverImageUrl(productRow))" :src="coverImageUrl(productRow)" alt="" />
@@ -62,12 +71,14 @@ export interface ProductRow {
 }
 
 const props = defineProps<{
+  categoryId: string;
   categoryName: string;
   productList: ProductRow[];
   canSave: boolean;
 }>();
 
 const emit = defineEmits<{
+  create: [];
   edit: [productRow: ProductRow];
   reload: [];
 }>();
@@ -162,6 +173,29 @@ onMounted(() => {
   border: 1px solid #e6e8ec;
   border-radius: 8px;
   background: #fff;
+}
+
+.room-type-create {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 240px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  color: #667085;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px dashed #c8cdd4;
+}
+
+.room-type-create-plus {
+  font-size: 32px;
+  line-height: 1;
+  color: #98a2b3;
 }
 
 .product-cover {
