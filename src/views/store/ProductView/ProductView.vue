@@ -199,14 +199,16 @@ onMounted(() => {
 
 .barcode-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
   width: 100%;
 }
 
-.barcode-row :deep(.el-input) {
-  flex: 1 1 auto;
+.barcode-row :deep(.el-input),
+.barcode-row :deep(.el-button) {
+  flex: 1 1 0;
   min-width: 0;
+  width: 100%;
 }
 
 .product-list {

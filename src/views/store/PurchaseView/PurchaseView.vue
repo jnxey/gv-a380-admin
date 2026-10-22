@@ -380,8 +380,9 @@ onMounted(() => {
   width: 100%;
 }
 
-.product-pick-row :deep(.el-select) {
-  flex: 1 1 auto;
+.product-pick-row :deep(.el-select),
+.purchase-scan-button {
+  flex: 1 1 0;
   min-width: 0;
   width: 100%;
 }
@@ -391,8 +392,6 @@ onMounted(() => {
 }
 
 .purchase-scan-button {
-  flex: none;
-  min-width: 108px;
   height: 40px;
   margin: 0;
   border-radius: 8px;
