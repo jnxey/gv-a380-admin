@@ -34,9 +34,14 @@
               :disabled="productRow.stockQuantity < 1 || productRow.status !== RecordStatus.ENABLED"
               @click="addCartLine(productRow)"
             >
-              <div class="product-name">{{ productRow.productName }}</div>
-              <div class="product-price">{{ productRow.salePrice }}</div>
-              <div class="product-meta">库存 {{ productRow.stockQuantity }}</div>
+              <div class="product-card-body">
+                <div class="product-name">{{ productRow.productName }}</div>
+                <div class="product-price">{{ productRow.salePrice }}</div>
+              </div>
+              <div class="product-meta">
+                <template v-if="productRow.stockQuantity < 1 || productRow.status !== RecordStatus.ENABLED">售罄</template>
+                <template v-else>库存 {{ productRow.stockQuantity }}</template>
+              </div>
             </button>
           </div>
         </div>
@@ -47,12 +52,24 @@
         <div v-else class="cart-list">
           <div v-for="cartLine in cartLineList" :key="cartLine.productId" class="cart-line">
             <div class="cart-line-main">
-              <div class="product-name">{{ cartLine.productName }}</div>
-              <div class="product-meta">{{ cartLine.salePrice }} × {{ cartLine.quantity }}</div>
+              <div class="cart-line-name">{{ cartLine.productName }}</div>
+              <div class="cart-line-meta">
+                <span>单价 {{ cartLine.salePrice }}</span>
+                <span class="cart-line-dot">·</span>
+                <span>小计 {{ (Number(cartLine.salePrice) * cartLine.quantity).toFixed(2) }}</span>
+              </div>
             </div>
             <div class="cart-actions">
-              <el-input-number v-model="cartLine.quantity" size="small" :min="1" :max="cartLine.stockQuantity" />
-              <el-button link type="danger" @click="removeCartLine(cartLine.productId)">删除</el-button>
+              <el-input-number v-model="cartLine.quantity" :min="1" :max="cartLine.stockQuantity" />
+              <el-button
+                class="cart-delete-button"
+                link
+                type="danger"
+                aria-label="删除"
+                @click="removeCartLine(cartLine.productId)"
+              >
+                <AppIcon :icon-name="MenuIconName.DELETE" />
+              </el-button>
             </div>
           </div>
         </div>
@@ -463,12 +480,17 @@ onBeforeUnmount(() => {
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  gap: 12px;
 }
 
 .product-card {
-  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 112px;
+  padding: 16px;
   border: 1px solid #e6e8ec;
   border-radius: 10px;
   background: #fff;
@@ -479,38 +501,50 @@ onBeforeUnmount(() => {
 }
 
 .product-card:hover:not(:disabled) {
-  border-color: #c0c4cc;
-  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.06);
+  border-color: #98a2b3;
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
 }
 
 .product-card:disabled {
-  opacity: 0.45;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
+.product-card-body {
+  min-width: 0;
+}
+
 .product-name {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.35;
   color: #1c2434;
   word-break: break-word;
 }
 
 .product-price {
-  margin-top: 8px;
-  font-size: 18px;
+  margin-top: 10px;
+  font-size: 20px;
   font-weight: 700;
+  line-height: 1.2;
   color: #1c2434;
+  text-align: right;
 }
 
 .product-meta {
-  margin-top: 4px;
   color: #667085;
   font-size: 12px;
+  line-height: 1.3;
 }
 
 .cart-empty,
 .record-empty,
 .member-missed {
-  padding: 28px 12px;
+  padding: 36px 12px;
   text-align: center;
   color: #98a2b3;
   font-size: 13px;
@@ -529,8 +563,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 12px;
+  gap: 12px;
+  padding: 14px;
   border: 1px solid #e6e8ec;
   border-radius: 10px;
   background: #fff;
@@ -541,11 +575,50 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
 }
 
+.cart-line-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c2434;
+  word-break: break-word;
+}
+
+.cart-line-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.cart-line-dot {
+  color: #d0d5dd;
+}
+
 .cart-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex: none;
+}
+
+.cart-delete-button {
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+}
+
+.cart-delete-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .cart-total {
@@ -554,10 +627,11 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   border: 1px solid #e6e8ec;
   border-radius: 10px;
   background: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .cart-total-label {
@@ -566,8 +640,9 @@ onBeforeUnmount(() => {
 }
 
 .cart-total-amount {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
+  letter-spacing: 0.02em;
   color: #1c2434;
 }
 

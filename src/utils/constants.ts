@@ -349,6 +349,7 @@ export const MenuIconName = {
   ARROW_RIGHT: 'ARROW_RIGHT',
   REFRESH: 'REFRESH',
   SCAN_QR: 'SCAN_QR',
+  DELETE: 'DELETE',
 } as const;
 
 export const menuIconNameByPath: Record<string, string> = {
