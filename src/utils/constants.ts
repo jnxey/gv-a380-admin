@@ -1,4 +1,6 @@
-﻿/**
+﻿import { isEmpty } from './tools';
+
+/**
  * 与后端保持一致的常量。
  */
 export const ResponseCode = {
@@ -304,10 +306,26 @@ export const AuthApiPath = {
 } as const;
 
 /**
- * 浏览器地址栏上的登录页路径（含 Vite base，如 /a380-admin/login）。
+ * 当前是否已在登录页。只看 hash，不动 # 前面的前缀/后缀路径。
  */
-export function getLoginLocationPath(): string {
-  return new URL('login', `${window.location.origin}${import.meta.env.BASE_URL}`).pathname;
+export function isOnLoginPage(): boolean {
+  const hashText = window.location.hash;
+  if (isEmpty(hashText)) {
+    return false;
+  }
+  const hashBody = hashText.startsWith('#') ? hashText.slice(1) : hashText;
+  const hashPath = hashBody.split('?')[0];
+  return hashPath === '/login';
+}
+
+/**
+ * 会话失效时只改 hash 到登录页，保留 # 前面的访问路径。
+ */
+export function goLoginPageByHash(): void {
+  if (isOnLoginPage()) {
+    return;
+  }
+  window.location.hash = '#/login';
 }
 
 /** 后台令牌剩余不超过 30 分钟时再换一张。 */

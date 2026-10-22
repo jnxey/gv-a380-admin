@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
-import { AccessTokenLifetime, AuthApiPath, getLoginLocationPath, HttpStatusCode, ResponseCode, StorageKey } from './constants';
+import { AccessTokenLifetime, AuthApiPath, goLoginPageByHash, HttpStatusCode, ResponseCode, StorageKey } from './constants';
 import { isEmpty } from './tools';
 
 let refreshingAccessTokenPromise: Promise<string> | null = null;
@@ -112,10 +112,7 @@ function refreshAccessToken(accessToken: string): Promise<string> {
       const failMessage = readErrorMessage(error);
       if (statusCode === HttpStatusCode.UNAUTHORIZED) {
         window.localStorage.removeItem(StorageKey.ACCESS_TOKEN);
-        const loginLocationPath = getLoginLocationPath();
-        if (window.location.pathname !== loginLocationPath) {
-          window.location.href = loginLocationPath;
-        }
+        goLoginPageByHash();
       }
       return rejectAccessTokenRefresh(failMessage, statusCode);
     });

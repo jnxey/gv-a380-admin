@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import { ensureAccessToken } from './access-token';
-import { AuthApiPath, getLoginLocationPath, HttpStatusCode, ResponseCode, StorageKey } from './constants';
+import { AuthApiPath, goLoginPageByHash, HttpStatusCode, ResponseCode, StorageKey } from './constants';
 import { isEmpty } from './tools';
 
 const http = axios.create({
@@ -50,12 +50,12 @@ http.interceptors.response.use(
     }
     const statusCode = error?.response?.status;
     const failMessage = error?.response?.data?.message;
-    if (statusCode === HttpStatusCode.UNAUTHORIZED) {
+    const requestUrl = error?.config?.url;
+    // 登录接口的 401：账号密码错误，只 Toast，不改地址、不刷新
+    if (statusCode === HttpStatusCode.UNAUTHORIZED && requestUrl !== AuthApiPath.LOGIN) {
+      // 其它接口 401：清令牌，只改 hash 到 #/login，保留 # 前路径
       window.localStorage.removeItem(StorageKey.ACCESS_TOKEN);
-      const loginLocationPath = getLoginLocationPath();
-      if (window.location.pathname !== loginLocationPath) {
-        window.location.href = loginLocationPath;
-      }
+      goLoginPageByHash();
     }
     ElMessage.error(isEmpty(failMessage) ? '请求失败' : failMessage);
     return Promise.reject(error);
