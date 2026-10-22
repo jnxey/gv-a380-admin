@@ -12,31 +12,33 @@
             clearable
             @keyup.enter="loadProducts"
           />
-          <ScanButton
+          <el-button
             type="warning"
             size="large"
             class="cashier-scan-button"
             aria-label="扫码"
-            @scanned="onProductKeywordScanned"
+            @click="toggleProductScanListen"
           >
             <AppIcon :icon-name="MenuIconName.SCAN_QR" />
-            <span>扫码</span>
-          </ScanButton>
+            <span>{{ productScanLoopRunning ? '听枪中' : '扫码' }}</span>
+          </el-button>
         </div>
-        <div v-if="isEmpty(productList)" class="record-empty">暂无商品</div>
-        <div v-else class="product-grid">
-          <button
-            v-for="productRow in productList"
-            :key="productRow.productId"
-            type="button"
-            class="product-card"
-            :disabled="productRow.stockQuantity < 1 || productRow.status !== RecordStatus.ENABLED"
-            @click="addCartLine(productRow)"
-          >
-            <div class="product-name">{{ productRow.productName }}</div>
-            <div class="product-price">{{ productRow.salePrice }}</div>
-            <div class="product-meta">库存 {{ productRow.stockQuantity }}</div>
-          </button>
+        <div ref="productCardArea" class="product-card-area">
+          <div v-if="isEmpty(productList)" class="record-empty">暂无商品</div>
+          <div v-else class="product-grid">
+            <button
+              v-for="productRow in productList"
+              :key="productRow.productId"
+              type="button"
+              class="product-card"
+              :disabled="productRow.stockQuantity < 1 || productRow.status !== RecordStatus.ENABLED"
+              @click="addCartLine(productRow)"
+            >
+              <div class="product-name">{{ productRow.productName }}</div>
+              <div class="product-price">{{ productRow.salePrice }}</div>
+              <div class="product-meta">库存 {{ productRow.stockQuantity }}</div>
+            </button>
+          </div>
         </div>
       </section>
       <section class="cashier-panel cashier-cart">
@@ -74,16 +76,18 @@
                 @keyup.enter="searchMember"
               />
               <el-button type="primary" size="large" class="member-search-button" @click="searchMember">查找</el-button>
-              <ScanButton
-                type="warning"
-                size="large"
-                class="cashier-scan-button"
-                aria-label="扫码"
-                @scanned="onPayQrScanned"
-              >
-                <AppIcon :icon-name="MenuIconName.SCAN_QR" />
-                <span>扫码</span>
-              </ScanButton>
+              <div class="member-scan-wrap" @click.capture="pauseProductListenForMemberScan">
+                <ScanButton
+                  type="warning"
+                  size="large"
+                  class="cashier-scan-button"
+                  aria-label="扫码"
+                  @scanned="onPayQrScanned"
+                >
+                  <AppIcon :icon-name="MenuIconName.SCAN_QR" />
+                  <span>扫码</span>
+                </ScanButton>
+              </div>
             </div>
             <div v-if="isEmpty(selectedMember) !== true" class="member-card">
               <div class="member-card-name">
@@ -111,9 +115,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
+import { cancelScanGun } from '../../../components/ScanGunPrompt/scan-gun';
+import { readScanText } from '../../../components/ScanGunPrompt/read-scan-text';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { MenuIconName, PageSetting, PermissionCode, RecordStatus, StorePayMethod } from '../../../utils/constants';
@@ -156,6 +162,10 @@ const selectedMember = ref<MemberRow | null>(null);
 const memberMissed = ref(false);
 const remark = ref('');
 const submitting = ref(false);
+const productCardArea = ref<HTMLElement | null>(null);
+const productScanLoopRunning = ref(false);
+let productScanLoopAlive = false;
+let resumeProductListenAfterMember = false;
 
 /**
  * 购物车合计金额。
@@ -182,9 +192,17 @@ const checkoutDisabled = computed(() => {
 });
 
 /**
- * 扫码写入搜索关键字并立刻查商品；仅命中一件可卖时直接加入购物车。
+ * 停掉商品听枪循环，并收起当前扫码浮窗。
  */
-async function onProductKeywordScanned(scanText: string): Promise<void> {
+function stopProductScanLoop(): void {
+  productScanLoopAlive = false;
+  cancelScanGun();
+}
+
+/**
+ * 扫码查商品；仅命中一件可卖时加入购物车。
+ */
+async function applyProductScan(scanText: string): Promise<void> {
   keyword.value = scanText;
   await loadProducts();
   if (productList.value.length !== 1) {
@@ -195,6 +213,43 @@ async function onProductKeywordScanned(scanText: string): Promise<void> {
     return;
   }
   addCartLine(productRow);
+}
+
+/**
+ * 连续听商品条码；「扫码中」只盖商品卡片区。点遮罩取消则结束听枪。
+ */
+async function startProductScanLoop(): Promise<void> {
+  if (productScanLoopRunning.value === true) {
+    return;
+  }
+  productScanLoopAlive = true;
+  productScanLoopRunning.value = true;
+  try {
+    while (productScanLoopAlive === true) {
+      const scanText = await readScanText(productCardArea.value);
+      if (productScanLoopAlive !== true) {
+        break;
+      }
+      if (isEmpty(scanText)) {
+        break;
+      }
+      await applyProductScan(scanText);
+    }
+  } finally {
+    productScanLoopRunning.value = false;
+    productScanLoopAlive = false;
+  }
+}
+
+/**
+ * 点商品区扫码：未听则开始听枪，已听则停止。
+ */
+function toggleProductScanListen(): void {
+  if (productScanLoopRunning.value === true) {
+    stopProductScanLoop();
+    return;
+  }
+  void startProductScanLoop();
 }
 
 /**
@@ -260,7 +315,15 @@ async function searchMember(): Promise<void> {
 }
 
 /**
- * 扫付款码找会员。
+ * 扫会员付款码前先停商品听枪，并记住扫完是否恢复。
+ */
+function pauseProductListenForMemberScan(): void {
+  resumeProductListenAfterMember = productScanLoopRunning.value === true || productScanLoopAlive === true;
+  stopProductScanLoop();
+}
+
+/**
+ * 扫付款码找会员。结束后按需要恢复商品听枪。
  */
 async function onPayQrScanned(cipherText: string): Promise<void> {
   memberMissed.value = false;
@@ -270,16 +333,22 @@ async function onPayQrScanned(cipherText: string): Promise<void> {
   } catch {
     memberMissed.value = true;
   }
+  if (resumeProductListenAfterMember === true) {
+    resumeProductListenAfterMember = false;
+    void startProductScanLoop();
+  }
 }
 
 /**
- * 提交销售单。成功后清空购物车并刷新商品库存。
+ * 提交销售单。成功后清空购物车，并自动进入听枪。
  */
 async function submitSale(): Promise<void> {
   if (checkoutDisabled.value) {
     return;
   }
   submitting.value = true;
+  const wasListening = productScanLoopRunning.value === true;
+  stopProductScanLoop();
   try {
     await http.post('/admin/store/sales', {
       payMethod: payMethod.value,
@@ -296,6 +365,11 @@ async function submitSale(): Promise<void> {
     selectedMember.value = null;
     memberKeyword.value = '';
     await loadProducts();
+    void startProductScanLoop();
+  } catch {
+    if (wasListening === true) {
+      void startProductScanLoop();
+    }
   } finally {
     submitting.value = false;
   }
@@ -303,6 +377,10 @@ async function submitSale(): Promise<void> {
 
 onMounted(() => {
   void loadProducts();
+});
+
+onBeforeUnmount(() => {
+  stopProductScanLoop();
 });
 </script>
 
@@ -328,6 +406,11 @@ onMounted(() => {
   color: #1c2434;
 }
 
+.product-card-area {
+  position: relative;
+  min-height: 120px;
+}
+
 .cashier-search,
 .member-search {
   display: flex;
@@ -343,7 +426,7 @@ onMounted(() => {
 .cashier-search :deep(.el-input),
 .cashier-search .cashier-scan-button,
 .member-search :deep(.el-input),
-.member-search .cashier-scan-button {
+.member-scan-wrap {
   flex: 1 1 0;
   min-width: 0;
   width: 100%;
@@ -355,6 +438,10 @@ onMounted(() => {
   margin: 0;
   border-radius: 8px;
   font-weight: 600;
+}
+
+.member-scan-wrap .cashier-scan-button {
+  width: 100%;
 }
 
 .member-search-button {
@@ -563,7 +650,7 @@ onMounted(() => {
   }
 
   .member-search :deep(.el-input),
-  .member-search .cashier-scan-button,
+  .member-scan-wrap,
   .member-search-button {
     flex: 1 1 100%;
     min-width: 0;

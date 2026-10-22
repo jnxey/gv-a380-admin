@@ -1,5 +1,11 @@
 <template>
-  <div v-if="sessionActive" class="scan-gun-layer" @mousedown.self="cancelScan">
+  <div
+    v-if="sessionActive"
+    class="scan-gun-layer"
+    :class="{ 'is-scoped': scopedStyle !== null }"
+    :style="scopedStyle ?? undefined"
+    @mousedown.self="cancelScan"
+  >
     <div ref="scanCard" class="scan-gun-card" tabindex="-1" @blur="onCardBlur">
       <p class="scan-gun-text">扫码中</p>
     </div>
@@ -7,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, type CSSProperties } from 'vue';
 import { focusableStack } from 'element-plus/es/components/focus-trap/index.mjs';
 import { completeScanGun, registerScanGun, unregisterScanGun } from './scan-gun';
 import { isEmpty } from '../../utils/tools';
@@ -106,22 +112,62 @@ function readEnglishScanChar(keyboardEvent: KeyboardEvent): string {
   return charByCode[keyboardEvent.code] ?? '';
 }
 
+/**
+ * 当前按键是否落在可编辑控件上（购物车备注等要能打字）。
+ */
+function isEditableKeyTarget(target: EventTarget | null): boolean {
+  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+    return true;
+  }
+  if (target instanceof HTMLElement && target.isContentEditable === true) {
+    return true;
+  }
+  return false;
+}
+
 const sessionActive = ref(false);
 const scanCard = ref<HTMLElement | null>(null);
+const scopedStyle = ref<CSSProperties | null>(null);
 let scanSettled = false;
 let scanBuffer = '';
+let scopedMode = false;
+let scopedContainer: HTMLElement | null = null;
 
 /**
- * 打开浮窗，让提示卡片拿到焦点，并开始听键盘。
+ * 按容器矩形更新局部遮罩位置。
  */
-function beginScan(): void {
+function syncScopedLayerStyle(): void {
+  if (scopedContainer === null) {
+    scopedStyle.value = null;
+    return;
+  }
+  const rect = scopedContainer.getBoundingClientRect();
+  scopedStyle.value = {
+    top: `${rect.top}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
+  };
+}
+
+/**
+ * 打开浮窗，让提示卡片拿到焦点，并开始听键盘。有 container 时只盖住该区域。
+ */
+function beginScan(container: HTMLElement | null): void {
   scanSettled = false;
   scanBuffer = '';
+  scopedMode = container !== null;
+  scopedContainer = container;
+  syncScopedLayerStyle();
   sessionActive.value = true;
   // 压住对话框的焦点陷阱，避免它把焦点拉回金额框。
   focusableStack.push(dialogFocusLayer);
   document.addEventListener('keydown', onScanKeydown, true);
   window.addEventListener('blur', cancelScan);
+  if (scopedMode === true) {
+    window.addEventListener('resize', syncScopedLayerStyle);
+    window.addEventListener('scroll', syncScopedLayerStyle, true);
+  }
   void nextTick(() => {
     const card = scanCard.value;
     card?.focus();
@@ -132,12 +178,14 @@ function beginScan(): void {
       cancelScan();
       return;
     }
-    document.addEventListener('focusin', onFocusIn, true);
+    if (scopedMode !== true) {
+      document.addEventListener('focusin', onFocusIn, true);
+    }
   });
 }
 
 /**
- * 焦点进到卡片外面时关掉浮窗。
+ * 焦点进到卡片外面时关掉浮窗（全屏模式）。
  */
 function onFocusIn(focusEvent: FocusEvent): void {
   const card = scanCard.value;
@@ -149,10 +197,10 @@ function onFocusIn(focusEvent: FocusEvent): void {
 }
 
 /**
- * 焦点离开提示卡片时，当作没扫成。已经交过结果时不再交一次空串。
+ * 焦点离开提示卡片时，当作没扫成。已经交过结果时不再交一次空串。局部模式不因失焦取消。
  */
 function onCardBlur(): void {
-  if (scanSettled || sessionActive.value !== true) {
+  if (scopedMode === true || scanSettled || sessionActive.value !== true) {
     return;
   }
   void nextTick(() => {
@@ -173,14 +221,19 @@ function onCardBlur(): void {
 function closeScanGun(): void {
   sessionActive.value = false;
   scanBuffer = '';
+  scopedMode = false;
+  scopedContainer = null;
+  scopedStyle.value = null;
   focusableStack.remove(dialogFocusLayer);
   document.removeEventListener('keydown', onScanKeydown, true);
   document.removeEventListener('focusin', onFocusIn, true);
   window.removeEventListener('blur', cancelScan);
+  window.removeEventListener('resize', syncScopedLayerStyle);
+  window.removeEventListener('scroll', syncScopedLayerStyle, true);
 }
 
 /**
- * 焦点离开卡片、点在提示外面，或窗口失焦时，关掉浮窗。
+ * 点在提示外面，或窗口失焦时，关掉浮窗。
  */
 function cancelScan(): void {
   if (sessionActive.value !== true) {
@@ -193,9 +246,13 @@ function cancelScan(): void {
 
 /**
  * 拦住按键，不让它进到页面上的输入框。认得出的物理键自己拼上，换行表示扫完。
+ * 局部模式下，焦点在可编辑控件里时放行走键，方便改购物车备注和数量。
  */
 function onScanKeydown(keyboardEvent: KeyboardEvent): void {
   if (sessionActive.value !== true) {
+    return;
+  }
+  if (scopedMode === true && isEditableKeyTarget(keyboardEvent.target) === true) {
     return;
   }
   keyboardEvent.preventDefault();
@@ -229,7 +286,7 @@ function finishByEnter(): void {
 }
 
 onMounted(() => {
-  registerScanGun(beginScan);
+  registerScanGun(beginScan, cancelScan);
 });
 
 onBeforeUnmount(() => {
@@ -251,6 +308,13 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   background: rgba(16, 24, 40, 0.45);
+  box-sizing: border-box;
+}
+
+.scan-gun-layer.is-scoped {
+  inset: auto;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .scan-gun-card {
