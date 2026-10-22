@@ -77,55 +77,32 @@
           <span class="cart-total-label">合计</span>
           <span class="cart-total-amount">{{ cartAmountText }}</span>
         </div>
-        <div class="pay-method-label">支付方式</div>
-        <el-radio-group v-model="payMethod" class="pay-method">
-          <el-radio-button v-if="canCash" :value="StorePayMethod.CASH">现金</el-radio-button>
-          <el-radio-button v-if="canMember" :value="StorePayMethod.MEMBER">会员余额</el-radio-button>
-        </el-radio-group>
-        <template v-if="payMethod === StorePayMethod.MEMBER">
-          <div class="member-block">
-            <div class="member-search">
-              <el-input
-                v-model="memberKeyword"
-                size="large"
-                placeholder="用户名/手机号/邮箱"
-                clearable
-                @keyup.enter="searchMember"
-              />
-              <el-button type="primary" size="large" class="member-search-button" @click="searchMember">查找</el-button>
-              <div class="member-scan-wrap" @click.capture="pauseProductListenForMemberScan">
-                <ScanButton
-                  type="warning"
-                  size="large"
-                  class="cashier-scan-button"
-                  aria-label="扫码"
-                  @scanned="onPayQrScanned"
-                >
-                  <AppIcon :icon-name="MenuIconName.SCAN_QR" />
-                  <span>扫码</span>
-                </ScanButton>
-              </div>
-            </div>
-            <div v-if="isEmpty(selectedMember) !== true" class="member-card">
-              <div class="member-card-name">
-                <span v-if="isEmpty(selectedMember.nickname) !== true">{{ selectedMember.nickname }} </span>{{ selectedMember.username }}
-              </div>
-              <div class="member-card-balance">余额 {{ selectedMember.balance }}</div>
-            </div>
-            <div v-else-if="memberMissed" class="member-missed">没有找到会员</div>
+        <div class="checkout-actions">
+          <el-button
+            v-if="canCash"
+            type="primary"
+            size="large"
+            class="checkout-button"
+            :disabled="checkoutDisabled"
+            :loading="submitting"
+            @click="submitCashSale"
+          >
+            收款 {{ cartAmountText }}
+          </el-button>
+          <div v-if="canMember" class="member-scan-wrap" @click.capture="pauseProductListenForMemberScan">
+            <ScanButton
+              type="warning"
+              size="large"
+              class="checkout-scan-button"
+              aria-label="扫码收款"
+              :disabled="checkoutDisabled"
+              @scanned="onPayQrScanned"
+            >
+              <AppIcon :icon-name="MenuIconName.SCAN_QR" />
+              <span>扫码收款 {{ cartAmountText }}</span>
+            </ScanButton>
           </div>
-        </template>
-        <el-input v-model="remark" class="remark-input" size="large" placeholder="备注（选填）" />
-        <el-button
-          type="primary"
-          size="large"
-          class="checkout-button"
-          :disabled="checkoutDisabled"
-          :loading="submitting"
-          @click="submitSale"
-        >
-          收款 {{ cartAmountText }}
-        </el-button>
+        </div>
       </section>
     </div>
   </el-card>
@@ -173,11 +150,6 @@ const canMember = sessionStore.hasPermission(PermissionCode.STORE_SALE_MEMBER);
 const keyword = ref('');
 const productList = ref<ProductRow[]>([]);
 const cartLineList = ref<CartLine[]>([]);
-const payMethod = ref(canCash ? StorePayMethod.CASH : StorePayMethod.MEMBER);
-const memberKeyword = ref('');
-const selectedMember = ref<MemberRow | null>(null);
-const memberMissed = ref(false);
-const remark = ref('');
 const submitting = ref(false);
 const productCardArea = ref<HTMLElement | null>(null);
 const productScanLoopRunning = ref(false);
@@ -196,16 +168,10 @@ const cartAmountText = computed(() => {
 });
 
 /**
- * 能不能点收款。
+ * 购物车为空或正在提交时，收款和扫码收款都不能点。
  */
 const checkoutDisabled = computed(() => {
-  if (isEmpty(cartLineList.value) || submitting.value) {
-    return true;
-  }
-  if (payMethod.value === StorePayMethod.MEMBER && isEmpty(selectedMember.value)) {
-    return true;
-  }
-  return false;
+  return isEmpty(cartLineList.value) || submitting.value;
 });
 
 /**
@@ -313,25 +279,6 @@ function removeCartLine(productId: string): void {
 }
 
 /**
- * 按关键字找会员。
- */
-async function searchMember(): Promise<void> {
-  memberMissed.value = false;
-  selectedMember.value = null;
-  const cleanedKeyword = memberKeyword.value.trim();
-  if (isEmpty(cleanedKeyword)) {
-    return;
-  }
-  try {
-    selectedMember.value = (await http.get('/admin/store/members', {
-      params: { keyword: cleanedKeyword },
-    })) as MemberRow;
-  } catch {
-    memberMissed.value = true;
-  }
-}
-
-/**
  * 扫会员付款码前先停商品听枪，并记住扫完是否恢复。
  */
 function pauseProductListenForMemberScan(): void {
@@ -340,27 +287,20 @@ function pauseProductListenForMemberScan(): void {
 }
 
 /**
- * 扫付款码找会员。结束后按需要恢复商品听枪。
+ * 收款成功后清空购物车并重新听商品码。
  */
-async function onPayQrScanned(cipherText: string): Promise<void> {
-  memberMissed.value = false;
-  selectedMember.value = null;
-  try {
-    selectedMember.value = (await http.post('/admin/store/pay-qr', { cipherText })) as MemberRow;
-  } catch {
-    memberMissed.value = true;
-  }
-  if (resumeProductListenAfterMember === true) {
-    resumeProductListenAfterMember = false;
-    void startProductScanLoop();
-  }
+async function afterSaleSucceeded(): Promise<void> {
+  ElMessage.success('收款成功');
+  cartLineList.value = [];
+  await loadProducts();
+  void startProductScanLoop();
 }
 
 /**
- * 提交销售单。成功后清空购物车，并自动进入听枪。
+ * 现金收款。成功后清空购物车，并自动进入听枪。
  */
-async function submitSale(): Promise<void> {
-  if (checkoutDisabled.value) {
+async function submitCashSale(): Promise<void> {
+  if (checkoutDisabled.value || canCash !== true) {
     return;
   }
   submitting.value = true;
@@ -368,23 +308,52 @@ async function submitSale(): Promise<void> {
   stopProductScanLoop();
   try {
     await http.post('/admin/store/sales', {
-      payMethod: payMethod.value,
-      memberId: payMethod.value === StorePayMethod.MEMBER && isEmpty(selectedMember.value) !== true ? selectedMember.value.memberId : '',
-      remark: remark.value,
+      payMethod: StorePayMethod.CASH,
+      memberId: '',
+      remark: '',
       itemList: cartLineList.value.map((cartLine) => ({
         productId: cartLine.productId,
         quantity: cartLine.quantity,
       })),
     });
-    ElMessage.success('收款成功');
-    cartLineList.value = [];
-    remark.value = '';
-    selectedMember.value = null;
-    memberKeyword.value = '';
-    await loadProducts();
-    void startProductScanLoop();
+    await afterSaleSucceeded();
   } catch {
     if (wasListening === true) {
+      void startProductScanLoop();
+    }
+  } finally {
+    submitting.value = false;
+  }
+}
+
+/**
+ * 扫付款码后立刻按会员余额提交销售单。失败或取消时按需要恢复商品听枪。
+ */
+async function onPayQrScanned(cipherText: string): Promise<void> {
+  if (checkoutDisabled.value || canMember !== true) {
+    if (resumeProductListenAfterMember === true) {
+      resumeProductListenAfterMember = false;
+      void startProductScanLoop();
+    }
+    return;
+  }
+  submitting.value = true;
+  try {
+    const memberRow = (await http.post('/admin/store/pay-qr', { cipherText })) as MemberRow;
+    await http.post('/admin/store/sales', {
+      payMethod: StorePayMethod.MEMBER,
+      memberId: memberRow.memberId,
+      remark: '',
+      itemList: cartLineList.value.map((cartLine) => ({
+        productId: cartLine.productId,
+        quantity: cartLine.quantity,
+      })),
+    });
+    resumeProductListenAfterMember = false;
+    await afterSaleSucceeded();
+  } catch {
+    if (resumeProductListenAfterMember === true) {
+      resumeProductListenAfterMember = false;
       void startProductScanLoop();
     }
   } finally {
@@ -428,45 +397,31 @@ onBeforeUnmount(() => {
   min-height: 120px;
 }
 
-.cashier-search,
-.member-search {
+.cashier-search {
   display: flex;
   align-items: stretch;
   gap: 10px;
   width: 100%;
-}
-
-.cashier-search {
   margin-bottom: 14px;
 }
 
 .cashier-search :deep(.el-input),
-.cashier-search .cashier-scan-button,
-.member-search :deep(.el-input),
-.member-scan-wrap {
+.cashier-search .cashier-scan-button {
   flex: 1 1 0;
   min-width: 0;
   width: 100%;
 }
 
 .cashier-scan-button,
-.member-search-button {
+.checkout-scan-button {
   height: 40px;
   margin: 0;
   border-radius: 8px;
   font-weight: 600;
 }
 
-.member-scan-wrap .cashier-scan-button {
-  width: 100%;
-}
-
-.member-search-button {
-  flex: none;
-  min-width: 96px;
-}
-
-.cashier-scan-button svg {
+.cashier-scan-button svg,
+.checkout-scan-button svg {
   width: 18px;
   height: 18px;
   margin-right: 6px;
@@ -542,8 +497,7 @@ onBeforeUnmount(() => {
 }
 
 .cart-empty,
-.record-empty,
-.member-missed {
+.record-empty {
   padding: 36px 12px;
   text-align: center;
   color: #98a2b3;
@@ -646,68 +600,20 @@ onBeforeUnmount(() => {
   color: #1c2434;
 }
 
-.pay-method-label {
-  margin-bottom: 8px;
-  color: #667085;
-  font-size: 13px;
-}
-
-.pay-method {
+.checkout-actions {
   display: flex;
-  width: 100%;
-  margin-bottom: 12px;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.pay-method :deep(.el-radio-button) {
-  flex: 1;
-}
-
-.pay-method :deep(.el-radio-button__inner) {
+.checkout-button,
+.member-scan-wrap,
+.checkout-scan-button {
   width: 100%;
 }
 
-.member-block {
-  margin-bottom: 12px;
-}
-
-.member-search {
-  margin-bottom: 10px;
-}
-
-.member-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid #e6e8ec;
-  border-radius: 10px;
-  background: #fff;
-}
-
-.member-card-name {
-  font-weight: 600;
-  color: #1c2434;
-  word-break: break-word;
-}
-
-.member-card-balance {
-  flex: none;
-  color: #667085;
-  font-size: 13px;
-}
-
-.member-missed {
-  padding: 12px 0;
-}
-
-.remark-input {
-  width: 100%;
-  margin-bottom: 12px;
-}
-
-.checkout-button {
-  width: 100%;
+.checkout-button,
+.checkout-scan-button {
   height: 48px;
   margin: 0;
   border-radius: 10px;
@@ -718,17 +624,6 @@ onBeforeUnmount(() => {
 @media (max-width: 900px) {
   .cashier-layout {
     grid-template-columns: 1fr;
-  }
-
-  .member-search {
-    flex-wrap: wrap;
-  }
-
-  .member-search :deep(.el-input),
-  .member-scan-wrap,
-  .member-search-button {
-    flex: 1 1 100%;
-    min-width: 0;
   }
 }
 </style>
