@@ -64,6 +64,7 @@
           </div>
         </el-form-item>
         <el-form-item label="售价"><el-input v-model="productForm.salePrice" /></el-form-item>
+        <el-form-item label="进价"><el-input v-model="productForm.costPrice" /></el-form-item>
         <el-form-item label="状态">
           <el-select v-model="productForm.status">
             <el-option label="启用" :value="RecordStatus.ENABLED" />
@@ -163,6 +164,7 @@ const productForm = reactive({
   productName: '',
   barcode: '',
   salePrice: '',
+  costPrice: '',
   status: RecordStatus.ENABLED as string,
 });
 const { initDragSort } = useDragSort(
@@ -276,6 +278,7 @@ function openCreate(): void {
   productForm.productName = '';
   productForm.barcode = '';
   productForm.salePrice = '';
+  productForm.costPrice = '';
   productForm.status = RecordStatus.ENABLED;
   productImageFileList.value = [];
   dialogVisible.value = true;
@@ -290,6 +293,7 @@ function openEdit(productRow: ProductRow): void {
   productForm.productName = productRow.productName;
   productForm.barcode = productRow.barcode;
   productForm.salePrice = productRow.salePrice;
+  productForm.costPrice = productRow.costPrice;
   productForm.status = productRow.status;
   const imageList = isEmpty(productRow.imageList) ? [] : productRow.imageList;
   productImageFileList.value = imageList.map((productImage) => {
@@ -319,6 +323,7 @@ async function saveProduct(): Promise<void> {
     productName: productForm.productName,
     barcode: productForm.barcode,
     salePrice: productForm.salePrice,
+    costPrice: productForm.costPrice,
     status: productForm.status,
   };
   if (isEmpty(editingProductId.value)) {
