@@ -4,7 +4,10 @@
     <div class="cashier-layout">
       <section class="cashier-products">
         <div class="cashier-title">商品</div>
-        <el-input v-model="keyword" class="cashier-search" placeholder="商品名称/条码" clearable @keyup.enter="loadProducts" />
+        <div class="cashier-search">
+          <el-input v-model="keyword" placeholder="商品名称/条码" clearable @keyup.enter="loadProducts" />
+          <ScanButton @scanned="onProductKeywordScanned" />
+        </div>
         <div class="product-grid">
           <button
             v-for="productRow in productList"
@@ -64,6 +67,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
+import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { PageSetting, PermissionCode, RecordStatus, StorePayMethod } from '../../../utils/constants';
 import { readScanCode } from '../../../utils/gv-sdk';
@@ -131,6 +135,14 @@ const checkoutDisabled = computed(() => {
   }
   return false;
 });
+
+/**
+ * 扫码写入搜索关键字并立刻查商品。
+ */
+function onProductKeywordScanned(scanText: string): void {
+  keyword.value = scanText;
+  void loadProducts();
+}
 
 /**
  * 查询可卖商品。
@@ -269,7 +281,19 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.cashier-search,
+.cashier-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.cashier-search :deep(.el-input) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .remark-input,
 .pay-method,
 .checkout-button {

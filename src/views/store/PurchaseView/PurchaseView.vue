@@ -25,14 +25,17 @@
       <el-form label-position="top">
         <div v-for="(lineRow, lineIndex) in draftLineList" :key="lineIndex" class="draft-line">
           <el-form-item label="商品">
-            <el-select v-model="lineRow.productId" filterable placeholder="选择商品">
-              <el-option
-                v-for="productRow in productOptionList"
-                :key="productRow.productId"
-                :label="`${productRow.productName}（库存 ${productRow.stockQuantity}）`"
-                :value="productRow.productId"
-              />
-            </el-select>
+            <div class="product-pick-row">
+              <el-select v-model="lineRow.productId" filterable placeholder="选择商品">
+                <el-option
+                  v-for="productRow in productOptionList"
+                  :key="productRow.productId"
+                  :label="`${productRow.productName}（库存 ${productRow.stockQuantity}）`"
+                  :value="productRow.productId"
+                />
+              </el-select>
+              <ScanButton @scanned="(scanText) => onPurchaseLineScanned(lineIndex, scanText)" />
+            </div>
           </el-form-item>
           <el-form-item label="进价"><el-input v-model="lineRow.costPrice" /></el-form-item>
           <el-form-item label="数量"><el-input v-model="lineRow.quantityText" /></el-form-item>
@@ -53,6 +56,7 @@
 import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
+import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { PageSetting, PermissionCode } from '../../../utils/constants';
 import { formatLocalDateTime, isEmpty } from '../../../utils/tools';
@@ -62,6 +66,7 @@ import http from '../../../utils/request';
 interface ProductRow {
   productId: string;
   productName: string;
+  barcode: string;
   stockQuantity: number;
   costPrice: string;
 }
@@ -145,6 +150,25 @@ async function openCreate(): Promise<void> {
  */
 function addDraftLine(): void {
   draftLineList.value.push({ productId: '', costPrice: '', quantityText: '1' });
+}
+
+/**
+ * 扫码按条码全等选中该行商品，并填进价。
+ */
+function onPurchaseLineScanned(lineIndex: number, scanText: string): void {
+  const matchedProduct = productOptionList.value.find((productRow) => {
+    return productRow.barcode === scanText;
+  });
+  if (isEmpty(matchedProduct)) {
+    ElMessage.warning('未找到商品');
+    return;
+  }
+  const draftLine = draftLineList.value[lineIndex];
+  if (isEmpty(draftLine)) {
+    return;
+  }
+  draftLine.productId = matchedProduct.productId;
+  draftLine.costPrice = matchedProduct.costPrice;
 }
 
 /**
@@ -239,6 +263,18 @@ onMounted(() => {
   gap: 8px;
   align-items: end;
   margin-bottom: 8px;
+}
+
+.product-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.product-pick-row :deep(.el-select) {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .record-empty {

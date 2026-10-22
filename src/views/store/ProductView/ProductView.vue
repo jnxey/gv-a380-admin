@@ -28,7 +28,12 @@
     <el-dialog v-model="dialogVisible" :title="isEmpty(editingProduct) ? '新建商品' : '编辑商品'" width="480px">
       <el-form label-position="top">
         <el-form-item label="名称"><el-input v-model="productForm.productName" /></el-form-item>
-        <el-form-item label="条码"><el-input v-model="productForm.barcode" /></el-form-item>
+        <el-form-item label="条码">
+          <div class="barcode-row">
+            <el-input v-model="productForm.barcode" />
+            <ScanButton @scanned="onBarcodeScanned" />
+          </div>
+        </el-form-item>
         <el-form-item label="售价"><el-input v-model="productForm.salePrice" /></el-form-item>
         <el-form-item label="状态">
           <el-select v-model="productForm.status">
@@ -49,6 +54,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
+import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { PageSetting, PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
@@ -132,6 +138,13 @@ function onPageChange(nextPage: number): void {
 }
 
 /**
+ * 扫码结果写入商品条码。
+ */
+function onBarcodeScanned(scanText: string): void {
+  productForm.barcode = scanText;
+}
+
+/**
  * 打开新建商品。
  */
 function openCreate(): void {
@@ -182,6 +195,18 @@ onMounted(() => {
 <style scoped>
 .product-toolbar {
   margin-bottom: 12px;
+}
+
+.barcode-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.barcode-row :deep(.el-input) {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .product-list {
