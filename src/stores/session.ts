@@ -79,6 +79,9 @@ export const useSessionStore = defineStore('session', {
       if (moduleCode === ModuleCode.HOTEL) {
         return this.shopList.filter((shop) => shop.shopType === 'HOTEL');
       }
+      if (moduleCode === ModuleCode.STORE) {
+        return this.shopList.filter((shop) => shop.shopType === 'STORE');
+      }
       return this.shopList;
     },
     /**

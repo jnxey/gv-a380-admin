@@ -19,6 +19,12 @@ export const viewComponentMap: Record<string, () => Promise<unknown>> = {
   'hotel/room-status': () => import('../views/hotel/RoomStatusView/RoomStatusView.vue'),
   'hotel/order': () => import('../views/hotel/OrderView/HotelOrderView.vue'),
   'hotel/bill': () => import('../views/hotel/BillView/HotelBillView.vue'),
+  'store/shop': () => import('../views/store/ShopView/ShopView.vue'),
+  'store/product': () => import('../views/store/ProductView/ProductView.vue'),
+  'store/purchase': () => import('../views/store/PurchaseView/PurchaseView.vue'),
+  'store/cashier': () => import('../views/store/CashierView/CashierView.vue'),
+  'store/sale': () => import('../views/store/SaleView/SaleView.vue'),
+  'store/bill': () => import('../views/store/BillView/StoreBillView.vue'),
   'system/user': () => import('../views/system/UserView/UserView.vue'),
   'system/role': () => import('../views/system/RoleView/RoleView.vue'),
 };

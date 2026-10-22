@@ -13,11 +13,18 @@ export const ModuleCode = {
   CORE: 'CORE',
   KTV: 'KTV',
   HOTEL: 'HOTEL',
+  STORE: 'STORE',
 } as const;
 
 export const ShopType = {
   KTV: 'KTV',
   HOTEL: 'HOTEL',
+  STORE: 'STORE',
+} as const;
+
+export const StorePayMethod = {
+  MEMBER: 'MEMBER',
+  CASH: 'CASH',
 } as const;
 
 /**
@@ -69,6 +76,11 @@ export const PermissionCode = {
   HOTEL_STAY_EXTEND: 'hotel:stay:extend',
   HOTEL_STAY_CHECK_OUT: 'hotel:stay:check-out',
   HOTEL_ORDER_CANCEL: 'hotel:order:cancel',
+  STORE_SHOP_SAVE: 'store:shop:save',
+  STORE_PRODUCT_SAVE: 'store:product:save',
+  STORE_PURCHASE_SAVE: 'store:purchase:save',
+  STORE_SALE_CASH: 'store:sale:cash',
+  STORE_SALE_MEMBER: 'store:sale:member',
   MEMBER_RECHARGE: 'member:recharge',
   SYSTEM_USER_QUERY: 'system:user:query',
   SYSTEM_USER_SAVE: 'system:user:save',
@@ -185,6 +197,7 @@ export const FinanceBizType = {
   HOTEL_IN_STORE: 'HOTEL_IN_STORE',
   REFUND: 'REFUND',
   SHOP_SCAN_PAY: 'SHOP_SCAN_PAY',
+  STORE_SALE: 'STORE_SALE',
 } as const;
 
 /**
@@ -360,6 +373,13 @@ export const menuIconNameByPath: Record<string, string> = {
   '/hotel/room-status': MenuIconName.HOTEL_ROOM,
   '/hotel/order': MenuIconName.HOTEL_STAY,
   '/hotel/bill': MenuIconName.FINANCE_BILL,
+  '/store': MenuIconName.KTV_SHOP,
+  '/store/shop': MenuIconName.KTV_SHOP,
+  '/store/product': MenuIconName.HOTEL_ROOM_TYPE,
+  '/store/purchase': MenuIconName.HOTEL_ROOM,
+  '/store/cashier': MenuIconName.FINANCE_BILL,
+  '/store/sale': MenuIconName.HOTEL_STAY,
+  '/store/bill': MenuIconName.FINANCE_BILL,
   '/system': MenuIconName.SYSTEM,
   '/system/user': MenuIconName.SYSTEM_USER,
   '/system/role': MenuIconName.SYSTEM_ROLE,
@@ -390,11 +410,15 @@ export const statusLabelMap: Record<string, string> = {
   SHOP_SCAN_PAY: '门店扫码付款',
   HOTEL_ROOM_FEE: '酒店房费',
   HOTEL_IN_STORE: '酒店店内消费',
+  STORE_SALE: '商铺销售',
   REFUND: '退款',
+  MEMBER: '会员余额',
+  CASH: '现金',
   IN: '收入',
   OUT: '支出',
   KTV: 'KTV',
   HOTEL: '酒店',
+  STORE: '商铺',
   GROUP: '集团',
   active: '正常',
   disabled: '禁用',

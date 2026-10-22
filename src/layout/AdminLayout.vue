@@ -114,13 +114,13 @@ const currentModuleCode = computed(() => {
 });
 
 /**
- * 进入 KTV 或酒店页时，当前门店类型不对就切到该业务第一家店。
+ * 进入 KTV、酒店或商铺页时，当前门店类型不对就切到该业务第一家店。
  */
 watch(
   [currentModuleCode, () => sessionStore.shopList],
   () => {
     const moduleCode = currentModuleCode.value;
-    if (moduleCode !== ModuleCode.KTV && moduleCode !== ModuleCode.HOTEL) {
+    if (moduleCode !== ModuleCode.KTV && moduleCode !== ModuleCode.HOTEL && moduleCode !== ModuleCode.STORE) {
       return;
     }
     const shopList = sessionStore.listShopsForModule(moduleCode);
