@@ -20,6 +20,7 @@ export const viewComponentMap: Record<string, () => Promise<unknown>> = {
   'hotel/order': () => import('../views/hotel/OrderView/HotelOrderView.vue'),
   'hotel/bill': () => import('../views/hotel/BillView/HotelBillView.vue'),
   'store/shop': () => import('../views/store/ShopView/ShopView.vue'),
+  'store/category': () => import('../views/store/CategoryView/CategoryView.vue'),
   'store/product': () => import('../views/store/ProductView/ProductView.vue'),
   'store/purchase': () => import('../views/store/PurchaseView/PurchaseView.vue'),
   'store/cashier': () => import('../views/store/CashierView/CashierView.vue'),

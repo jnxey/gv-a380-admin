@@ -18,6 +18,7 @@
         <div v-for="itemRow in saleRow.itemList" :key="`${saleRow.saleId}-${itemRow.productId}`" class="sale-item">
           {{ itemRow.productName }} × {{ itemRow.quantity }} · {{ itemRow.salePrice }} · {{ itemRow.lineAmount }}
         </div>
+        <div v-if="isEmpty(saleRow.deliveryAddress) !== true" class="sale-meta">收货地址 {{ saleRow.deliveryAddress }}</div>
         <div v-if="isEmpty(saleRow.remark) !== true" class="sale-meta">备注 {{ saleRow.remark }}</div>
       </article>
     </div>
@@ -48,6 +49,7 @@ interface SaleRow {
   payMethod: string;
   amount: string;
   remark: string;
+  deliveryAddress: string;
   createdAt: string;
   itemList: SaleItemRow[];
 }
