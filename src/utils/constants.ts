@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 与后端保持一致的常量。
  */
 export const ResponseCode = {
@@ -288,8 +288,8 @@ export const BeijingLocation = {
 
 /** 地图代理。瓦片地址里的 {z} {x} {y} 由地图组件替换。 */
 export const MapApiPath = {
-  TILE: '/admin/map/tiles/{z}/{x}/{y}',
-  REVERSE: '/admin/map/reverse',
+  TILE: '/a380/map/tiles/{z}/{x}/{y}',
+  REVERSE: '/a380/map/reverse',
 } as const;
 
 export const StorageKey = {
@@ -298,10 +298,17 @@ export const StorageKey = {
 } as const;
 
 export const AuthApiPath = {
-  LOGIN: '/admin/auth/login',
-  LOGOUT: '/admin/auth/logout',
-  REFRESH: '/admin/auth/refresh',
+  LOGIN: '/a380/auth/login',
+  LOGOUT: '/a380/auth/logout',
+  REFRESH: '/a380/auth/refresh',
 } as const;
+
+/**
+ * 浏览器地址栏上的登录页路径（含 Vite base，如 /a380-admin/login）。
+ */
+export function getLoginLocationPath(): string {
+  return new URL('login', `${window.location.origin}${import.meta.env.BASE_URL}`).pathname;
+}
 
 /** 后台令牌剩余不超过 30 分钟时再换一张。 */
 export const AccessTokenLifetime = {

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-card>
     <div v-if="isEmpty(shopList) && canSave !== true" class="shop-empty">暂无数据</div>
     <div v-else class="shop-grid">
@@ -99,7 +99,7 @@ function coverImageUrl(shopRow: ShopRow): string {
  * 查询已绑定的商铺门店。
  */
 async function loadShops(): Promise<void> {
-  shopList.value = (await http.get('/admin/store/shops')) as ShopRow[];
+  shopList.value = (await http.get('/a380/store/shops')) as ShopRow[];
 }
 
 /**

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <ShopSwitcher />
   <el-card>
     <div class="purchase-toolbar">
@@ -170,7 +170,7 @@ const draftTotalText = computed(() => {
  * 分页查询进货单。
  */
 async function loadPurchases(): Promise<void> {
-  const pageResult = (await http.get('/admin/store/purchases', {
+  const pageResult = (await http.get('/a380/store/purchases', {
     params: { page: page.value, pageSize: pageSize.value },
   })) as { list: PurchaseRow[]; total: number };
   purchaseList.value = pageResult.list;
@@ -181,7 +181,7 @@ async function loadPurchases(): Promise<void> {
  * 拉一批启用商品供进货选择。
  */
 async function loadProductOptions(): Promise<void> {
-  const pageResult = (await http.get('/admin/store/products', {
+  const pageResult = (await http.get('/a380/store/products', {
     params: { page: PageSetting.DEFAULT_PAGE, pageSize: 100 },
   })) as { list: ProductRow[] };
   productOptionList.value = pageResult.list;
@@ -281,7 +281,7 @@ async function savePurchase(): Promise<void> {
   }
   saving.value = true;
   try {
-    await http.post('/admin/store/purchases', { itemList, remark: remark.value });
+    await http.post('/a380/store/purchases', { itemList, remark: remark.value });
     dialogVisible.value = false;
     page.value = PageSetting.DEFAULT_PAGE;
     await loadPurchases();

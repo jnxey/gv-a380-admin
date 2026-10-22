@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="deduct-page">
     <div v-if="isEmpty(deductedAmount)" class="deduct-panel">
       <div class="deduct-amount-label">付款金额</div>
@@ -99,8 +99,8 @@ async function submitDeduct(): Promise<void> {
       focusAmount();
       return;
     }
-    const memberRow = (await http.post('/admin/hotel/pay-qr', { cipherText })) as MemberRow;
-    await http.post('/admin/hotel/deduct', {
+    const memberRow = (await http.post('/a380/hotel/pay-qr', { cipherText })) as MemberRow;
+    await http.post('/a380/hotel/deduct', {
       memberId: memberRow.memberId,
       amount: paidAmount,
       remark: remark.value,

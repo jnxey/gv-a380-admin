@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import { ensureAccessToken } from './access-token';
-import { AuthApiPath, HttpStatusCode, ResponseCode, StorageKey } from './constants';
+import { AuthApiPath, getLoginLocationPath, HttpStatusCode, ResponseCode, StorageKey } from './constants';
 import { isEmpty } from './tools';
 
 const http = axios.create({
@@ -51,8 +51,9 @@ http.interceptors.response.use(
     const failMessage = error?.response?.data?.message;
     if (statusCode === HttpStatusCode.UNAUTHORIZED) {
       window.localStorage.removeItem(StorageKey.ACCESS_TOKEN);
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      const loginLocationPath = getLoginLocationPath();
+      if (window.location.pathname !== loginLocationPath) {
+        window.location.href = loginLocationPath;
       }
     }
     ElMessage.error(isEmpty(failMessage) ? '请求失败' : failMessage);

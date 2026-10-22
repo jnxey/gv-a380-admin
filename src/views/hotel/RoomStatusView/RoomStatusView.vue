@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="room-status-page" @pointerdown="preparePaymentAudio">
     <ShopSwitcher />
     <el-card class="room-status-main">
@@ -645,7 +645,7 @@ function moreStatusOptionList(roomStatus: string): RoomStatusOption[] {
  * 读取当前门店全部房间。
  */
 async function loadRooms(): Promise<void> {
-  const pageResult = (await http.get('/admin/hotel/rooms')) as { list: RoomRow[] };
+  const pageResult = (await http.get('/a380/hotel/rooms')) as { list: RoomRow[] };
   roomList.value = pageResult.list;
 }
 
@@ -653,7 +653,7 @@ async function loadRooms(): Promise<void> {
  * 读取当前门店全部房型。
  */
 async function loadRoomTypes(): Promise<void> {
-  const pageResult = (await http.get('/admin/hotel/room-types')) as { list: RoomTypeRow[] };
+  const pageResult = (await http.get('/a380/hotel/room-types')) as { list: RoomTypeRow[] };
   roomTypeList.value = pageResult.list;
 }
 
@@ -665,7 +665,7 @@ async function loadOrders(): Promise<void> {
   let pageIndex = PageSetting.DEFAULT_PAGE;
   let totalCount = 0;
   do {
-    const pageResult = (await http.get('/admin/hotel/booking-orders', {
+    const pageResult = (await http.get('/a380/hotel/booking-orders', {
       params: {
         page: pageIndex,
         pageSize: PageSetting.ROOM_LOOKUP_PAGE_SIZE,
@@ -890,14 +890,14 @@ async function submitCheckIn(): Promise<void> {
     return;
   }
   if (isEmpty(selectedTodayOrder.value) !== true) {
-    await http.post(`/admin/hotel/booking-orders/${selectedTodayOrder.value.bookingOrderId}/check-in`, { roomId: openingRoom.value.id });
+    await http.post(`\/a380/hotel/booking-orders/${selectedTodayOrder.value.bookingOrderId}/check-in`, { roomId: openingRoom.value.id });
   } else {
     const nightCount = resolveWalkInNightCount();
     if (isEmpty(searchedContact.value) || nightCount === null) {
       ElMessage.warning('请填写联系方式和入住晚数');
       return;
     }
-    await http.post(`/admin/hotel/rooms/${openingRoom.value.id}/walk-in`, {
+    await http.post(`\/a380/hotel/rooms/${openingRoom.value.id}/walk-in`, {
       contact: searchedContact.value,
       nightCount,
     });
@@ -924,7 +924,7 @@ watch(selectedOrderId, () => {
  */
 async function finishCleaning(roomRow: RoomRow): Promise<void> {
   await ElMessageBox.confirm(`确认将 ${roomRow.roomNo} 改为空闲？`, '打扫完成');
-  await http.post(`/admin/hotel/rooms/${roomRow.id}/finish-cleaning`);
+  await http.post(`\/a380/hotel/rooms/${roomRow.id}/finish-cleaning`);
   await loadPage();
 }
 
@@ -958,7 +958,7 @@ async function submitExtend(): Promise<void> {
     ElMessage.warning('请选择新的离店日期');
     return;
   }
-  await http.post(`/admin/hotel/booking-orders/${stayOrder.bookingOrderId}/extend`, { checkOutDate: extendDate.value });
+  await http.post(`\/a380/hotel/booking-orders/${stayOrder.bookingOrderId}/extend`, { checkOutDate: extendDate.value });
   ElMessage.success('已续住');
   extendVisible.value = false;
   await loadPage();
@@ -974,7 +974,7 @@ async function checkOut(roomRow: RoomRow): Promise<void> {
     return;
   }
   await ElMessageBox.confirm(`确认将 ${roomRow.roomNo} 退房？`, '退房');
-  await http.post(`/admin/hotel/booking-orders/${stayOrder.bookingOrderId}/check-out`);
+  await http.post(`\/a380/hotel/booking-orders/${stayOrder.bookingOrderId}/check-out`);
   ElMessage.success('已退房');
   await loadPage();
 }
@@ -987,7 +987,7 @@ async function changeRoomStatus(roomRow: RoomRow, roomStatus: string): Promise<v
     return;
   }
   await ElMessageBox.confirm(`确认将 ${roomRow.roomNo} 改为${roomStatusLabel(roomStatus)}？`, '切换状态');
-  await http.post(`/admin/hotel/rooms/${roomRow.id}/room-status`, { roomStatus });
+  await http.post(`\/a380/hotel/rooms/${roomRow.id}/room-status`, { roomStatus });
   await loadPage();
 }
 
@@ -1094,7 +1094,7 @@ async function loadPaymentNotices(): Promise<void> {
   paymentNoticeLoading = true;
   const isBaseline = !paymentNoticeBaselineReady;
   try {
-    const noticeList = (await http.get('/admin/hotel/payment-notices')) as PaymentNoticeRow[];
+    const noticeList = (await http.get('/a380/hotel/payment-notices')) as PaymentNoticeRow[];
     if (Array.isArray(noticeList) !== true) {
       return;
     }

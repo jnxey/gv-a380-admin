@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-card>
     <QueryBar @search="searchBills" @reset="resetQuery">
       <el-form-item>
@@ -167,7 +167,7 @@ function readBillDateQuery(): { startDate: string; endDate: string } {
 async function loadBills(): Promise<void> {
   const billDateQuery = readBillDateQuery();
   try {
-    const pageResult = (await http.get('/admin/finance/bills', {
+    const pageResult = (await http.get('/a380/finance/bills', {
       params: {
         keyword: keyword.value,
         bizType: bizType.value,

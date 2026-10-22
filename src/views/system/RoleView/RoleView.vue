@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-card>
     <div class="record-list record-list--wide-table">
       <div v-if="isEmpty(roleList)" class="record-empty">暂无数据</div>
@@ -35,7 +35,7 @@ const editingRole = ref<RoleRow | null>(null);
  * 查询全部角色。
  */
 async function loadRoles(): Promise<void> {
-  roleList.value = (await http.get('/admin/system/roles')) as RoleRow[];
+  roleList.value = (await http.get('/a380/system/roles')) as RoleRow[];
 }
 
 /**

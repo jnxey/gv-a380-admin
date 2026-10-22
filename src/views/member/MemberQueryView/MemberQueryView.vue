@@ -83,7 +83,7 @@ async function loadMembers(): Promise<void> {
   } else {
     queryParams.keyword = keyword.value;
   }
-  const pageResult = (await http.get('/admin/members', {
+  const pageResult = (await http.get('/a380/members', {
     params: queryParams,
   })) as { list: MemberRow[]; total: number };
   memberList.value = pageResult.list;
@@ -103,7 +103,7 @@ async function searchMembers(): Promise<void> {
     return;
   }
   try {
-    const chatUserProfile = (await http.get('/admin/members/chat-user', {
+    const chatUserProfile = (await http.get('/a380/members/chat-user', {
       params: { keyword: cleanedKeyword },
     })) as ChatUserProfile;
     chatUser.value = chatUserProfile;
@@ -121,7 +121,7 @@ async function searchMembers(): Promise<void> {
  * 把这一行的昵称和联系方式同步成聊天用户的当前值。
  */
 async function syncMember(memberRow: MemberRow): Promise<void> {
-  const syncedMember = (await http.post('/admin/members/sync', {
+  const syncedMember = (await http.post('/a380/members/sync', {
     username: memberRow.username,
   })) as MemberRow;
   const memberIndex = memberList.value.findIndex((item) => item.username === memberRow.username);

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <ShopSwitcher />
   <el-card>
     <div class="record-list record-list--wide-table">
@@ -124,7 +124,7 @@ function orderGuestText(orderRow: OrderRow): string {
  * 查询当前酒店订单。
  */
 async function loadOrders(): Promise<void> {
-  const pageResult = (await http.get('/admin/hotel/booking-orders', {
+  const pageResult = (await http.get('/a380/hotel/booking-orders', {
     params: { page: page.value, pageSize: pageSize.value },
   })) as { list: OrderRow[]; total: number };
   orderList.value = pageResult.list;
@@ -136,7 +136,7 @@ async function loadOrders(): Promise<void> {
  * 读取当前门店空闲房间，供各订单在页面上选择。
  */
 async function loadIdleRooms(): Promise<void> {
-  const pageResult = (await http.get('/admin/hotel/rooms', {
+  const pageResult = (await http.get('/a380/hotel/rooms', {
     params: {
       roomStatus: HotelRoomStatus.IDLE,
       page: PageSetting.DEFAULT_PAGE,
@@ -196,7 +196,7 @@ async function submitCheckIn(): Promise<void> {
     ElMessage.warning('请选择空闲房间');
     return;
   }
-  await http.post(`/admin/hotel/booking-orders/${activeOrderId.value}/check-in`, { roomId: selectedRoomId.value });
+  await http.post(`\/a380/hotel/booking-orders/${activeOrderId.value}/check-in`, { roomId: selectedRoomId.value });
   ElMessage.success('已入住');
   checkInVisible.value = false;
   const checkedInOrderId = activeOrderId.value;
@@ -228,7 +228,7 @@ async function submitExtend(): Promise<void> {
     ElMessage.warning('请选择新的离店日期');
     return;
   }
-  await http.post(`/admin/hotel/booking-orders/${activeOrderId.value}/extend`, { checkOutDate: extendDate.value });
+  await http.post(`\/a380/hotel/booking-orders/${activeOrderId.value}/extend`, { checkOutDate: extendDate.value });
   ElMessage.success('已续住');
   extendVisible.value = false;
   await loadOrders();
@@ -239,7 +239,7 @@ async function submitExtend(): Promise<void> {
  */
 async function checkOut(bookingOrderId: string): Promise<void> {
   await ElMessageBox.confirm('确认退房？', '退房');
-  await http.post(`/admin/hotel/booking-orders/${bookingOrderId}/check-out`);
+  await http.post(`\/a380/hotel/booking-orders/${bookingOrderId}/check-out`);
   ElMessage.success('已退房');
   await loadOrders();
 }
@@ -249,7 +249,7 @@ async function checkOut(bookingOrderId: string): Promise<void> {
  */
 async function cancelOrder(bookingOrderId: string): Promise<void> {
   await ElMessageBox.confirm('确认取消该预订？', '取消订单');
-  await http.post(`/admin/hotel/booking-orders/${bookingOrderId}/cancel`);
+  await http.post(`\/a380/hotel/booking-orders/${bookingOrderId}/cancel`);
   ElMessage.success('已取消');
   await loadOrders();
 }

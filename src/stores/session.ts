@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia';
+﻿import { defineStore } from 'pinia';
 import type { Router } from 'vue-router';
 import { AccountCenter, Home, ModuleCode, StorageKey } from '../utils/constants';
 import { isEmpty } from '../utils/tools';
@@ -88,13 +88,13 @@ export const useSessionStore = defineStore('session', {
      * 拉取资料和菜单，并注册当前角色可见路由。
      */
     async loadSession(router: Router): Promise<void> {
-      const profile = (await http.get('/admin/auth/profile')) as {
+      const profile = (await http.get('/a380/auth/profile')) as {
         username: string;
         realName: string;
         permissionCodeList: string[];
         shopList: ShopOption[];
       };
-      const menuTree = (await http.get('/admin/auth/menus')) as MenuNode[];
+      const menuTree = (await http.get('/a380/auth/menus')) as MenuNode[];
       this.username = profile.username;
       this.realName = profile.realName;
       this.permissionCodeList = profile.permissionCodeList;
@@ -138,7 +138,7 @@ export const useSessionStore = defineStore('session', {
      */
     async logout(router: Router): Promise<void> {
       try {
-        await http.post('/admin/auth/logout');
+        await http.post('/a380/auth/logout');
       } catch (error) {
         // 令牌已失效时仍然清理本地登录态
       }

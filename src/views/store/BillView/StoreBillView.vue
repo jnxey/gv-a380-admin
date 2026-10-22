@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <ShopSwitcher />
   <el-card>
     <QueryBar @search="searchBills" @reset="resetQuery">
@@ -208,7 +208,7 @@ function readBillDateQuery(): { startDate: string; endDate: string } {
 async function loadSummary(): Promise<void> {
   const billDateQuery = readBillDateQuery();
   try {
-    const summaryResult = (await http.get('/admin/store/bills/summary', {
+    const summaryResult = (await http.get('/a380/store/bills/summary', {
       params: {
         bizType: bizType.value,
         startDate: billDateQuery.startDate,
@@ -231,7 +231,7 @@ async function loadSummary(): Promise<void> {
 async function loadBills(): Promise<void> {
   const billDateQuery = readBillDateQuery();
   try {
-    const pageResult = (await http.get('/admin/store/bills', {
+    const pageResult = (await http.get('/a380/store/bills', {
       params: {
         keyword: keyword.value,
         bizType: bizType.value,

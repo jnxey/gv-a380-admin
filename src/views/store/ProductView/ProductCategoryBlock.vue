@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="product-category-block">
     <h3 class="product-category-title">{{ categoryName }}</h3>
     <div ref="sortListRef" class="product-list">
@@ -131,7 +131,7 @@ async function saveProductSort(idList: string[]): Promise<void> {
     return [productRow];
   });
   try {
-    await http.put('/admin/store/products/sort', { idList });
+    await http.put('/a380/store/products/sort', { idList });
   } catch (error) {
     void error;
     emit('reload');

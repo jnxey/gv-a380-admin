@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="login-page">
     <div class="login-backdrop" aria-hidden="true">
       <span class="orb orb-amber"></span>
@@ -85,7 +85,7 @@ const loginForm = reactive({
 async function onSubmit(): Promise<void> {
   submitting.value = true;
   try {
-    const loginResult = (await http.post('/admin/auth/login', loginForm)) as { accessToken: string };
+    const loginResult = (await http.post('/a380/auth/login', loginForm)) as { accessToken: string };
     sessionStore.saveAccessToken(loginResult.accessToken);
     await router.replace('/');
   } finally {

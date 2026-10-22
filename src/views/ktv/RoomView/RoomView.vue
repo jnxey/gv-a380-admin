@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <ShopSwitcher />
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建包厢</el-button>
@@ -68,8 +68,8 @@ const { initDragSort } = useDragSort(
  * 查询当前门店全部包厢，并加载包厢类型名称。
  */
 async function loadRooms(): Promise<void> {
-  const pageResult = (await http.get('/admin/ktv/rooms')) as { list: RoomRow[] };
-  const roomTypePage = (await http.get('/admin/ktv/room-types')) as { list: RoomTypeOption[] };
+  const pageResult = (await http.get('/a380/ktv/rooms')) as { list: RoomRow[] };
+  const roomTypePage = (await http.get('/a380/ktv/room-types')) as { list: RoomTypeOption[] };
   roomList.value = pageResult.list;
   roomTypeList.value = roomTypePage.list;
   await initDragSort();
@@ -114,7 +114,7 @@ async function saveRoomSort(idList: string[]): Promise<void> {
     return [roomRow];
   });
   try {
-    await http.put('/admin/ktv/rooms/sort', { idList });
+    await http.put('/a380/ktv/rooms/sort', { idList });
   } catch (error) {
     void error;
     await loadRooms();

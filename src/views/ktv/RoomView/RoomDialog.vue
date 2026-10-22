@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-dialog v-model="visible" :title="isEmpty(room) ? '新建包厢' : '编辑包厢'" width="480px">
     <el-form label-position="top">
       <el-form-item label="编号"><el-input v-model="roomForm.roomNo" /></el-form-item>
@@ -98,9 +98,9 @@ function fillRoomForm(roomRow: RoomRow | null): void {
  */
 async function saveRoom(): Promise<void> {
   if (isEmpty(editingRoomId.value)) {
-    await http.post('/admin/ktv/rooms', roomForm);
+    await http.post('/a380/ktv/rooms', roomForm);
   } else {
-    await http.put(`/admin/ktv/rooms/${editingRoomId.value}`, roomForm);
+    await http.put(`\/a380/ktv/rooms/${editingRoomId.value}`, roomForm);
   }
   ElMessage.success('保存成功');
   visible.value = false;

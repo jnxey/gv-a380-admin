@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-dialog v-model="visible" :title="isEmpty(role) ? '' : role.roleName" width="480px">
     <el-tree
       ref="assignTreeRef"
@@ -111,7 +111,7 @@ async function openRoleForm(): Promise<void> {
   if (isEmpty(props.role)) {
     return;
   }
-  const roleDetail = (await http.get(`/admin/system/roles/${props.role.roleId}`)) as RoleDetail;
+  const roleDetail = (await http.get(`\/a380/system/roles/${props.role.roleId}`)) as RoleDetail;
   editingRoleId.value = roleDetail.roleId;
   permissionList.value = roleDetail.permissionList;
   menuList.value = roleDetail.menuList;
@@ -220,7 +220,7 @@ async function saveRole(): Promise<void> {
       permissionIdList.push(nodeId);
     }
   });
-  await http.put(`/admin/system/roles/${editingRoleId.value}`, {
+  await http.put(`\/a380/system/roles/${editingRoleId.value}`, {
     permissionIdList,
     menuIdList,
   });

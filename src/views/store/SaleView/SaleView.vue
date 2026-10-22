@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <ShopSwitcher />
   <el-card>
     <div v-if="isEmpty(saleList)" class="record-empty">暂无数据</div>
@@ -63,7 +63,7 @@ const pageSize = ref(PageSetting.DEFAULT_PAGE_SIZE);
  * 分页查询销售单。
  */
 async function loadSales(): Promise<void> {
-  const pageResult = (await http.get('/admin/store/sales', {
+  const pageResult = (await http.get('/a380/store/sales', {
     params: { page: page.value, pageSize: pageSize.value },
   })) as { list: SaleRow[]; total: number };
   saleList.value = pageResult.list;

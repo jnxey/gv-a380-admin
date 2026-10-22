@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-card>
     <div class="account-row">
       <span class="account-label">登录账号</span>
@@ -72,7 +72,7 @@ async function submitPassword(): Promise<void> {
   }
   passwordSaving.value = true;
   try {
-    await http.post('/admin/auth/password', {
+    await http.post('/a380/auth/password', {
       oldPassword: oldPassword.value,
       newPassword: newPassword.value,
     });

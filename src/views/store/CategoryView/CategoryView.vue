@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <ShopSwitcher />
   <el-card>
     <div v-if="canSave" class="category-toolbar">
@@ -84,7 +84,7 @@ const { initDragSort } = useDragSort(
  * 查询当前门店全部分类。
  */
 async function loadCategories(): Promise<void> {
-  categoryList.value = (await http.get('/admin/store/product-categories')) as CategoryRow[];
+  categoryList.value = (await http.get('/a380/store/product-categories')) as CategoryRow[];
   await initDragSort();
 }
 
@@ -117,9 +117,9 @@ async function saveCategory(): Promise<void> {
     status: categoryForm.status,
   };
   if (isEmpty(editingCategoryId.value)) {
-    await http.post('/admin/store/product-categories', body);
+    await http.post('/a380/store/product-categories', body);
   } else {
-    await http.put(`/admin/store/product-categories/${editingCategoryId.value}`, body);
+    await http.put(`\/a380/store/product-categories/${editingCategoryId.value}`, body);
   }
   dialogVisible.value = false;
   await loadCategories();
@@ -137,7 +137,7 @@ async function saveCategorySort(idList: string[]): Promise<void> {
     return [categoryRow];
   });
   try {
-    await http.put('/admin/store/product-categories/sort', { idList });
+    await http.put('/a380/store/product-categories/sort', { idList });
   } catch (error) {
     void error;
     await loadCategories();

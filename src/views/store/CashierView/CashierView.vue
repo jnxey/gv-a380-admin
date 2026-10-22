@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <ShopSwitcher />
   <el-card>
     <div class="cashier-layout">
@@ -239,7 +239,7 @@ function toggleProductScanListen(): void {
  * 查询可卖商品。
  */
 async function loadProducts(): Promise<void> {
-  const pageResult = (await http.get('/admin/store/products', {
+  const pageResult = (await http.get('/a380/store/products', {
     params: {
       keyword: keyword.value,
       page: PageSetting.DEFAULT_PAGE,
@@ -307,7 +307,7 @@ async function submitCashSale(): Promise<void> {
   const wasListening = productScanLoopRunning.value === true;
   stopProductScanLoop();
   try {
-    await http.post('/admin/store/sales', {
+    await http.post('/a380/store/sales', {
       payMethod: StorePayMethod.CASH,
       memberId: '',
       remark: '',
@@ -339,8 +339,8 @@ async function onPayQrScanned(cipherText: string): Promise<void> {
   }
   submitting.value = true;
   try {
-    const memberRow = (await http.post('/admin/store/pay-qr', { cipherText })) as MemberRow;
-    await http.post('/admin/store/sales', {
+    const memberRow = (await http.post('/a380/store/pay-qr', { cipherText })) as MemberRow;
+    await http.post('/a380/store/sales', {
       payMethod: StorePayMethod.MEMBER,
       memberId: memberRow.memberId,
       remark: '',

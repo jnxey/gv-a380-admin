@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-card>
     <el-button v-if="canSave" type="primary" @click="openCreate">新建账号</el-button>
     <div class="record-list record-list--wide-table">
@@ -43,7 +43,7 @@ const editingUser = ref<UserRow | null>(null);
  * 查询全部后台账号。
  */
 async function loadUsers(): Promise<void> {
-  userList.value = (await http.get('/admin/system/users')) as UserRow[];
+  userList.value = (await http.get('/a380/system/users')) as UserRow[];
 }
 
 /**

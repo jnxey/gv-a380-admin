@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-dialog v-model="visible" :title="isEmpty(roomType) ? '新建类型' : '编辑类型'" width="480px">
     <el-form label-position="top">
       <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
@@ -122,11 +122,11 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
  */
 async function saveRoomType(): Promise<void> {
   if (isEmpty(editingId.value)) {
-    const createdRoomType = (await http.post('/admin/ktv/room-types', roomTypeForm)) as RoomTypeRow;
+    const createdRoomType = (await http.post('/a380/ktv/room-types', roomTypeForm)) as RoomTypeRow;
     editingId.value = createdRoomType.id;
     await uploadPendingRoomTypeImages(createdRoomType.id);
   } else {
-    await http.put(`/admin/ktv/room-types/${editingId.value}`, roomTypeForm);
+    await http.put(`\/a380/ktv/room-types/${editingId.value}`, roomTypeForm);
   }
   ElMessage.success('保存成功');
   visible.value = false;
@@ -186,7 +186,7 @@ async function removeRoomTypeImage(fileItem: RoomTypeImageFileItem): Promise<voi
   if (isEmpty(fileItem.imageId) || isEmpty(editingId.value)) {
     return;
   }
-  await http.delete(`/admin/ktv/room-types/${editingId.value}/images/${fileItem.imageId}`);
+  await http.delete(`\/a380/ktv/room-types/${editingId.value}/images/${fileItem.imageId}`);
 }
 
 /**
@@ -203,7 +203,7 @@ function previewRoomTypeImage(fileItem: RoomTypeImageFileItem): void {
 async function postRoomTypeImage(roomTypeId: string, file: File): Promise<RoomTypeImageView> {
   const formData = new FormData();
   formData.append('file', file);
-  return (await http.post(`/admin/ktv/room-types/${roomTypeId}/images`, formData)) as RoomTypeImageView;
+  return (await http.post(`\/a380/ktv/room-types/${roomTypeId}/images`, formData)) as RoomTypeImageView;
 }
 
 /**

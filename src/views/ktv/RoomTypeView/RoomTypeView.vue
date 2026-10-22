@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <ShopSwitcher />
   <el-card>
     <div v-if="isEmpty(roomTypeList) && canSave !== true" class="room-type-empty">暂无数据</div>
@@ -76,7 +76,7 @@ function coverImageUrl(roomTypeRow: RoomTypeRow): string {
  * 查询当前门店全部包厢类型。
  */
 async function loadRoomTypes(): Promise<void> {
-  const pageResult = (await http.get('/admin/ktv/room-types')) as { list: RoomTypeRow[] };
+  const pageResult = (await http.get('/a380/ktv/room-types')) as { list: RoomTypeRow[] };
   roomTypeList.value = pageResult.list;
   await initDragSort();
 }
@@ -109,7 +109,7 @@ async function saveRoomTypeSort(idList: string[]): Promise<void> {
     return [roomTypeRow];
   });
   try {
-    await http.put('/admin/ktv/room-types/sort', { idList });
+    await http.put('/a380/ktv/room-types/sort', { idList });
   } catch (error) {
     void error;
     await loadRoomTypes();

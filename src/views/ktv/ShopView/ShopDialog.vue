@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-dialog v-model="visible" :title="isEmpty(shop) ? '新建门店' : '编辑门店'" width="720px">
     <el-form class="shop-form" label-position="top">
       <el-row :gutter="16">
@@ -333,7 +333,7 @@ async function removeShopImage(fileItem: ShopImageFileItem): Promise<void> {
   if (isEmpty(fileItem.imageId) || isEmpty(editingShopId.value)) {
     return;
   }
-  await http.delete(`/admin/ktv/shops/${editingShopId.value}/images/${fileItem.imageId}`);
+  await http.delete(`\/a380/ktv/shops/${editingShopId.value}/images/${fileItem.imageId}`);
 }
 
 /**
@@ -350,7 +350,7 @@ function previewShopImage(fileItem: ShopImageFileItem): void {
 async function postShopImage(shopId: string, file: File): Promise<ShopImageView> {
   const formData = new FormData();
   formData.append('file', file);
-  return (await http.post(`/admin/ktv/shops/${shopId}/images`, formData)) as ShopImageView;
+  return (await http.post(`\/a380/ktv/shops/${shopId}/images`, formData)) as ShopImageView;
 }
 
 /**
@@ -447,13 +447,13 @@ async function saveShop(): Promise<void> {
   }
   const shopBody = shopSaveBody();
   if (isEmpty(editingShopId.value)) {
-    const createdShop = (await http.post('/admin/ktv/shops', shopBody)) as ShopRow;
+    const createdShop = (await http.post('/a380/ktv/shops', shopBody)) as ShopRow;
     editingShopId.value = createdShop.shopId;
     sessionStore.menuLoaded = false;
     await sessionStore.loadSession(router);
     await uploadPendingShopImages(createdShop.shopId);
   } else {
-    await http.put(`/admin/ktv/shops/${editingShopId.value}`, shopBody);
+    await http.put(`\/a380/ktv/shops/${editingShopId.value}`, shopBody);
   }
   ElMessage.success('保存成功');
   visible.value = false;
