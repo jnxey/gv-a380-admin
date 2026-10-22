@@ -46,7 +46,7 @@
           <div class="member-search">
             <el-input v-model="memberKeyword" placeholder="用户名/手机号/邮箱" clearable @keyup.enter="searchMember" />
             <el-button type="primary" @click="searchMember">查找</el-button>
-            <el-button @click="scanPayQr">扫码</el-button>
+            <ScanButton @scanned="onPayQrScanned" />
           </div>
           <div v-if="isEmpty(selectedMember) !== true" class="member-card">
             <div>{{ selectedMember.nickname }} {{ selectedMember.username }}</div>
@@ -66,11 +66,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { PageSetting, PermissionCode, RecordStatus, StorePayMethod } from '../../../utils/constants';
-import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -101,7 +99,6 @@ interface MemberRow {
 const sessionStore = useSessionStore();
 const canCash = sessionStore.hasPermission(PermissionCode.STORE_SALE_CASH);
 const canMember = sessionStore.hasPermission(PermissionCode.STORE_SALE_MEMBER);
-const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 const keyword = ref('');
 const productList = ref<ProductRow[]>([]);
 const cartLineList = ref<CartLine[]>([]);
@@ -209,24 +206,9 @@ async function searchMember(): Promise<void> {
 /**
  * 扫付款码找会员。
  */
-async function scanPayQr(): Promise<void> {
+async function onPayQrScanned(cipherText: string): Promise<void> {
   memberMissed.value = false;
   selectedMember.value = null;
-  let cipherText = '';
-  const scanCode = readScanCode();
-  if (narrowScreenQuery.matches === true && scanCode !== null) {
-    try {
-      const scanResult = await scanCode();
-      cipherText = typeof scanResult === 'string' ? scanResult.trim() : '';
-    } catch {
-      return;
-    }
-  } else {
-    cipherText = await openScanGun();
-  }
-  if (isEmpty(cipherText)) {
-    return;
-  }
   try {
     selectedMember.value = (await http.post('/admin/store/pay-qr', { cipherText })) as MemberRow;
   } catch {

@@ -20,16 +20,13 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
-import { readScanCode } from '../../../utils/gv-sdk';
+import { readScanText } from '../../../components/ScanGunPrompt/read-scan-text';
 import { isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 interface MemberRow {
   memberId: string;
 }
-
-const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 
 const emit = defineEmits<{
   close: [];
@@ -88,28 +85,6 @@ defineExpose({
 });
 
 /**
- * 窄屏且宿主提供扫码时用相机，否则等扫码枪。取消或失焦返回空字符串。
- */
-async function readPayCipher(): Promise<string> {
-  const scanCode = readScanCode();
-  if (narrowScreenQuery.matches === true && scanCode !== null) {
-    try {
-      const scanResult = await scanCode();
-      if (typeof scanResult !== 'string') {
-        return '';
-      }
-      return scanResult.trim();
-    } catch (error) {
-      if (error instanceof Error && error.message === 'cancelled') {
-        return '';
-      }
-      return '';
-    }
-  }
-  return openScanGun();
-}
-
-/**
  * 先扫付款码找到会员，再按当前门店付款。成功后留在结果页。
  */
 async function submitDeduct(): Promise<void> {
@@ -119,7 +94,7 @@ async function submitDeduct(): Promise<void> {
   const paidAmount = amount.value.trim();
   deducting.value = true;
   try {
-    const cipherText = await readPayCipher();
+    const cipherText = await readScanText();
     if (isEmpty(cipherText)) {
       focusAmount();
       return;

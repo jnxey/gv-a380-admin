@@ -149,10 +149,7 @@
         <div class="room-status-verify-label">核销码</div>
         <div class="room-status-verify">
           <el-input v-model="verifyCode" class="room-status-verify-input" size="large" clearable placeholder="扫码或手动输入" />
-          <el-button type="warning" size="large" class="room-status-verify-scan" aria-label="扫码" @click="scanVerifyCode">
-            <AppIcon :icon-name="MenuIconName.SCAN_QR" />
-            <span>扫码</span>
-          </el-button>
+          <ScanButton type="warning" size="large" class="room-status-verify-scan" aria-label="扫码" @scanned="onVerifyCodeScanned" />
         </div>
         <template v-if="isEmpty(verifyCode.trim())">
           <div class="room-status-verify-label room-status-duration-label">演唱时长</div>
@@ -193,11 +190,10 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
+import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
 import DeductView from '../DeductView/DeductView.vue';
 import { KtvOccupyDuration, KtvOccupyRemind, KtvOrderStatus, KtvPendingVerifyWindow, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask, statusLabel } from '../../../utils/constants';
-import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -744,35 +740,9 @@ function moreStatusOptionList(roomStatus: string): RoomStatusOption[] {
 }
 
 /**
- * 窄屏且宿主提供扫码时用相机，否则等扫码枪。取消或空结果返回空字符串。
+ * 扫核销码写入输入框。
  */
-async function readVerifyCodeScan(): Promise<string> {
-  const scanCode = readScanCode();
-  if (narrowScreenQuery.matches && scanCode !== null) {
-    try {
-      const scanResult = await scanCode();
-      if (typeof scanResult !== 'string') {
-        return '';
-      }
-      return scanResult.trim();
-    } catch (error) {
-      if (error instanceof Error && error.message === 'cancelled') {
-        return '';
-      }
-      return '';
-    }
-  }
-  return openScanGun();
-}
-
-/**
- * 扫核销码。扫到内容才写入输入框，取消或空结果不改原来的字。
- */
-async function scanVerifyCode(): Promise<void> {
-  const scannedVerifyCode = await readVerifyCodeScan();
-  if (isEmpty(scannedVerifyCode)) {
-    return;
-  }
+function onVerifyCodeScanned(scannedVerifyCode: string): void {
   verifyCode.value = scannedVerifyCode;
 }
 

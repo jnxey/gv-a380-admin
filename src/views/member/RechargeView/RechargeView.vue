@@ -24,10 +24,7 @@
               <AppIcon :icon-name="MenuIconName.ARROW_RIGHT" />
               <span>查找</span>
             </el-button>
-            <el-button type="warning" class="recharge-scan-button" aria-label="扫码" @click="scanPayQr">
-              <AppIcon :icon-name="MenuIconName.SCAN_QR" />
-              <span>扫码</span>
-            </el-button>
+            <ScanButton type="warning" class="recharge-scan-button" aria-label="扫码" @scanned="onPayQrScanned" />
           </div>
         </div>
         <div v-if="memberMissed === true" class="recharge-empty">没有找到会员</div>
@@ -72,9 +69,8 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
-import { openScanGun } from '../../../components/ScanGunPrompt/scan-gun';
+import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import { MenuIconName, PageSetting } from '../../../utils/constants';
-import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
@@ -91,7 +87,6 @@ interface ChatUserProfile {
 }
 
 const rechargeAmountOptionList = ['100', '200', '500', '1000'];
-const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 
 const keyword = ref('');
 const memberMissed = ref(false);
@@ -116,28 +111,6 @@ watch(selectedMember, (member) => {
     focusAmount();
   });
 });
-
-/**
- * 窄屏且宿主提供扫码时用相机，否则等扫码枪。取消或空结果不提示。
- */
-async function readPayCipher(): Promise<string> {
-  const scanCode = readScanCode();
-  if (narrowScreenQuery.matches === true && scanCode !== null) {
-    try {
-      const scanResult = await scanCode();
-      if (typeof scanResult !== 'string') {
-        return '';
-      }
-      return scanResult.trim();
-    } catch (error) {
-      if (error instanceof Error && error.message === 'cancelled') {
-        return '';
-      }
-      return '';
-    }
-  }
-  return openScanGun();
-}
 
 /**
  * 按用户名取唯一余额账户。没有或不止一条时留在查找，并返回匹配条数。
@@ -185,13 +158,9 @@ async function searchMember(): Promise<void> {
 }
 
 /**
- * 扫付款码。取消不提示。解开后按用户名进入充值。
+ * 扫付款码解开后按用户名进入充值。
  */
-async function scanPayQr(): Promise<void> {
-  const cipherText = await readPayCipher();
-  if (isEmpty(cipherText)) {
-    return;
-  }
+async function onPayQrScanned(cipherText: string): Promise<void> {
   try {
     const payQr = (await http.post('/admin/members/pay-qr', { cipherText })) as { username: string };
     await openMemberByUsername(payQr.username);
