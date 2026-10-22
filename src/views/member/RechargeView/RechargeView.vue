@@ -158,14 +158,23 @@ async function searchMember(): Promise<void> {
 }
 
 /**
- * 扫付款码解开后按用户名进入充值。
+ * 扫付款码解开后按用户名进入充值。A380 还没有账户时先开户。
  */
 async function onPayQrScanned(cipherText: string): Promise<void> {
   try {
     const payQr = (await http.post('/admin/members/pay-qr', { cipherText })) as { username: string };
-    await openMemberByUsername(payQr.username);
-  } catch {
+    const matchedCount = await openMemberByUsername(payQr.username);
+    if (matchedCount !== 0) {
+      return;
+    }
+    const openedMember = (await http.post('/admin/members/open', {
+      username: payQr.username,
+    })) as MemberRow;
     memberMissed.value = false;
+    selectedMember.value = openedMember;
+  } catch {
+    memberMissed.value = true;
+    selectedMember.value = null;
   }
 }
 
