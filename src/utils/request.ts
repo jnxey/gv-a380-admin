@@ -41,7 +41,8 @@ http.interceptors.response.use(
       ElMessage.error(failMessage);
       return Promise.reject(responseBody);
     }
-    return responseBody.data;
+    // 拦截器约定解包 data；axios 类型仍要求 AxiosResponse，这里按业务返回体交出。
+    return responseBody.data as typeof response.data;
   },
   (error) => {
     if (error?.isAccessTokenRefreshError === true) {
