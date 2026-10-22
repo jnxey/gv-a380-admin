@@ -21,44 +21,88 @@
       </article>
     </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
-    <el-dialog v-model="dialogVisible" title="新建进货" width="640px">
-      <el-form label-position="top">
-        <div v-for="(lineRow, lineIndex) in draftLineList" :key="lineIndex" class="draft-line">
-          <el-form-item label="商品">
-            <div class="product-pick-row">
-              <el-select v-model="lineRow.productId" filterable placeholder="选择商品">
-                <el-option
-                  v-for="productRow in productOptionList"
-                  :key="productRow.productId"
-                  :label="`${productRow.productName}（库存 ${productRow.stockQuantity}）`"
-                  :value="productRow.productId"
-                />
-              </el-select>
-              <ScanButton @scanned="(scanText) => onPurchaseLineScanned(lineIndex, scanText)" />
+    <el-dialog v-model="dialogVisible" title="新建进货" width="720px" align-center destroy-on-close>
+      <el-form class="purchase-form" label-position="top">
+        <div class="draft-line-list">
+          <article v-for="(lineRow, lineIndex) in draftLineList" :key="lineIndex" class="draft-line-card">
+            <div class="draft-line-top">
+              <div class="draft-line-title">商品 {{ lineIndex + 1 }}</div>
+              <el-button
+                v-if="draftLineList.length > 1"
+                link
+                type="danger"
+                @click="removeDraftLine(lineIndex)"
+              >
+                删除
+              </el-button>
             </div>
-          </el-form-item>
-          <el-form-item label="进价"><el-input v-model="lineRow.costPrice" /></el-form-item>
-          <el-form-item label="数量"><el-input v-model="lineRow.quantityText" /></el-form-item>
-          <el-button link type="danger" @click="removeDraftLine(lineIndex)">删除</el-button>
+            <el-form-item label="商品" class="draft-line-field">
+              <div class="product-pick-row">
+                <el-select
+                  v-model="lineRow.productId"
+                  size="large"
+                  filterable
+                  placeholder="选择商品"
+                  @change="(productId) => onPurchaseLineProductChange(lineIndex, productId)"
+                >
+                  <el-option
+                    v-for="productRow in productOptionList"
+                    :key="productRow.productId"
+                    :label="`${productRow.productName}（库存 ${productRow.stockQuantity}）`"
+                    :value="productRow.productId"
+                  />
+                </el-select>
+                <ScanButton
+                  type="warning"
+                  size="large"
+                  class="purchase-scan-button"
+                  aria-label="扫码"
+                  @scanned="(scanText) => onPurchaseLineScanned(lineIndex, scanText)"
+                >
+                  <AppIcon :icon-name="MenuIconName.SCAN_QR" />
+                  <span>扫码</span>
+                </ScanButton>
+              </div>
+            </el-form-item>
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="进价" class="draft-line-field">
+                  <el-input v-model="lineRow.costPrice" size="large" placeholder="进价" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="数量" class="draft-line-field">
+                  <el-input v-model="lineRow.quantityText" size="large" placeholder="数量" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </article>
         </div>
-        <el-button @click="addDraftLine">加一行</el-button>
-        <el-form-item label="备注"><el-input v-model="remark" /></el-form-item>
+        <el-button class="draft-add-button" size="large" @click="addDraftLine">加一行</el-button>
+        <el-form-item label="备注" class="draft-remark-field">
+          <el-input v-model="remark" size="large" placeholder="选填" />
+        </el-form-item>
+        <div class="draft-total">
+          <span class="draft-total-label">合计</span>
+          <span class="draft-total-amount">{{ draftTotalText }}</span>
+        </div>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="savePurchase">确认入库</el-button>
+        <el-button size="large" @click="dialogVisible = false">取消</el-button>
+        <el-button size="large" type="primary" :loading="saving" @click="savePurchase">确认入库</el-button>
       </template>
     </el-dialog>
   </el-card>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import { PageSetting, PermissionCode } from '../../../utils/constants';
+import { MenuIconName, PageSetting, PermissionCode } from '../../../utils/constants';
 import { formatLocalDateTime, isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -107,6 +151,22 @@ const remark = ref('');
 const draftLineList = ref<DraftLine[]>([{ productId: '', costPrice: '', quantityText: '1' }]);
 
 /**
+ * 弹窗里按进价×数量汇总，无效行按 0。
+ */
+const draftTotalText = computed(() => {
+  let totalAmount = 0;
+  for (const lineRow of draftLineList.value) {
+    const costPrice = Number(lineRow.costPrice);
+    const quantity = Number(lineRow.quantityText);
+    if (Number.isFinite(costPrice) !== true || Number.isFinite(quantity) !== true) {
+      continue;
+    }
+    totalAmount += costPrice * quantity;
+  }
+  return totalAmount.toFixed(2);
+});
+
+/**
  * 分页查询进货单。
  */
 async function loadPurchases(): Promise<void> {
@@ -150,6 +210,27 @@ async function openCreate(): Promise<void> {
  */
 function addDraftLine(): void {
   draftLineList.value.push({ productId: '', costPrice: '', quantityText: '1' });
+}
+
+/**
+ * 下拉选中商品后填入该商品进价。清空商品时清空进价。
+ */
+function onPurchaseLineProductChange(lineIndex: number, productId: string): void {
+  const draftLine = draftLineList.value[lineIndex];
+  if (isEmpty(draftLine)) {
+    return;
+  }
+  if (isEmpty(productId)) {
+    draftLine.costPrice = '';
+    return;
+  }
+  const matchedProduct = productOptionList.value.find((productRow) => {
+    return productRow.productId === productId;
+  });
+  if (isEmpty(matchedProduct)) {
+    return;
+  }
+  draftLine.costPrice = matchedProduct.costPrice;
 }
 
 /**
@@ -257,24 +338,111 @@ onMounted(() => {
   font-size: 13px;
 }
 
-.draft-line {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
-  gap: 8px;
-  align-items: end;
+.draft-line-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.draft-line-card {
+  padding: 16px;
+  border: 1px solid #e6e8ec;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.draft-line-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 8px;
+}
+
+.draft-line-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c2434;
+}
+
+.draft-line-field {
+  margin-bottom: 12px;
+}
+
+.draft-line-field:last-child {
+  margin-bottom: 0;
 }
 
 .product-pick-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: stretch;
+  gap: 10px;
   width: 100%;
 }
 
 .product-pick-row :deep(.el-select) {
   flex: 1 1 auto;
   min-width: 0;
+  width: 100%;
+}
+
+.purchase-form :deep(.el-form-item__content > .el-select) {
+  width: 100%;
+}
+
+.purchase-scan-button {
+  flex: none;
+  min-width: 108px;
+  height: 40px;
+  margin: 0;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.purchase-scan-button svg {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -3px;
+}
+
+.draft-add-button {
+  width: 100%;
+  margin: 14px 0 8px;
+  border-style: dashed;
+  font-weight: 600;
+}
+
+.draft-remark-field {
+  margin-bottom: 0;
+}
+
+.draft-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid #e6e8ec;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.draft-total-label {
+  color: #667085;
+  font-size: 13px;
+}
+
+.draft-total-amount {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1c2434;
 }
 
 .record-empty {

@@ -1,5 +1,7 @@
 <template>
-  <el-button :disabled="disabled || scanning" @click="scanOnce">扫码</el-button>
+  <el-button :disabled="disabled === true || scanning === true" @click="scanOnce">
+    <slot>扫码</slot>
+  </el-button>
 </template>
 
 <script setup lang="ts">
@@ -26,7 +28,7 @@ const scanning = ref(false);
  * 点一次扫码。有结果才通知外层。
  */
 async function scanOnce(): Promise<void> {
-  if (props.disabled || scanning.value === true) {
+  if (props.disabled === true || scanning.value === true) {
     return;
   }
   scanning.value = true;
