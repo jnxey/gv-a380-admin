@@ -16,6 +16,19 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
+          <el-form-item label="营业时间">
+            <div class="shop-hours">
+              <el-select v-model="shopForm.startTime" clearable placeholder="开始" @change="alignEndTime">
+                <el-option v-for="businessHour in startTimeOptionList" :key="businessHour" :label="businessHour" :value="businessHour" />
+              </el-select>
+              <span class="shop-hours-split">到</span>
+              <el-select v-model="shopForm.endTime" clearable placeholder="结束">
+                <el-option v-for="businessHour in endTimeOptionList" :key="businessHour" :label="businessHour" :value="businessHour" />
+              </el-select>
+            </div>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
           <el-form-item label="位置">
             <div class="shop-location">
               <span class="shop-location-text">{{ locationLabel }}</span>
@@ -78,7 +91,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { UploadRequestOptions, UploadUserFile } from 'element-plus';
 import { useRouter } from 'vue-router';
-import { BeijingTimeZoneOffset, RecordStatus, ShopImageLimit, ShopImageMime, TimeZoneOptionList, timeZoneLabel } from '../../../utils/constants';
+import { BeijingTimeZoneOffset, BusinessHourList, RecordStatus, ShopImageLimit, ShopImageMime, TimeZoneOptionList, timeZoneLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { limitImageWidth, replaceUploadRawFile } from '../../../utils/image';
 import { useSessionStore } from '../../../stores/session';
@@ -88,6 +101,11 @@ import ShopLocationDialog from '../../ktv/ShopView/ShopLocationDialog.vue';
 export interface ShopImageView {
   imageId: string;
   imageUrl: string;
+}
+
+export interface ShopBusinessHours {
+  startTime: string;
+  endTime: string;
 }
 
 export interface ShopAddressLocation {
@@ -104,6 +122,7 @@ export interface ShopRow {
   contactPhone: string;
   status: string;
   timeZone: string;
+  businessHours: ShopBusinessHours | null;
   shopAddress: ShopAddressLocation | null;
   imageList: ShopImageView[];
 }
@@ -132,6 +151,8 @@ const shopForm = reactive({
   shopCode: '',
   shopName: '',
   timeZone: '',
+  startTime: '',
+  endTime: '',
   longitude: '',
   latitude: '',
   addressText: '',
@@ -165,6 +186,57 @@ const locationLabel = computed(() => {
 });
 
 /**
+ * 营业时间选项。已保存的时间不在半点档里时，补到最前面。
+ */
+function businessHourOptionList(selectedTime: string): string[] {
+  if (isEmpty(selectedTime) || BusinessHourList.some((businessHour) => businessHour === selectedTime)) {
+    return [...BusinessHourList];
+  }
+  return [selectedTime, ...BusinessHourList];
+}
+
+const startTimeOptionList = computed(() => businessHourOptionList(shopForm.startTime));
+
+/**
+ * 结束时间只列出开始之后的档。已保存但不合法的结束时间仍留在最前面。
+ */
+const endTimeOptionList = computed(() => {
+  if (isEmpty(shopForm.startTime)) {
+    if (isEmpty(shopForm.endTime)) {
+      return [];
+    }
+    return [shopForm.endTime];
+  }
+  const laterHourList = BusinessHourList.filter((businessHour) => businessHour > shopForm.startTime);
+  if (isEmpty(shopForm.endTime) || laterHourList.some((businessHour) => businessHour === shopForm.endTime)) {
+    return laterHourList;
+  }
+  return [shopForm.endTime, ...laterHourList];
+});
+
+/**
+ * 开始改到不早于结束时，清空结束。
+ */
+function alignEndTime(): void {
+  if (isEmpty(shopForm.endTime)) {
+    return;
+  }
+  if (isEmpty(shopForm.startTime) || shopForm.endTime <= shopForm.startTime) {
+    shopForm.endTime = '';
+  }
+}
+
+/**
+ * 营业时间必须两边都填，且结束要晚于开始。
+ */
+function businessHoursInvalid(): boolean {
+  if (isEmpty(shopForm.startTime) || isEmpty(shopForm.endTime)) {
+    return true;
+  }
+  return shopForm.endTime <= shopForm.startTime;
+}
+
+/**
  * 打开时按传入的门店填表。新建时清空。
  */
 watch(visible, (opened) => {
@@ -183,6 +255,8 @@ function fillShopForm(shopRow: ShopRow | null): void {
     shopForm.shopCode = '';
     shopForm.shopName = '';
     shopForm.timeZone = BeijingTimeZoneOffset;
+    shopForm.startTime = '';
+    shopForm.endTime = '';
     shopForm.longitude = '';
     shopForm.latitude = '';
     shopForm.addressText = '';
@@ -195,6 +269,8 @@ function fillShopForm(shopRow: ShopRow | null): void {
   shopForm.shopCode = shopRow.shopCode;
   shopForm.shopName = shopRow.shopName;
   shopForm.timeZone = isEmpty(shopRow.timeZone) ? BeijingTimeZoneOffset : shopRow.timeZone;
+  shopForm.startTime = isEmpty(shopRow.businessHours) ? '' : shopRow.businessHours.startTime;
+  shopForm.endTime = isEmpty(shopRow.businessHours) ? '' : shopRow.businessHours.endTime;
   shopForm.longitude = coordinateText(isEmpty(shopRow.shopAddress) ? null : shopRow.shopAddress.longitude);
   shopForm.latitude = coordinateText(isEmpty(shopRow.shopAddress) ? null : shopRow.shopAddress.latitude);
   shopForm.addressText = addressDescription(shopRow);
@@ -339,6 +415,10 @@ function shopSaveBody(): Record<string, unknown> {
     contactPhone: shopForm.contactPhone,
     status: shopForm.status,
     timeZone: shopForm.timeZone,
+    businessHours: {
+      startTime: isEmpty(shopForm.startTime) ? '' : shopForm.startTime,
+      endTime: isEmpty(shopForm.endTime) ? '' : shopForm.endTime,
+    },
     shopAddress: {
       longitude: isEmpty(shopForm.longitude) ? null : Number(shopForm.longitude),
       latitude: isEmpty(shopForm.latitude) ? null : Number(shopForm.latitude),
@@ -353,6 +433,14 @@ function shopSaveBody(): Record<string, unknown> {
 async function saveShop(): Promise<void> {
   if (isEmpty(shopForm.timeZone)) {
     ElMessage.warning('请填写门店时区');
+    return;
+  }
+  if (isEmpty(shopForm.startTime) || isEmpty(shopForm.endTime)) {
+    ElMessage.warning('请填写营业时间');
+    return;
+  }
+  if (businessHoursInvalid()) {
+    ElMessage.warning('结束时间必须晚于开始时间');
     return;
   }
   if (isEmpty(shopForm.longitude) || isEmpty(shopForm.latitude)) {
@@ -384,6 +472,23 @@ async function saveShop(): Promise<void> {
   font-size: 28px;
   line-height: 1;
   color: #909399;
+}
+
+.shop-hours {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.shop-hours :deep(.el-select) {
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-hours-split {
+  flex-shrink: 0;
+  color: #667085;
 }
 
 .shop-location {

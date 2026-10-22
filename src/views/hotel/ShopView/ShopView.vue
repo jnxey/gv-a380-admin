@@ -18,6 +18,7 @@
           </div>
           <div class="shop-address">{{ shopRow.address }}</div>
           <div v-if="!isEmpty(shopRow.timeZone)" class="shop-address">{{ timeZoneLabel(shopRow.timeZone) }}</div>
+          <div v-if="!isEmpty(shopBusinessHoursText(shopRow))" class="shop-address">{{ shopBusinessHoursText(shopRow) }}</div>
           <div class="shop-foot">
             <el-tag :type="shopRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
               {{ statusLabel(shopRow.status) }}
@@ -68,6 +69,21 @@ const payQrVisible = ref(false);
 const payQrShopName = ref('');
 const payQrImageUrl = ref('');
 const payQrFileName = ref('');
+
+/**
+ * 营业时间显示成开始到结束。没有时段时返回空字符串。
+ */
+function shopBusinessHoursText(shopRow: ShopRow): string {
+  if (isEmpty(shopRow.businessHours)) {
+    return '';
+  }
+  const startTime = shopRow.businessHours.startTime;
+  const endTime = shopRow.businessHours.endTime;
+  if (isEmpty(startTime) && isEmpty(endTime)) {
+    return '';
+  }
+  return `${startTime} - ${endTime}`;
+}
 
 /**
  * 封面用第一张门店图片。没有图片时返回空字符串。
