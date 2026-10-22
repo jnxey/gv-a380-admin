@@ -67,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import { MemberApi } from '../../../api/member';
 import { nextTick, ref, watch } from 'vue';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
@@ -116,7 +117,7 @@ watch(selectedMember, (member) => {
  * 按用户名取唯一余额账户。没有或不止一条时留在查找，并返回匹配条数。
  */
 async function openMemberByUsername(username: string): Promise<number> {
-  const pageResult = (await http.get('/a380/members', {
+  const pageResult = (await http.get(MemberApi.LIST, {
     params: { username, page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.DEFAULT_PAGE_SIZE },
   })) as { list: MemberRow[] };
   const exactMemberList = pageResult.list.filter((memberRow) => memberRow.username === username);
@@ -139,14 +140,14 @@ async function searchMember(): Promise<void> {
     return;
   }
   try {
-    const chatUserProfile = (await http.get('/a380/members/chat-user', {
+    const chatUserProfile = (await http.get(MemberApi.CHAT_USER, {
       params: { keyword: cleanedKeyword },
     })) as ChatUserProfile;
     const matchedCount = await openMemberByUsername(chatUserProfile.username);
     if (matchedCount !== 0) {
       return;
     }
-    const openedMember = (await http.post('/a380/members/open', {
+    const openedMember = (await http.post(MemberApi.OPEN, {
       username: chatUserProfile.username,
     })) as MemberRow;
     memberMissed.value = false;
@@ -162,12 +163,12 @@ async function searchMember(): Promise<void> {
  */
 async function onPayQrScanned(cipherText: string): Promise<void> {
   try {
-    const payQr = (await http.post('/a380/members/pay-qr', { cipherText })) as { username: string };
+    const payQr = (await http.post(MemberApi.PAY_QR, { cipherText })) as { username: string };
     const matchedCount = await openMemberByUsername(payQr.username);
     if (matchedCount !== 0) {
       return;
     }
-    const openedMember = (await http.post('/a380/members/open', {
+    const openedMember = (await http.post(MemberApi.OPEN, {
       username: payQr.username,
     })) as MemberRow;
     memberMissed.value = false;
@@ -225,7 +226,7 @@ async function submitRecharge(): Promise<void> {
     return;
   }
   const paidAmount = amount.value.trim();
-  await http.post('/a380/members/recharge', {
+  await http.post(MemberApi.RECHARGE, {
     memberId: selectedMember.value.memberId,
     amount: paidAmount,
     remark: remark.value,

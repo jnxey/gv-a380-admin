@@ -10,11 +10,12 @@
 </template>
 
 <script setup lang="ts">
+import { MapApi } from '../../../api/map';
 import { computed, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { BeijingLocation, MapApiPath, StorageKey } from '../../../utils/constants';
+import { BeijingLocation, StorageKey } from '../../../utils/constants';
 import http from '../../../utils/request';
 import { isEmpty } from '../../../utils/tools';
 
@@ -104,7 +105,7 @@ function mountMap(latitude: number, longitude: number, zoom: number): void {
     return;
   }
   locationMap = L.map(mapElement.value, { minZoom: 3, maxZoom: 18 }).setView([latitude, longitude], zoom);
-  new AuthorizedTileLayer(MapApiPath.TILE, {
+  new AuthorizedTileLayer(MapApi.TILE, {
     maxZoom: 18,
     maxNativeZoom: 22,
     attribution: '&copy; 高德地图',
@@ -187,7 +188,7 @@ async function confirmLocation(): Promise<void> {
   }
   confirming.value = true;
   try {
-    const reverseResult = (await http.get(MapApiPath.REVERSE, {
+    const reverseResult = (await http.get(MapApi.REVERSE, {
       params: {
         lat: pickedLatitude.value,
         lng: pickedLongitude.value,

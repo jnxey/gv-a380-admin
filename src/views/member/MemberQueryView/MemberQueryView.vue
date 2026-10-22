@@ -37,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { MemberApi } from '../../../api/member';
 import { onMounted, ref } from 'vue';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
@@ -83,7 +84,7 @@ async function loadMembers(): Promise<void> {
   } else {
     queryParams.keyword = keyword.value;
   }
-  const pageResult = (await http.get('/a380/members', {
+  const pageResult = (await http.get(MemberApi.LIST, {
     params: queryParams,
   })) as { list: MemberRow[]; total: number };
   memberList.value = pageResult.list;
@@ -103,7 +104,7 @@ async function searchMembers(): Promise<void> {
     return;
   }
   try {
-    const chatUserProfile = (await http.get('/a380/members/chat-user', {
+    const chatUserProfile = (await http.get(MemberApi.CHAT_USER, {
       params: { keyword: cleanedKeyword },
     })) as ChatUserProfile;
     chatUser.value = chatUserProfile;
@@ -121,7 +122,7 @@ async function searchMembers(): Promise<void> {
  * 把这一行的昵称和联系方式同步成聊天用户的当前值。
  */
 async function syncMember(memberRow: MemberRow): Promise<void> {
-  const syncedMember = (await http.post('/a380/members/sync', {
+  const syncedMember = (await http.post(MemberApi.SYNC, {
     username: memberRow.username,
   })) as MemberRow;
   const memberIndex = memberList.value.findIndex((item) => item.username === memberRow.username);

@@ -67,6 +67,7 @@
 </template>
 
 <script setup lang="ts">
+import { KtvApi } from '../../../api/ktv';
 import { onMounted, ref } from 'vue';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
@@ -208,7 +209,7 @@ function readBillDateQuery(): { startDate: string; endDate: string } {
 async function loadSummary(): Promise<void> {
   const billDateQuery = readBillDateQuery();
   try {
-    const summaryResult = (await http.get('/a380/ktv/bills/summary', {
+    const summaryResult = (await http.get(KtvApi.BILLS_SUMMARY, {
       params: {
         bizType: bizType.value,
         startDate: billDateQuery.startDate,
@@ -231,7 +232,7 @@ async function loadSummary(): Promise<void> {
 async function loadBills(): Promise<void> {
   const billDateQuery = readBillDateQuery();
   try {
-    const pageResult = (await http.get('/a380/ktv/bills', {
+    const pageResult = (await http.get(KtvApi.BILLS, {
       params: {
         keyword: keyword.value,
         bizType: bizType.value,

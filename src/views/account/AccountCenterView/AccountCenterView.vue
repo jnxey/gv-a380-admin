@@ -31,6 +31,7 @@
 </template>
 
 <script setup lang="ts">
+import { AuthApi } from '../../../api/auth';
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useSessionStore } from '../../../stores/session';
@@ -72,7 +73,7 @@ async function submitPassword(): Promise<void> {
   }
   passwordSaving.value = true;
   try {
-    await http.post('/a380/auth/password', {
+    await http.post(AuthApi.PASSWORD, {
       oldPassword: oldPassword.value,
       newPassword: newPassword.value,
     });

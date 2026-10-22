@@ -34,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import { SystemApi } from '../../../api/system';
 import { reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
@@ -111,7 +112,7 @@ async function openUserForm(): Promise<void> {
  * 读取角色和门店选项。
  */
 async function loadOptions(): Promise<void> {
-  const optionResult = (await http.get('/a380/system/users/options')) as {
+  const optionResult = (await http.get(SystemApi.USERS_OPTIONS)) as {
     roleList: RoleOptionRow[];
     shopList: ShopOptionRow[];
   };
@@ -155,7 +156,7 @@ async function saveUser(): Promise<void> {
     return;
   }
   if (isEmpty(props.user)) {
-    await http.post('/a380/system/users', {
+    await http.post(SystemApi.USERS, {
       username: userForm.username,
       password: userForm.password,
       realName: userForm.realName,
@@ -165,7 +166,7 @@ async function saveUser(): Promise<void> {
       shopIdList: userForm.shopIdList,
     });
   } else {
-    await http.put(`\/a380/system/users/${props.user.userId}`, {
+    await http.put(SystemApi.user(props.user.userId), {
       realName: userForm.realName,
       mobile: userForm.mobile,
       status: userForm.status,

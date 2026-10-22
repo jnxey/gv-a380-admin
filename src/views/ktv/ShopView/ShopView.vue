@@ -51,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+import { KtvApi } from '../../../api/ktv';
 import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import QRCode from 'qrcode';
@@ -99,7 +100,7 @@ function coverImageUrl(shopRow: ShopRow): string {
  * 查询已绑定的 KTV 门店。
  */
 async function loadShops(): Promise<void> {
-  shopList.value = (await http.get('/a380/ktv/shops')) as ShopRow[];
+  shopList.value = (await http.get(KtvApi.SHOPS)) as ShopRow[];
 }
 
 /**

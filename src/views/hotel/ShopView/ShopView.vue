@@ -51,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+import { HotelApi } from '../../../api/hotel';
 import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import QRCode from 'qrcode';
@@ -99,7 +100,7 @@ function coverImageUrl(shopRow: ShopRow): string {
  * 查询已绑定的酒店门店。
  */
 async function loadShops(): Promise<void> {
-  shopList.value = (await http.get('/a380/hotel/shops')) as ShopRow[];
+  shopList.value = (await http.get(HotelApi.SHOPS)) as ShopRow[];
 }
 
 /**

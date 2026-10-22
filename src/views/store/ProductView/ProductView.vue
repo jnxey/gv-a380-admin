@@ -76,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+import { StoreApi } from '../../../api/store';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { UploadRequestOptions, UploadUserFile } from 'element-plus';
@@ -173,14 +174,14 @@ const productGroupList = computed((): ProductGroup[] => {
  * 查询当前门店商品分类，供筛选和下拉使用。
  */
 async function loadCategories(): Promise<void> {
-  categoryList.value = (await http.get('/a380/store/product-categories')) as CategoryRow[];
+  categoryList.value = (await http.get(StoreApi.PRODUCT_CATEGORIES)) as CategoryRow[];
 }
 
 /**
  * 一次拉全量筛选结果，再按分类分块展示。
  */
 async function loadProducts(): Promise<void> {
-  const pageResult = (await http.get('/a380/store/products', {
+  const pageResult = (await http.get(StoreApi.PRODUCTS, {
     params: {
       keyword: keyword.value,
       categoryId: filterCategoryId.value,
@@ -272,11 +273,11 @@ async function saveProduct(): Promise<void> {
     status: productForm.status,
   };
   if (isEmpty(editingProductId.value)) {
-    const createdProduct = (await http.post('/a380/store/products', body)) as ProductRow;
+    const createdProduct = (await http.post(StoreApi.PRODUCTS, body)) as ProductRow;
     editingProductId.value = createdProduct.productId;
     await uploadPendingProductImages(createdProduct.productId);
   } else {
-    await http.put(`\/a380/store/products/${editingProductId.value}`, body);
+    await http.put(StoreApi.product(editingProductId.value), body);
   }
   dialogVisible.value = false;
   await loadProducts();
@@ -335,7 +336,7 @@ async function removeProductImage(fileItem: ProductImageFileItem): Promise<void>
   if (isEmpty(fileItem.imageId) || isEmpty(editingProductId.value)) {
     return;
   }
-  await http.delete(`\/a380/store/products/${editingProductId.value}/images/${fileItem.imageId}`);
+  await http.delete(StoreApi.productImage(editingProductId.value, fileItem.imageId));
 }
 
 /**
@@ -352,7 +353,7 @@ function previewProductImage(fileItem: ProductImageFileItem): void {
 async function postProductImage(productId: string, file: File): Promise<ProductImageView> {
   const formData = new FormData();
   formData.append('file', file);
-  return (await http.post(`\/a380/store/products/${productId}/images`, formData)) as ProductImageView;
+  return (await http.post(StoreApi.productImages(productId), formData)) as ProductImageView;
 }
 
 /**

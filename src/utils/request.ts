@@ -1,11 +1,13 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
+import { AuthApi } from '../api/auth';
+import { API_PREFIX } from '../api/prefix';
 import { ensureAccessToken } from './access-token';
-import { AuthApiPath, goLoginPageByHash, HttpStatusCode, ResponseCode, StorageKey } from './constants';
+import { goLoginPageByHash, HttpStatusCode, ResponseCode, StorageKey } from './constants';
 import { isEmpty } from './tools';
 
 const http = axios.create({
-  baseURL: '',
+  baseURL: API_PREFIX,
   timeout: 20000,
 });
 
@@ -14,7 +16,7 @@ const http = axios.create({
  */
 http.interceptors.request.use(async (config) => {
   // 1. 登录和退出不刷新。退出要作废当前这张，不能先换成新的
-  if (config.url !== AuthApiPath.LOGIN && config.url !== AuthApiPath.LOGOUT) {
+  if (config.url !== AuthApi.LOGIN && config.url !== AuthApi.LOGOUT) {
     await ensureAccessToken();
   }
   // 2. 附带本地令牌和当前门店
@@ -52,7 +54,7 @@ http.interceptors.response.use(
     const failMessage = error?.response?.data?.message;
     const requestUrl = error?.config?.url;
     // 登录接口的 401：账号密码错误，只 Toast，不改地址、不刷新
-    if (statusCode === HttpStatusCode.UNAUTHORIZED && requestUrl !== AuthApiPath.LOGIN) {
+    if (statusCode === HttpStatusCode.UNAUTHORIZED && requestUrl !== AuthApi.LOGIN) {
       // 其它接口 401：清令牌，只改 hash 到 #/login，保留 # 前路径
       window.localStorage.removeItem(StorageKey.ACCESS_TOKEN);
       goLoginPageByHash();

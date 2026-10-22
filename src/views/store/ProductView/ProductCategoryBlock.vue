@@ -46,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+import { StoreApi } from '../../../api/store';
 import { onMounted, ref, watch } from 'vue';
 import { useDragSort } from '../../../hooks/drag-sort';
 import { RecordStatus, statusLabel } from '../../../utils/constants';
@@ -131,7 +132,7 @@ async function saveProductSort(idList: string[]): Promise<void> {
     return [productRow];
   });
   try {
-    await http.put('/a380/store/products/sort', { idList });
+    await http.put(StoreApi.PRODUCTS_SORT, { idList });
   } catch (error) {
     void error;
     emit('reload');

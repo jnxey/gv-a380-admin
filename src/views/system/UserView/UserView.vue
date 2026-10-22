@@ -24,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import { SystemApi } from '../../../api/system';
 import { onMounted, ref } from 'vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
@@ -43,7 +44,7 @@ const editingUser = ref<UserRow | null>(null);
  * 查询全部后台账号。
  */
 async function loadUsers(): Promise<void> {
-  userList.value = (await http.get('/a380/system/users')) as UserRow[];
+  userList.value = (await http.get(SystemApi.USERS)) as UserRow[];
 }
 
 /**

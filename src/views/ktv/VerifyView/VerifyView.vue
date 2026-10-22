@@ -45,6 +45,7 @@
 </template>
 
 <script setup lang="ts">
+import { KtvApi } from '../../../api/ktv';
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
@@ -105,7 +106,7 @@ function formatBookingEnd(orderRow: OrderRow): string {
  * 查询当前门店预订订单。
  */
 async function loadOrders(): Promise<void> {
-  const pageResult = (await http.get('/a380/ktv/booking-orders', {
+  const pageResult = (await http.get(KtvApi.BOOKING_ORDERS, {
     params: { verifyCode: verifyCode.value, page: page.value, pageSize: pageSize.value },
   })) as { list: OrderRow[]; total: number };
   orderList.value = pageResult.list;
@@ -118,7 +119,7 @@ async function loadOrders(): Promise<void> {
 async function openVerify(bookingOrderId: string): Promise<void> {
   verifyOrderId.value = bookingOrderId;
   verifyRoomId.value = '';
-  freeRoomList.value = (await http.get(`\/a380/ktv/booking-orders/${bookingOrderId}/free-rooms`)) as FreeRoom[];
+  freeRoomList.value = (await http.get(KtvApi.bookingOrderFreeRooms(bookingOrderId))) as FreeRoom[];
   if (isEmpty(freeRoomList.value) !== true) {
     verifyRoomId.value = freeRoomList.value[0].id;
   }
@@ -133,7 +134,7 @@ async function submitVerify(): Promise<void> {
     ElMessage.warning('该时段没有空闲包厢');
     return;
   }
-  await http.post(`\/a380/ktv/booking-orders/${verifyOrderId.value}/verify`, {
+  await http.post(KtvApi.bookingOrderVerify(verifyOrderId.value), {
     roomId: verifyRoomId.value,
   });
   ElMessage.success('核销成功');
@@ -146,7 +147,7 @@ async function submitVerify(): Promise<void> {
  */
 async function cancelOrder(bookingOrderId: string): Promise<void> {
   await ElMessageBox.confirm('确认取消并退款？', '取消订单');
-  await http.post(`\/a380/ktv/booking-orders/${bookingOrderId}/cancel`);
+  await http.post(KtvApi.bookingOrderCancel(bookingOrderId));
   ElMessage.success('已退款');
   await loadOrders();
 }

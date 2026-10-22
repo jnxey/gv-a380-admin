@@ -109,6 +109,7 @@
 </template>
 
 <script setup lang="ts">
+import { StoreApi } from '../../../api/store';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
@@ -239,7 +240,7 @@ function toggleProductScanListen(): void {
  * 查询可卖商品。
  */
 async function loadProducts(): Promise<void> {
-  const pageResult = (await http.get('/a380/store/products', {
+  const pageResult = (await http.get(StoreApi.PRODUCTS, {
     params: {
       keyword: keyword.value,
       page: PageSetting.DEFAULT_PAGE,
@@ -307,7 +308,7 @@ async function submitCashSale(): Promise<void> {
   const wasListening = productScanLoopRunning.value === true;
   stopProductScanLoop();
   try {
-    await http.post('/a380/store/sales', {
+    await http.post(StoreApi.SALES, {
       payMethod: StorePayMethod.CASH,
       memberId: '',
       remark: '',
@@ -339,8 +340,8 @@ async function onPayQrScanned(cipherText: string): Promise<void> {
   }
   submitting.value = true;
   try {
-    const memberRow = (await http.post('/a380/store/pay-qr', { cipherText })) as MemberRow;
-    await http.post('/a380/store/sales', {
+    const memberRow = (await http.post(StoreApi.PAY_QR, { cipherText })) as MemberRow;
+    await http.post(StoreApi.SALES, {
       payMethod: StorePayMethod.MEMBER,
       memberId: memberRow.memberId,
       remark: '',

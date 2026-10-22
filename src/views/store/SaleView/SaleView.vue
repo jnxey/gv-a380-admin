@@ -27,6 +27,7 @@
 </template>
 
 <script setup lang="ts">
+import { StoreApi } from '../../../api/store';
 import { onMounted, ref } from 'vue';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
@@ -63,7 +64,7 @@ const pageSize = ref(PageSetting.DEFAULT_PAGE_SIZE);
  * 分页查询销售单。
  */
 async function loadSales(): Promise<void> {
-  const pageResult = (await http.get('/a380/store/sales', {
+  const pageResult = (await http.get(StoreApi.SALES, {
     params: { page: page.value, pageSize: pageSize.value },
   })) as { list: SaleRow[]; total: number };
   saleList.value = pageResult.list;

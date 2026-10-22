@@ -41,6 +41,7 @@
 </template>
 
 <script setup lang="ts">
+import { KtvApi } from '../../../api/ktv';
 import { onMounted, ref } from 'vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
@@ -76,7 +77,7 @@ function coverImageUrl(roomTypeRow: RoomTypeRow): string {
  * 查询当前门店全部包厢类型。
  */
 async function loadRoomTypes(): Promise<void> {
-  const pageResult = (await http.get('/a380/ktv/room-types')) as { list: RoomTypeRow[] };
+  const pageResult = (await http.get(KtvApi.ROOM_TYPES)) as { list: RoomTypeRow[] };
   roomTypeList.value = pageResult.list;
   await initDragSort();
 }
@@ -109,7 +110,7 @@ async function saveRoomTypeSort(idList: string[]): Promise<void> {
     return [roomTypeRow];
   });
   try {
-    await http.put('/a380/ktv/room-types/sort', { idList });
+    await http.put(KtvApi.ROOM_TYPES_SORT, { idList });
   } catch (error) {
     void error;
     await loadRoomTypes();

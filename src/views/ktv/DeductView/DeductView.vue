@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+import { KtvApi } from '../../../api/ktv';
 import { ref } from 'vue';
 import { readScanText } from '../../../components/ScanGunPrompt/read-scan-text';
 import { isEmpty } from '../../../utils/tools';
@@ -99,8 +100,8 @@ async function submitDeduct(): Promise<void> {
       focusAmount();
       return;
     }
-    const memberRow = (await http.post('/a380/ktv/pay-qr', { cipherText })) as MemberRow;
-    await http.post('/a380/ktv/deduct', {
+    const memberRow = (await http.post(KtvApi.PAY_QR, { cipherText })) as MemberRow;
+    await http.post(KtvApi.DEDUCT, {
       memberId: memberRow.memberId,
       amount: paidAmount,
       remark: remark.value,

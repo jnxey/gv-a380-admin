@@ -39,6 +39,7 @@
 </template>
 
 <script setup lang="ts">
+import { KtvApi } from '../../../api/ktv';
 import { onMounted, ref } from 'vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
@@ -68,8 +69,8 @@ const { initDragSort } = useDragSort(
  * 查询当前门店全部包厢，并加载包厢类型名称。
  */
 async function loadRooms(): Promise<void> {
-  const pageResult = (await http.get('/a380/ktv/rooms')) as { list: RoomRow[] };
-  const roomTypePage = (await http.get('/a380/ktv/room-types')) as { list: RoomTypeOption[] };
+  const pageResult = (await http.get(KtvApi.ROOMS)) as { list: RoomRow[] };
+  const roomTypePage = (await http.get(KtvApi.ROOM_TYPES)) as { list: RoomTypeOption[] };
   roomList.value = pageResult.list;
   roomTypeList.value = roomTypePage.list;
   await initDragSort();
@@ -114,7 +115,7 @@ async function saveRoomSort(idList: string[]): Promise<void> {
     return [roomRow];
   });
   try {
-    await http.put('/a380/ktv/rooms/sort', { idList });
+    await http.put(KtvApi.ROOMS_SORT, { idList });
   } catch (error) {
     void error;
     await loadRooms();

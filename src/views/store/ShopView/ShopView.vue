@@ -51,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+import { StoreApi } from '../../../api/store';
 import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import QRCode from 'qrcode';
@@ -99,7 +100,7 @@ function coverImageUrl(shopRow: ShopRow): string {
  * 查询已绑定的商铺门店。
  */
 async function loadShops(): Promise<void> {
-  shopList.value = (await http.get('/a380/store/shops')) as ShopRow[];
+  shopList.value = (await http.get(StoreApi.SHOPS)) as ShopRow[];
 }
 
 /**

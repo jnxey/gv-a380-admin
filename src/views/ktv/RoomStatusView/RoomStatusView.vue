@@ -187,6 +187,7 @@
 </template>
 
 <script setup lang="ts">
+import { KtvApi } from '../../../api/ktv';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
@@ -435,8 +436,8 @@ const roomTypeWarningList = computed<RoomTypeWarning[]>(() => {
  * 查询当前门店启用中的包厢，并带上待核销订单。
  */
 async function loadRooms(): Promise<void> {
-  const pageResult = (await http.get('/a380/ktv/rooms')) as { list: RoomStatusRow[] };
-  const roomTypePage = (await http.get('/a380/ktv/room-types')) as { list: RoomTypeOption[] };
+  const pageResult = (await http.get(KtvApi.ROOMS)) as { list: RoomStatusRow[] };
+  const roomTypePage = (await http.get(KtvApi.ROOM_TYPES)) as { list: RoomTypeOption[] };
   const pendingOrderList = await loadAllPendingOrders();
   roomList.value = pageResult.list.filter((roomRow) => roomRow.status === RecordStatus.ENABLED);
   roomTypeList.value = roomTypePage.list;
@@ -451,7 +452,7 @@ async function loadAllPendingOrders(): Promise<PendingBookingOrder[]> {
   let page = PageSetting.DEFAULT_PAGE;
   let total = 0;
   do {
-    const pageResult = (await http.get('/a380/ktv/booking-orders', {
+    const pageResult = (await http.get(KtvApi.BOOKING_ORDERS, {
       params: {
         orderStatus: KtvOrderStatus.PENDING_VERIFY,
         recentHours: KtvPendingVerifyWindow.HOURS,
@@ -792,7 +793,7 @@ async function submitOpenRoom(): Promise<void> {
       ElMessage.warning(`请选择${KtvOccupyDuration.HOUR_LIST.join('、')}小时`);
       return;
     }
-    await http.put(`\/a380/ktv/rooms/${openingRoom.value.id}/room-status`, {
+    await http.put(KtvApi.roomStatus(openingRoom.value.id), {
       roomStatus: KtvRoomStatus.IN_USE,
       durationHours: occupyDurationHours.value,
     });
@@ -803,7 +804,7 @@ async function submitOpenRoom(): Promise<void> {
     await loadRooms();
     return;
   }
-  const pageResult = (await http.get('/a380/ktv/booking-orders', {
+  const pageResult = (await http.get(KtvApi.BOOKING_ORDERS, {
     params: {
       verifyCode: verifyCodeText,
       page: PageSetting.DEFAULT_PAGE,
@@ -817,7 +818,7 @@ async function submitOpenRoom(): Promise<void> {
     ElMessage.warning('没有找到待核销订单');
     return;
   }
-  await http.post(`\/a380/ktv/booking-orders/${pendingOrder.bookingOrderId}/verify`, {
+  await http.post(KtvApi.bookingOrderVerify(pendingOrder.bookingOrderId), {
     roomId: openingRoom.value.id,
   });
   ElMessage.success('开包厢成功');
@@ -833,7 +834,7 @@ async function submitExtendOccupy(): Promise<void> {
   if (isEmpty(extendingRoom.value)) {
     return;
   }
-  await http.post(`\/a380/ktv/rooms/${extendingRoom.value.id}/extend-occupy`, {
+  await http.post(KtvApi.roomExtendOccupy(extendingRoom.value.id), {
     durationHours: KtvOccupyDuration.EXTEND_HOURS,
   });
   ElMessage.success('延长成功');
@@ -849,7 +850,7 @@ async function changeRoomStatus(roomRow: RoomStatusRow, roomStatus: string): Pro
     return;
   }
   await ElMessageBox.confirm(`确认将 ${roomRow.roomNo} 改为${roomStatusLabel(roomStatus)}？`, '切换状态');
-  await http.put(`\/a380/ktv/rooms/${roomRow.id}/room-status`, { roomStatus });
+  await http.put(KtvApi.roomStatus(roomRow.id), { roomStatus });
   await loadRooms();
 }
 
@@ -956,7 +957,7 @@ async function loadPaymentNotices(): Promise<void> {
   paymentNoticeLoading = true;
   const isBaseline = !paymentNoticeBaselineReady;
   try {
-    const noticeList = (await http.get('/a380/ktv/payment-notices')) as PaymentNoticeRow[];
+    const noticeList = (await http.get(KtvApi.PAYMENT_NOTICES)) as PaymentNoticeRow[];
     if (Array.isArray(noticeList) !== true) {
       return;
     }

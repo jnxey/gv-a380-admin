@@ -16,6 +16,7 @@
 </template>
 
 <script setup lang="ts">
+import { SystemApi } from '../../../api/system';
 import { onMounted, ref } from 'vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
@@ -35,7 +36,7 @@ const editingRole = ref<RoleRow | null>(null);
  * 查询全部角色。
  */
 async function loadRoles(): Promise<void> {
-  roleList.value = (await http.get('/a380/system/roles')) as RoleRow[];
+  roleList.value = (await http.get(SystemApi.ROLES)) as RoleRow[];
 }
 
 /**

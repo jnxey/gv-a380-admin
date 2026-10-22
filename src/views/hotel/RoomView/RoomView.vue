@@ -36,6 +36,7 @@
 </template>
 
 <script setup lang="ts">
+import { HotelApi } from '../../../api/hotel';
 import { onMounted, ref } from 'vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
@@ -65,8 +66,8 @@ const { initDragSort } = useDragSort(
  * 查询当前门店全部房间，并加载房型名称。
  */
 async function loadRooms(): Promise<void> {
-  const roomPage = (await http.get('/a380/hotel/rooms')) as { list: RoomRow[] };
-  const roomTypePage = (await http.get('/a380/hotel/room-types')) as { list: RoomTypeOption[] };
+  const roomPage = (await http.get(HotelApi.ROOMS)) as { list: RoomRow[] };
+  const roomTypePage = (await http.get(HotelApi.ROOM_TYPES)) as { list: RoomTypeOption[] };
   roomList.value = roomPage.list;
   roomTypeList.value = roomTypePage.list;
   await initDragSort();
@@ -124,7 +125,7 @@ async function saveRoomSort(idList: string[]): Promise<void> {
     return [roomRow];
   });
   try {
-    await http.put('/a380/hotel/rooms/sort', { idList });
+    await http.put(HotelApi.ROOMS_SORT, { idList });
   } catch (error) {
     void error;
     await loadRooms();

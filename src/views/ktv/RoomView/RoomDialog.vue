@@ -24,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import { KtvApi } from '../../../api/ktv';
 import { reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { RecordStatus } from '../../../utils/constants';
@@ -98,9 +99,9 @@ function fillRoomForm(roomRow: RoomRow | null): void {
  */
 async function saveRoom(): Promise<void> {
   if (isEmpty(editingRoomId.value)) {
-    await http.post('/a380/ktv/rooms', roomForm);
+    await http.post(KtvApi.ROOMS, roomForm);
   } else {
-    await http.put(`\/a380/ktv/rooms/${editingRoomId.value}`, roomForm);
+    await http.put(KtvApi.room(editingRoomId.value), roomForm);
   }
   ElMessage.success('保存成功');
   visible.value = false;

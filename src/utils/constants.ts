@@ -39,7 +39,7 @@ export const ShopPayQr = {
   ERROR_CORRECTION_LEVEL: 'H',
   BACKGROUND_COLOR: '#6B2BD9',
   HINT: '打开WV Chat扫一扫',
-  LOGO_URL: '/wv-chat-logo.png',
+  LOGO_URL: './wv-chat-logo.png',
   LOGO_SIZE: 48,
   POSTER_SCALE: 2,
   FILE_EXTENSION: '.png',
@@ -288,21 +288,9 @@ export const BeijingLocation = {
   LATITUDE: 39.9042,
 } as const;
 
-/** 地图代理。瓦片地址里的 {z} {x} {y} 由地图组件替换。 */
-export const MapApiPath = {
-  TILE: '/a380/map/tiles/{z}/{x}/{y}',
-  REVERSE: '/a380/map/reverse',
-} as const;
-
 export const StorageKey = {
   ACCESS_TOKEN: 'gv_a380_admin_access_token',
   CURRENT_SHOP_ID: 'gv_a380_admin_current_shop_id',
-} as const;
-
-export const AuthApiPath = {
-  LOGIN: '/a380/auth/login',
-  LOGOUT: '/a380/auth/logout',
-  REFRESH: '/a380/auth/refresh',
 } as const;
 
 /**

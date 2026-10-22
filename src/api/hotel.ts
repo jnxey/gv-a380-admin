@@ -1,0 +1,30 @@
+/**
+ * 酒店模块接口地址（相对 API_PREFIX）。
+ */
+export const HotelApi = {
+  SHOPS: '/hotel/shops',
+  shop: (shopId: string) => `/hotel/shops/${shopId}`,
+  shopImages: (shopId: string) => `/hotel/shops/${shopId}/images`,
+  shopImage: (shopId: string, imageId: string) => `/hotel/shops/${shopId}/images/${imageId}`,
+  ROOM_TYPES: '/hotel/room-types',
+  ROOM_TYPES_SORT: '/hotel/room-types/sort',
+  roomType: (roomTypeId: string) => `/hotel/room-types/${roomTypeId}`,
+  roomTypeImages: (roomTypeId: string) => `/hotel/room-types/${roomTypeId}/images`,
+  roomTypeImage: (roomTypeId: string, imageId: string) => `/hotel/room-types/${roomTypeId}/images/${imageId}`,
+  ROOMS: '/hotel/rooms',
+  ROOMS_SORT: '/hotel/rooms/sort',
+  room: (roomId: string) => `/hotel/rooms/${roomId}`,
+  roomStatus: (roomId: string) => `/hotel/rooms/${roomId}/room-status`,
+  roomWalkIn: (roomId: string) => `/hotel/rooms/${roomId}/walk-in`,
+  roomFinishCleaning: (roomId: string) => `/hotel/rooms/${roomId}/finish-cleaning`,
+  BOOKING_ORDERS: '/hotel/booking-orders',
+  bookingOrderCheckIn: (bookingOrderId: string) => `/hotel/booking-orders/${bookingOrderId}/check-in`,
+  bookingOrderExtend: (bookingOrderId: string) => `/hotel/booking-orders/${bookingOrderId}/extend`,
+  bookingOrderCheckOut: (bookingOrderId: string) => `/hotel/booking-orders/${bookingOrderId}/check-out`,
+  bookingOrderCancel: (bookingOrderId: string) => `/hotel/booking-orders/${bookingOrderId}/cancel`,
+  PAY_QR: '/hotel/pay-qr',
+  DEDUCT: '/hotel/deduct',
+  BILLS: '/hotel/bills',
+  BILLS_SUMMARY: '/hotel/bills/summary',
+  PAYMENT_NOTICES: '/hotel/payment-notices',
+} as const;

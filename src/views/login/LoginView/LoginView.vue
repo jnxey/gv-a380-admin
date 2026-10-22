@@ -64,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+import { AuthApi } from '../../../api/auth';
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
@@ -85,7 +86,7 @@ const loginForm = reactive({
 async function onSubmit(): Promise<void> {
   submitting.value = true;
   try {
-    const loginResult = (await http.post('/a380/auth/login', loginForm)) as { accessToken: string };
+    const loginResult = (await http.post(AuthApi.LOGIN, loginForm)) as { accessToken: string };
     sessionStore.saveAccessToken(loginResult.accessToken);
     await router.replace('/');
   } finally {

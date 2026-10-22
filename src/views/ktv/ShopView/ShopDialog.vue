@@ -87,6 +87,7 @@
 </template>
 
 <script setup lang="ts">
+import { KtvApi } from '../../../api/ktv';
 import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { UploadRequestOptions, UploadUserFile } from 'element-plus';
@@ -333,7 +334,7 @@ async function removeShopImage(fileItem: ShopImageFileItem): Promise<void> {
   if (isEmpty(fileItem.imageId) || isEmpty(editingShopId.value)) {
     return;
   }
-  await http.delete(`\/a380/ktv/shops/${editingShopId.value}/images/${fileItem.imageId}`);
+  await http.delete(KtvApi.shopImage(editingShopId.value, fileItem.imageId));
 }
 
 /**
@@ -350,7 +351,7 @@ function previewShopImage(fileItem: ShopImageFileItem): void {
 async function postShopImage(shopId: string, file: File): Promise<ShopImageView> {
   const formData = new FormData();
   formData.append('file', file);
-  return (await http.post(`\/a380/ktv/shops/${shopId}/images`, formData)) as ShopImageView;
+  return (await http.post(KtvApi.shopImages(shopId), formData)) as ShopImageView;
 }
 
 /**
@@ -447,13 +448,13 @@ async function saveShop(): Promise<void> {
   }
   const shopBody = shopSaveBody();
   if (isEmpty(editingShopId.value)) {
-    const createdShop = (await http.post('/a380/ktv/shops', shopBody)) as ShopRow;
+    const createdShop = (await http.post(KtvApi.SHOPS, shopBody)) as ShopRow;
     editingShopId.value = createdShop.shopId;
     sessionStore.menuLoaded = false;
     await sessionStore.loadSession(router);
     await uploadPendingShopImages(createdShop.shopId);
   } else {
-    await http.put(`\/a380/ktv/shops/${editingShopId.value}`, shopBody);
+    await http.put(KtvApi.shop(editingShopId.value), shopBody);
   }
   ElMessage.success('保存成功');
   visible.value = false;

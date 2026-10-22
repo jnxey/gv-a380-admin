@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+import { HotelApi } from '../../../api/hotel';
 import { ref } from 'vue';
 import { readScanText } from '../../../components/ScanGunPrompt/read-scan-text';
 import { isEmpty } from '../../../utils/tools';
@@ -99,8 +100,8 @@ async function submitDeduct(): Promise<void> {
       focusAmount();
       return;
     }
-    const memberRow = (await http.post('/a380/hotel/pay-qr', { cipherText })) as MemberRow;
-    await http.post('/a380/hotel/deduct', {
+    const memberRow = (await http.post(HotelApi.PAY_QR, { cipherText })) as MemberRow;
+    await http.post(HotelApi.DEDUCT, {
       memberId: memberRow.memberId,
       amount: paidAmount,
       remark: remark.value,

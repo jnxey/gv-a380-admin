@@ -72,6 +72,7 @@
 </template>
 
 <script setup lang="ts">
+import { FinanceApi } from '../../../api/finance';
 import { onMounted, ref } from 'vue';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
@@ -215,7 +216,7 @@ function readBillDateQuery(): { startDate: string; endDate: string } {
 async function loadSummary(): Promise<void> {
   const billDateQuery = readBillDateQuery();
   try {
-    const summaryResult = (await http.get('/a380/finance/bills/summary', {
+    const summaryResult = (await http.get(FinanceApi.BILLS_SUMMARY, {
       params: {
         shopId: shopId.value,
         bizType: bizType.value,
@@ -239,7 +240,7 @@ async function loadSummary(): Promise<void> {
 async function loadBills(): Promise<void> {
   const billDateQuery = readBillDateQuery();
   try {
-    const pageResult = (await http.get('/a380/finance/bills', {
+    const pageResult = (await http.get(FinanceApi.BILLS, {
       params: {
         keyword: keyword.value,
         shopId: shopId.value,

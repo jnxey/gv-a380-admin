@@ -25,6 +25,7 @@
 </template>
 
 <script setup lang="ts">
+import { HotelApi } from '../../../api/hotel';
 import { reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { HotelRoomStatus } from '../../../utils/constants';
@@ -95,9 +96,9 @@ function fillRoomForm(roomRow: RoomRow | null): void {
  */
 async function saveRoom(): Promise<void> {
   if (isEmpty(editingRoomId.value)) {
-    await http.post('/a380/hotel/rooms', roomForm);
+    await http.post(HotelApi.ROOMS, roomForm);
   } else {
-    await http.put(`\/a380/hotel/rooms/${editingRoomId.value}`, roomForm);
+    await http.put(HotelApi.room(editingRoomId.value), roomForm);
   }
   ElMessage.success('保存成功');
   visible.value = false;

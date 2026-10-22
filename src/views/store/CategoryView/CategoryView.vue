@@ -49,6 +49,7 @@
 </template>
 
 <script setup lang="ts">
+import { StoreApi } from '../../../api/store';
 import { onMounted, reactive, ref } from 'vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { useDragSort } from '../../../hooks/drag-sort';
@@ -84,7 +85,7 @@ const { initDragSort } = useDragSort(
  * 查询当前门店全部分类。
  */
 async function loadCategories(): Promise<void> {
-  categoryList.value = (await http.get('/a380/store/product-categories')) as CategoryRow[];
+  categoryList.value = (await http.get(StoreApi.PRODUCT_CATEGORIES)) as CategoryRow[];
   await initDragSort();
 }
 
@@ -117,9 +118,9 @@ async function saveCategory(): Promise<void> {
     status: categoryForm.status,
   };
   if (isEmpty(editingCategoryId.value)) {
-    await http.post('/a380/store/product-categories', body);
+    await http.post(StoreApi.PRODUCT_CATEGORIES, body);
   } else {
-    await http.put(`\/a380/store/product-categories/${editingCategoryId.value}`, body);
+    await http.put(StoreApi.productCategory(editingCategoryId.value), body);
   }
   dialogVisible.value = false;
   await loadCategories();
@@ -137,7 +138,7 @@ async function saveCategorySort(idList: string[]): Promise<void> {
     return [categoryRow];
   });
   try {
-    await http.put('/a380/store/product-categories/sort', { idList });
+    await http.put(StoreApi.PRODUCT_CATEGORIES_SORT, { idList });
   } catch (error) {
     void error;
     await loadCategories();

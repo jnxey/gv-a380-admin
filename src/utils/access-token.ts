@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
-import { AccessTokenLifetime, AuthApiPath, goLoginPageByHash, HttpStatusCode, ResponseCode, StorageKey } from './constants';
+import { AuthApi } from '../api/auth';
+import { API_PREFIX } from '../api/prefix';
+import { AccessTokenLifetime, goLoginPageByHash, HttpStatusCode, ResponseCode, StorageKey } from './constants';
 import { isEmpty } from './tools';
 
 let refreshingAccessTokenPromise: Promise<string> | null = null;
@@ -83,7 +85,7 @@ function readAccessTokenExpireAtSeconds(accessToken: string): number | null {
  */
 function refreshAccessToken(accessToken: string): Promise<string> {
   return axios
-    .post(AuthApiPath.REFRESH, {}, {
+    .post(`${API_PREFIX}${AuthApi.REFRESH}`, {}, {
       headers: { Authorization: `Bearer ${accessToken}` },
       timeout: 20000,
     })
@@ -98,7 +100,7 @@ function refreshAccessToken(accessToken: string): Promise<string> {
       const currentAccessToken = window.localStorage.getItem(StorageKey.ACCESS_TOKEN);
       if (currentAccessToken !== accessToken) {
         if (isEmpty(currentAccessToken)) {
-          void axios.post(AuthApiPath.LOGOUT, {}, {
+          void axios.post(`${API_PREFIX}${AuthApi.LOGOUT}`, {}, {
             headers: { Authorization: `Bearer ${nextAccessToken}` },
             timeout: 20000,
           });
