@@ -19,6 +19,7 @@ export const ModuleCode = {
 } as const;
 
 export const ShopType = {
+  A380: 'A380',
   KTV: 'KTV',
   HOTEL: 'HOTEL',
   STORE: 'STORE',

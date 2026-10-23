@@ -1,9 +1,7 @@
 ﻿<template>
-  <ShopSwitcher />
   <el-card class="recharge-page">
     <div class="recharge-panel">
-      <div v-if="isEmpty(sessionStore.currentShopId)" class="recharge-empty">请先选择门店后再充值</div>
-      <div v-else-if="isEmpty(rechargedAmount) !== true" class="recharge-result">
+      <div v-if="isEmpty(rechargedAmount) !== true" class="recharge-result">
         <div class="recharge-result-title">
           <span class="recharge-result-mark"></span>
           <span>充值成功</span>
@@ -14,7 +12,7 @@
       </div>
       <template v-else-if="isEmpty(selectedMember)">
         <h2 class="recharge-title">查找会员</h2>
-        <div class="recharge-shop-tip">充值将记入当前门店：{{ currentShopLabel }}</div>
+        <div class="recharge-shop-tip">门店：{{ ShopType.A380 }}</div>
         <div class="recharge-search">
           <el-input
             v-model="keyword"
@@ -34,7 +32,7 @@
         <div v-if="memberMissed === true" class="recharge-empty">没有找到会员</div>
       </template>
       <template v-else>
-        <div class="recharge-shop-tip">充值将记入当前门店：{{ currentShopLabel }}</div>
+        <div class="recharge-shop-tip">门店：{{ ShopType.A380 }}</div>
         <div class="member-summary">
           <div class="member-summary-main">
             <div class="member-card-name">
@@ -81,14 +79,11 @@
 
 <script setup lang="ts">
 import { MemberApi } from '../../../api/member';
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { ElMessage } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
-import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import { useSessionStore } from '../../../stores/session';
-import { MenuIconName, PageSetting } from '../../../utils/constants';
+import { MenuIconName, PageSetting, ShopType } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
@@ -110,7 +105,6 @@ interface RechargeBill {
 }
 
 const route = useRoute();
-const sessionStore = useSessionStore();
 const rechargeAmountOptionList = ['100', '200', '500', '1000'];
 
 const keyword = ref('');
@@ -123,17 +117,6 @@ const rechargedAmount = ref('');
 const rechargedBalance = ref('');
 const searching = ref(false);
 const submitting = ref(false);
-
-/**
- * 当前门店展示文案。没有选中时提示先选店。
- */
-const currentShopLabel = computed(() => {
-  const currentShop = sessionStore.shopList.find((shop) => shop.shopId === sessionStore.currentShopId);
-  if (isEmpty(currentShop)) {
-    return '未选择';
-  }
-  return `${currentShop.shopName}（${currentShop.shopCode}）`;
-});
 
 /**
  * 进入充值步骤后，把焦点放进金额输入框。
@@ -267,14 +250,10 @@ function fillAmount(amountOption: string): void {
 }
 
 /**
- * 按当前门店给会员入账。成功后停在结果页，并展示最新余额。
+ * 给会员入账。流水由服务端记到 A380 中心。成功后停在结果页，并展示最新余额。
  */
 async function submitRecharge(): Promise<void> {
   if (isEmpty(selectedMember.value) || isEmpty(amount.value) || submitting.value === true) {
-    return;
-  }
-  if (isEmpty(sessionStore.currentShopId)) {
-    ElMessage.warning('请选择门店后再充值');
     return;
   }
   const paidAmount = amount.value.trim();
@@ -292,19 +271,35 @@ async function submitRecharge(): Promise<void> {
   }
 }
 
-onMounted(() => {
+/**
+ * 查询页「去充值」已带精确用户名，直接打开账户，不再走聊天用户解析。
+ */
+async function openMemberFromQuery(): Promise<void> {
   const usernameFromQuery = route.query.username;
   if (typeof usernameFromQuery !== 'string' || isEmpty(usernameFromQuery)) {
     return;
   }
-  keyword.value = usernameFromQuery;
-  void searchMember();
+  const cleanedUsername = usernameFromQuery.trim();
+  keyword.value = cleanedUsername;
+  if (searching.value === true) {
+    return;
+  }
+  searching.value = true;
+  try {
+    await openMemberByUsername(cleanedUsername);
+  } finally {
+    searching.value = false;
+  }
+}
+
+onMounted(() => {
+  void openMemberFromQuery();
 });
 </script>
 
 <style scoped>
 .recharge-page {
-  height: calc(100vh - 56px - 24px - 72px);
+  height: calc(100vh - 56px - 24px);
   box-sizing: border-box;
   overflow: auto;
 }
