@@ -118,6 +118,7 @@ import { readScanText } from '../../../components/ScanGunPrompt/read-scan-text';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { MenuIconName, PageSetting, PermissionCode, RecordStatus, StorePayMethod } from '../../../utils/constants';
+import { readScanCode } from '../../../utils/gv-sdk';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -200,7 +201,14 @@ async function applyProductScan(scanText: string): Promise<void> {
 }
 
 /**
- * 连续听商品条码；「扫码中」只盖商品卡片区。点遮罩取消则结束听枪。
+ * 当前是否会走 GV_SDK 相机扫码（与 readScanText 一致：宿主注入了 scanCode）。
+ */
+function willUseGvSdkCamera(): boolean {
+  return readScanCode() !== null;
+}
+
+/**
+ * 听商品条码。扫码枪可连续听；GV_SDK 相机扫完一次即结束，不再重新拉起。
  */
 async function startProductScanLoop(): Promise<void> {
   if (productScanLoopRunning.value === true) {
@@ -208,16 +216,21 @@ async function startProductScanLoop(): Promise<void> {
   }
   productScanLoopAlive = true;
   productScanLoopRunning.value = true;
+  const useGvSdkCamera = willUseGvSdkCamera();
   try {
-    while (productScanLoopAlive === true) {
+    while (productScanLoopAlive) {
       const scanText = await readScanText(productCardArea.value);
-      if (productScanLoopAlive !== true) {
+      if (!productScanLoopAlive) {
         break;
       }
       if (isEmpty(scanText)) {
         break;
       }
       await applyProductScan(scanText);
+      // GV_SDK 扫一次即可，不要立刻再开相机。
+      if (useGvSdkCamera) {
+        break;
+      }
     }
   } finally {
     productScanLoopRunning.value = false;
