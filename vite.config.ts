@@ -8,10 +8,10 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     proxy: {
-      '/a380': {
+      '/a380/admin': {
         target: 'http://127.0.0.1:3200',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/a380/, '/admin'),
+        rewrite: (path) => path.replace(/^\/a380\/admin/, '/admin'),
       },
       '/uploads': {
         target: 'http://127.0.0.1:3200',
