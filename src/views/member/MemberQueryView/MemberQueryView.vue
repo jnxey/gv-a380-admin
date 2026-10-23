@@ -6,12 +6,12 @@
           v-model="keyword"
           v-place
           class="query-keyword"
-          placeholder="用户名/手机号/邮箱（留空浏览全部）"
+          placeholder="用户名/手机号/邮箱"
           clearable
         />
       </el-form-item>
       <el-form-item v-if="canRecharge">
-        <ScanButton type="warning" @scanned="onPayQrScanned">扫付款码</ScanButton>
+        <ScanButton type="warning" @scanned="onPayQrScanned">扫充值码</ScanButton>
       </el-form-item>
     </QueryBar>
     <div v-if="isEmpty(chatUser) !== true" class="chat-user-block">
