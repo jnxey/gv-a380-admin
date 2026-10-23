@@ -15,8 +15,7 @@ import { computed, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { BeijingLocation, StorageKey } from '../../../utils/constants';
-import http from '../../../utils/request';
+import { BeijingLocation } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 
 const visible = defineModel<boolean>({ required: true });
@@ -35,41 +34,6 @@ const confirming = ref(false);
 let locationMap: L.Map | null = null;
 let locationMarker: L.CircleMarker | null = null;
 let locationRequestId = 0;
-const tileObjectUrlList: string[] = [];
-
-/**
- * 瓦片走后台代理，并带上登录令牌。
- */
-const AuthorizedTileLayer = L.TileLayer.extend({
-  createTile(coords: L.Coords, done: L.DoneCallback): HTMLImageElement {
-    const image = document.createElement('img');
-    const tileLayer = this as unknown as L.TileLayer;
-    const tileUrl = tileLayer.getTileUrl(coords);
-    const accessToken = window.localStorage.getItem(StorageKey.ACCESS_TOKEN);
-    const requestHeaders: Record<string, string> = {};
-    if (isEmpty(accessToken) !== true) {
-      requestHeaders.Authorization = `Bearer ${accessToken}`;
-    }
-    fetch(tileUrl, { headers: requestHeaders })
-      .then((response) => {
-        const mediaType = response.headers.get('content-type') ?? '';
-        if (response.ok !== true || mediaType.startsWith('image/') !== true) {
-          throw new Error('tile failed');
-        }
-        return response.blob();
-      })
-      .then((imageBlob) => {
-        const objectUrl = URL.createObjectURL(imageBlob);
-        tileObjectUrlList.push(objectUrl);
-        image.src = objectUrl;
-        done(undefined, image);
-      })
-      .catch((error: Error) => {
-        done(error, image);
-      });
-    return image;
-  },
-});
 
 const pickedLocationText = computed(() => {
   if (isEmpty(pickedLongitude.value) || isEmpty(pickedLatitude.value)) {
@@ -98,17 +62,16 @@ function showMap(): void {
 }
 
 /**
- * 创建地图并接上点击选点。
+ * 创建地图并接上点击选点。瓦片直连 MapTiler。
  */
 function mountMap(latitude: number, longitude: number, zoom: number): void {
   if (isEmpty(mapElement.value)) {
     return;
   }
   locationMap = L.map(mapElement.value, { minZoom: 3, maxZoom: 18 }).setView([latitude, longitude], zoom);
-  new AuthorizedTileLayer(MapApi.TILE, {
+  L.tileLayer(MapApi.TILE, {
     maxZoom: 18,
-    maxNativeZoom: 22,
-    attribution: '&copy; 高德地图',
+    attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(locationMap);
   locationMap.on('click', (event: L.LeafletMouseEvent) => {
     placeMarker(event.latlng.lat, event.latlng.lng);
@@ -176,6 +139,39 @@ function placeMarker(latitude: number, longitude: number): void {
 }
 
 /**
+ * 把逆地理 URL 模板里的 {lng} {lat} 换成当前选中点。
+ */
+function buildReverseUrl(longitude: string, latitude: string): string {
+  return MapApi.REVERSE.replaceAll('{lng}', longitude).replaceAll('{lat}', latitude);
+}
+
+/**
+ * 从 MapTiler 逆地理 JSON 取出地址文字。没有 features 时返回空串。
+ */
+function readMapTilerPlaceName(body: unknown): string {
+  if (body === null || typeof body !== 'object') {
+    return '';
+  }
+  const featureList = (body as { features?: unknown }).features;
+  if (Array.isArray(featureList) !== true || featureList.length === 0) {
+    return '';
+  }
+  const firstFeature = featureList[0];
+  if (firstFeature === null || typeof firstFeature !== 'object') {
+    return '';
+  }
+  const placeName = (firstFeature as { place_name?: unknown }).place_name;
+  if (typeof placeName !== 'string') {
+    return '';
+  }
+  const trimmedPlaceName = placeName.trim();
+  if (isEmpty(trimmedPlaceName)) {
+    return '';
+  }
+  return trimmedPlaceName;
+}
+
+/**
  * 确认位置后解析地址，再把经纬度和地址交回表单。
  */
 async function confirmLocation(): Promise<void> {
@@ -188,20 +184,17 @@ async function confirmLocation(): Promise<void> {
   }
   confirming.value = true;
   try {
-    const reverseResult = (await http.get(MapApi.REVERSE, {
-      params: {
-        lat: pickedLatitude.value,
-        lng: pickedLongitude.value,
-      },
-    })) as { address?: string };
-    let addressText = '';
-    if (isEmpty(reverseResult) !== true && isEmpty(reverseResult.address) !== true) {
-      addressText = reverseResult.address;
+    const reverseUrl = buildReverseUrl(pickedLongitude.value, pickedLatitude.value);
+    const response = await fetch(reverseUrl);
+    if (response.ok !== true) {
+      throw new Error('reverse failed');
     }
+    const body = (await response.json()) as unknown;
+    const addressText = readMapTilerPlaceName(body);
     emit('confirm', pickedLongitude.value, pickedLatitude.value, addressText);
     visible.value = false;
   } catch {
-    // 请求工具已经提示失败原因
+    ElMessage.error('地址解析失败，请稍后重试');
   } finally {
     confirming.value = false;
   }
@@ -212,10 +205,6 @@ async function confirmLocation(): Promise<void> {
  */
 function clearMap(): void {
   locationRequestId += 1;
-  for (const objectUrl of tileObjectUrlList) {
-    URL.revokeObjectURL(objectUrl);
-  }
-  tileObjectUrlList.length = 0;
   if (locationMap !== null) {
     locationMap.remove();
   }
