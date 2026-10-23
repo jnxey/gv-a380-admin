@@ -53,6 +53,7 @@
 <script setup lang="ts">
 import { FinanceApi } from '../../../api/finance';
 import { onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import { FinanceBizType, FinanceDirection, PageSetting, statusLabel } from '../../../utils/constants';
@@ -73,6 +74,7 @@ interface BillRow {
   createdAt: string;
 }
 
+const route = useRoute();
 const keyword = ref('');
 const bizType = ref('');
 const bizTypeOptions = Object.values(FinanceBizType);
@@ -214,6 +216,10 @@ function onPageChange(nextPage: number): void {
 }
 
 onMounted(() => {
+  const keywordFromQuery = route.query.keyword;
+  if (typeof keywordFromQuery === 'string' && isEmpty(keywordFromQuery) !== true) {
+    keyword.value = keywordFromQuery;
+  }
   void loadBills();
 });
 </script>

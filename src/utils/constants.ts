@@ -84,6 +84,7 @@ export const PermissionCode = {
   STORE_PURCHASE_SAVE: 'store:purchase:save',
   STORE_SALE_CASH: 'store:sale:cash',
   STORE_SALE_MEMBER: 'store:sale:member',
+  MEMBER_QUERY: 'member:query',
   MEMBER_RECHARGE: 'member:recharge',
   SYSTEM_USER_QUERY: 'system:user:query',
   SYSTEM_USER_SAVE: 'system:user:save',

@@ -1,16 +1,20 @@
 ﻿<template>
+  <ShopSwitcher />
   <el-card class="recharge-page">
     <div class="recharge-panel">
-      <div v-if="isEmpty(rechargedAmount) !== true" class="recharge-result">
+      <div v-if="isEmpty(sessionStore.currentShopId)" class="recharge-empty">请先选择门店后再充值</div>
+      <div v-else-if="isEmpty(rechargedAmount) !== true" class="recharge-result">
         <div class="recharge-result-title">
           <span class="recharge-result-mark"></span>
           <span>充值成功</span>
         </div>
         <div class="recharge-result-amount">{{ rechargedAmount }}</div>
+        <div v-if="isEmpty(rechargedBalance) !== true" class="recharge-result-balance">当前余额 {{ rechargedBalance }}</div>
         <el-button class="recharge-result-back" type="primary" @click="backToSearch">返回</el-button>
       </div>
       <template v-else-if="isEmpty(selectedMember)">
         <h2 class="recharge-title">查找会员</h2>
+        <div class="recharge-shop-tip">充值将记入当前门店：{{ currentShopLabel }}</div>
         <div class="recharge-search">
           <el-input
             v-model="keyword"
@@ -20,16 +24,17 @@
             @keyup.enter="searchMember"
           />
           <div class="recharge-search-actions">
-            <el-button type="primary" class="recharge-search-button" aria-label="查找" @click="searchMember">
+            <el-button type="primary" class="recharge-search-button" aria-label="查找" :loading="searching" @click="searchMember">
               <AppIcon :icon-name="MenuIconName.ARROW_RIGHT" />
               <span>查找</span>
             </el-button>
-            <ScanButton type="warning" class="recharge-scan-button" aria-label="扫码" @scanned="onPayQrScanned" />
+            <ScanButton type="warning" class="recharge-scan-button" aria-label="扫码" :disabled="searching" @scanned="onPayQrScanned" />
           </div>
         </div>
         <div v-if="memberMissed === true" class="recharge-empty">没有找到会员</div>
       </template>
       <template v-else>
+        <div class="recharge-shop-tip">充值将记入当前门店：{{ currentShopLabel }}</div>
         <div class="member-summary">
           <div class="member-summary-main">
             <div class="member-card-name">
@@ -58,8 +63,16 @@
         </div>
         <el-input v-model="remark" class="recharge-remark" placeholder="备注（选填）" />
         <div class="recharge-actions">
-          <el-button class="recharge-back" @click="backToSearch">返回</el-button>
-          <el-button type="primary" class="recharge-submit" :disabled="isEmpty(amount)" @click="submitRecharge">确认充值</el-button>
+          <el-button class="recharge-back" :disabled="submitting" @click="backToSearch">返回</el-button>
+          <el-button
+            type="primary"
+            class="recharge-submit"
+            :loading="submitting"
+            :disabled="isEmpty(amount) || submitting === true"
+            @click="submitRecharge"
+          >
+            确认充值
+          </el-button>
         </div>
       </template>
     </div>
@@ -68,9 +81,13 @@
 
 <script setup lang="ts">
 import { MemberApi } from '../../../api/member';
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
+import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
+import { useSessionStore } from '../../../stores/session';
 import { MenuIconName, PageSetting } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
@@ -87,6 +104,13 @@ interface ChatUserProfile {
   username: string;
 }
 
+interface RechargeBill {
+  amount: string;
+  balanceAfter: string;
+}
+
+const route = useRoute();
+const sessionStore = useSessionStore();
 const rechargeAmountOptionList = ['100', '200', '500', '1000'];
 
 const keyword = ref('');
@@ -96,6 +120,20 @@ const amountInput = ref<{ focus: () => void } | null>(null);
 const amount = ref('');
 const remark = ref('');
 const rechargedAmount = ref('');
+const rechargedBalance = ref('');
+const searching = ref(false);
+const submitting = ref(false);
+
+/**
+ * 当前门店展示文案。没有选中时提示先选店。
+ */
+const currentShopLabel = computed(() => {
+  const currentShop = sessionStore.shopList.find((shop) => shop.shopId === sessionStore.currentShopId);
+  if (isEmpty(currentShop)) {
+    return '未选择';
+  }
+  return `${currentShop.shopName}（${currentShop.shopCode}）`;
+});
 
 /**
  * 进入充值步骤后，把焦点放进金额输入框。
@@ -136,9 +174,10 @@ async function openMemberByUsername(username: string): Promise<number> {
  */
 async function searchMember(): Promise<void> {
   const cleanedKeyword = keyword.value.trim();
-  if (isEmpty(cleanedKeyword)) {
+  if (isEmpty(cleanedKeyword) || searching.value === true) {
     return;
   }
+  searching.value = true;
   try {
     const chatUserProfile = (await http.get(MemberApi.CHAT_USER, {
       params: { keyword: cleanedKeyword },
@@ -155,6 +194,8 @@ async function searchMember(): Promise<void> {
   } catch {
     memberMissed.value = true;
     selectedMember.value = null;
+  } finally {
+    searching.value = false;
   }
 }
 
@@ -162,6 +203,10 @@ async function searchMember(): Promise<void> {
  * 扫付款码解开后按用户名进入充值。A380 还没有账户时先开户。
  */
 async function onPayQrScanned(cipherText: string): Promise<void> {
+  if (searching.value === true) {
+    return;
+  }
+  searching.value = true;
   try {
     const payQr = (await http.post(MemberApi.PAY_QR, { cipherText })) as { username: string };
     const matchedCount = await openMemberByUsername(payQr.username);
@@ -176,6 +221,8 @@ async function onPayQrScanned(cipherText: string): Promise<void> {
   } catch {
     memberMissed.value = true;
     selectedMember.value = null;
+  } finally {
+    searching.value = false;
   }
 }
 
@@ -188,6 +235,7 @@ function backToSearch(): void {
   amount.value = '';
   remark.value = '';
   rechargedAmount.value = '';
+  rechargedBalance.value = '';
 }
 
 /**
@@ -219,26 +267,44 @@ function fillAmount(amountOption: string): void {
 }
 
 /**
- * 按当前门店给会员入账。成功后停在结果页。
+ * 按当前门店给会员入账。成功后停在结果页，并展示最新余额。
  */
 async function submitRecharge(): Promise<void> {
-  if (isEmpty(selectedMember.value) || isEmpty(amount.value)) {
+  if (isEmpty(selectedMember.value) || isEmpty(amount.value) || submitting.value === true) {
+    return;
+  }
+  if (isEmpty(sessionStore.currentShopId)) {
+    ElMessage.warning('请选择门店后再充值');
     return;
   }
   const paidAmount = amount.value.trim();
-  await http.post(MemberApi.RECHARGE, {
-    memberId: selectedMember.value.memberId,
-    amount: paidAmount,
-    remark: remark.value,
-  });
-  rechargedAmount.value = paidAmount;
+  submitting.value = true;
+  try {
+    const financeBill = (await http.post(MemberApi.RECHARGE, {
+      memberId: selectedMember.value.memberId,
+      amount: paidAmount,
+      remark: remark.value,
+    })) as RechargeBill;
+    rechargedAmount.value = paidAmount;
+    rechargedBalance.value = financeBill.balanceAfter;
+  } finally {
+    submitting.value = false;
+  }
 }
 
+onMounted(() => {
+  const usernameFromQuery = route.query.username;
+  if (typeof usernameFromQuery !== 'string' || isEmpty(usernameFromQuery)) {
+    return;
+  }
+  keyword.value = usernameFromQuery;
+  void searchMember();
+});
 </script>
 
 <style scoped>
 .recharge-page {
-  height: calc(100vh - 56px - 24px);
+  height: calc(100vh - 56px - 24px - 72px);
   box-sizing: border-box;
   overflow: auto;
 }
@@ -249,11 +315,18 @@ async function submitRecharge(): Promise<void> {
 }
 
 .recharge-title {
-  margin: 8px 0 20px;
+  margin: 8px 0 12px;
   font-size: 22px;
   font-weight: 600;
   line-height: 1.3;
   color: #1c2434;
+}
+
+.recharge-shop-tip {
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 20px;
+  color: #667085;
 }
 
 .recharge-search {
@@ -491,5 +564,13 @@ async function submitRecharge(): Promise<void> {
   font-weight: 600;
   line-height: 48px;
   color: #1c2434;
+}
+
+.recharge-result-balance {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 22px;
+  color: #667085;
 }
 </style>

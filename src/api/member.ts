@@ -5,6 +5,7 @@ export const MemberApi = {
   LIST: '/members',
   CHAT_USER: '/members/chat-user',
   SYNC: '/members/sync',
+  STATUS: '/members/status',
   OPEN: '/members/open',
   PAY_QR: '/members/pay-qr',
   RECHARGE: '/members/recharge',
