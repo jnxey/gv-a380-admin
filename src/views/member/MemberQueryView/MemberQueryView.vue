@@ -10,9 +10,11 @@
           clearable
         />
       </el-form-item>
-      <el-form-item v-if="canRecharge">
-        <ScanButton type="warning" @scanned="onPayQrScanned">扫充值码</ScanButton>
-      </el-form-item>
+      <template #append>
+        <el-form-item v-if="canRecharge">
+          <ScanButton type="warning" @scanned="onPayQrScanned">扫充值码</ScanButton>
+        </el-form-item>
+      </template>
     </QueryBar>
     <div v-if="isEmpty(chatUser) !== true" class="chat-user-block">
       <div class="chat-user-title">用户信息</div>
