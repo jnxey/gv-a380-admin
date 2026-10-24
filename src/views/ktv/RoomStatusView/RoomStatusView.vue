@@ -81,7 +81,7 @@
 <script setup lang="ts">
 import { KtvApi } from '../../../api/ktv';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { ElMessageBox, ElNotification } from 'element-plus';
+import { ElMessageBox } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import DeductView from '../DeductView/DeductView.vue';
@@ -90,6 +90,7 @@ import ExtendRoomDialog from './ExtendRoomDialog.vue';
 import PendingVerifyDialog from './PendingVerifyDialog.vue';
 import RoomStatusCard from './RoomStatusCard.vue';
 import RoomStatusOrdersAside from './RoomStatusOrdersAside.vue';
+import { usePaymentNotice } from '../../../hooks/payment-notice';
 import { useSaving } from '../../../hooks/saving';
 import {
   KtvOccupyRemind,
@@ -100,8 +101,8 @@ import {
   PageSetting,
   PermissionCode,
   RecordStatus,
-  statusLabel
 } from '../../../utils/constants';
+import { occupyEndMs, occupyRemindText, roomExtendHourText, roomOccupyEndText, roomOccupyRemindText } from '../../../utils/ktv-occupy';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -175,6 +176,7 @@ const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.KTV_ROOM_SAVE);
 const canVerify = sessionStore.hasPermission(PermissionCode.KTV_ORDER_VERIFY);
 const { saving, runSaving } = useSaving();
+const { preparePaymentAudio, loadPaymentNotices, stopPaymentAudio } = usePaymentNotice(KtvApi.PAYMENT_NOTICES);
 const roomList = ref<RoomStatusRow[]>([]);
 const roomTypeList = ref<RoomTypeOption[]>([]);
 const pendingBookingList = ref<PendingBookingOrder[]>([]);
@@ -368,113 +370,6 @@ async function loadAllPendingOrders(): Promise<PendingBookingOrder[]> {
     page += 1;
   } while (pendingOrderList.length < total);
   return pendingOrderList;
-}
-
-/**
- * 把包厢结束时间解析成本地毫秒。接口里的时间带时区，按原样解析；无法解析时返回 NaN。
- */
-function occupyEndMs(occupyEndAt: string): number {
-  const dateTimeText = occupyEndAt.trim();
-  // 1. 带 T 或 Z 的是接口序列化后的时间，不能把秒后面的时区当成数字
-  if (dateTimeText.includes('T') || dateTimeText.endsWith('Z')) {
-    const parsedMs = Date.parse(dateTimeText);
-    if (Number.isNaN(parsedMs)) {
-      return Number.NaN;
-    }
-    return parsedMs;
-  }
-  // 2. 纯日期时间按本地钟面拆开
-  const datePartList = dateTimeText.slice(0, 10).split('-');
-  const timePartList = dateTimeText.slice(11).split(':');
-  const year = Number(datePartList[0]);
-  const month = Number(datePartList[1]);
-  const day = Number(datePartList[2]);
-  const hour = Number(timePartList[0]);
-  const minute = Number(timePartList[1]);
-  const secondText = isEmpty(timePartList[2]) ? '0' : timePartList[2].split('.')[0];
-  const second = Number(secondText);
-  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day) || Number.isNaN(hour) || Number.isNaN(minute) || Number.isNaN(second)) {
-    return Number.NaN;
-  }
-  return new Date(year, month - 1, day, hour, minute, second).getTime();
-}
-
-/**
- * 结束钟点。不是今天就写成次日。
- */
-function occupyEndClockText(occupyEndAt: string, nowMs: number): string {
-  const endAt = new Date(occupyEndMs(occupyEndAt));
-  const now = new Date(nowMs);
-  const hourText = String(endAt.getHours()).padStart(2, '0');
-  const minuteText = String(endAt.getMinutes()).padStart(2, '0');
-  const endClock = `${hourText}:${minuteText}`;
-  const sameDay = endAt.getFullYear() === now.getFullYear() && endAt.getMonth() === now.getMonth() && endAt.getDate() === now.getDate();
-  if (sameDay) {
-    return `${endClock} 结束`;
-  }
-  return `次日 ${endClock} 结束`;
-}
-
-/**
- * 临近或超时的提醒句。还早于提醒窗口时为空。
- */
-function occupyRemindText(occupyEndAt: string, nowMs: number): string {
-  const endMs = occupyEndMs(occupyEndAt);
-  if (Number.isNaN(endMs)) {
-    return '';
-  }
-  const remainMilliseconds = endMs - nowMs;
-  const leadMilliseconds = KtvOccupyRemind.LEAD_MINUTES * KtvOccupyRemind.MINUTE_MILLISECONDS;
-  if (remainMilliseconds > leadMilliseconds) {
-    return '';
-  }
-  if (remainMilliseconds > 0) {
-    const remainMinutes = Math.ceil(remainMilliseconds / KtvOccupyRemind.MINUTE_MILLISECONDS);
-    return `还剩 ${remainMinutes} 分钟`;
-  }
-  if (-remainMilliseconds < KtvOccupyRemind.MINUTE_MILLISECONDS) {
-    return '已到点';
-  }
-  const overtimeMinutes = Math.floor(-remainMilliseconds / KtvOccupyRemind.MINUTE_MILLISECONDS);
-  return `已超时 ${overtimeMinutes} 分钟`;
-}
-
-/**
- * 卡片上的到点钟点。不是使用中或没有结束时间时为空。
- */
-function roomOccupyEndText(roomRow: RoomStatusRow): string {
-  if (roomRow.roomStatus !== KtvRoomStatus.IN_USE || isEmpty(roomRow.occupyEndAt)) {
-    return '';
-  }
-  const endMs = occupyEndMs(roomRow.occupyEndAt);
-  if (Number.isNaN(endMs)) {
-    return '';
-  }
-  return occupyEndClockText(roomRow.occupyEndAt, Date.now());
-}
-
-/**
- * 卡片上的临近或超时提醒。不是使用中或没有结束时间时为空。
- */
-function roomOccupyRemindText(roomRow: RoomStatusRow): string {
-  if (roomRow.roomStatus !== KtvRoomStatus.IN_USE || isEmpty(roomRow.occupyEndAt)) {
-    return '';
-  }
-  return occupyRemindText(roomRow.occupyEndAt, Date.now());
-}
-
-/**
- * 使用中包厢累计延长的小时。没有延长或不是使用中时为空。
- */
-function roomExtendHourText(roomRow: RoomStatusRow): string {
-  if (roomRow.roomStatus !== KtvRoomStatus.IN_USE) {
-    return '';
-  }
-  const extendHours = Number(roomRow.occupyExtendHours);
-  if (Number.isInteger(extendHours) !== true || extendHours <= 0) {
-    return '';
-  }
-  return `已延长 ${extendHours} 小时`;
 }
 
 /**
@@ -675,146 +570,9 @@ function reloadPage(): void {
 const roomStatusRefreshInterval = 3000;
 /** 待核销每隔多少次房态轮询再拉一次，减轻分页压力。 */
 const pendingReloadEveryPollCount = 5;
-/** 收款播报语言。 */
-const paymentNoticeSpeechLanguage = 'zh-CN';
-/** 收款播报开头。 */
-const paymentNoticeSpeechPrefix = '收款';
-/** 收款播报结尾。 */
-const paymentNoticeSpeechSuffix = '元';
 let roomStatusTimer = 0;
 let roomStatusRefreshing = false;
 let roomStatusPollCount = 0;
-let paymentNoticeBaselineReady = false;
-let paymentNoticeLoading = false;
-let latestPaymentNoticeId = 0n;
-let paymentSpeechUnlocked = false;
-
-interface PaymentNoticeRow {
-  id: string;
-  bizType: string;
-  amount: string;
-  remark: string;
-}
-
-/**
- * 把账单主键收成整数，用来判断哪条更新。
- */
-function billIdValue(billIdText: string): bigint {
-  if (isEmpty(billIdText)) {
-    return 0n;
-  }
-  if (!/^\d+$/.test(billIdText)) {
-    return 0n;
-  }
-  return BigInt(billIdText);
-}
-
-/**
- * 选出中文语音。还没有中文语音时返回空，交给浏览器默认语音。
- */
-function findChineseVoice(): SpeechSynthesisVoice | null {
-  const voiceList = window.speechSynthesis.getVoices();
-  for (const voice of voiceList) {
-    if (voice.lang === paymentNoticeSpeechLanguage || voice.lang.startsWith('zh')) {
-      return voice;
-    }
-  }
-  return null;
-}
-
-/**
- * 第一次点击页面时解锁语音。浏览器要有过操作才允许出声。
- */
-function preparePaymentAudio(): void {
-  if (paymentSpeechUnlocked) {
-    return;
-  }
-  paymentSpeechUnlocked = true;
-  window.speechSynthesis.getVoices();
-  const unlockUtterance = new SpeechSynthesisUtterance('');
-  unlockUtterance.volume = 0;
-  window.speechSynthesis.speak(unlockUtterance);
-}
-
-/**
- * 用中文播报收款金额。多笔会按调用顺序排成队列。
- */
-function playPaymentNoticeSound(amountText: string): void {
-  const spokenAmount = isEmpty(amountText) ? '' : amountText.trim();
-  if (isEmpty(spokenAmount)) {
-    return;
-  }
-  const utterance = new SpeechSynthesisUtterance(`${paymentNoticeSpeechPrefix}${spokenAmount}${paymentNoticeSpeechSuffix}`);
-  utterance.lang = paymentNoticeSpeechLanguage;
-  const chineseVoice = findChineseVoice();
-  if (chineseVoice !== null) {
-    utterance.voice = chineseVoice;
-  }
-  window.speechSynthesis.speak(utterance);
-}
-
-/**
- * 停掉还没播完的收款播报。离开页面时调用。
- */
-function stopPaymentAudio(): void {
-  window.speechSynthesis.cancel();
-}
-
-/**
- * 检查新的店内消费和扫码付款。第一次只记住最大账单，之后才响并弹出通知。
- */
-async function loadPaymentNotices(): Promise<void> {
-  if (paymentNoticeLoading) {
-    return;
-  }
-  paymentNoticeLoading = true;
-  const isBaseline = !paymentNoticeBaselineReady;
-  try {
-    const noticeList = (await http.get(KtvApi.PAYMENT_NOTICES)) as PaymentNoticeRow[];
-    if (Array.isArray(noticeList) !== true) {
-      return;
-    }
-    // 1. 记下这一批里最大的账单主键
-    let maxBillId = latestPaymentNoticeId;
-    for (const noticeRow of noticeList) {
-      const billId = billIdValue(noticeRow.id);
-      if (billId > maxBillId) {
-        maxBillId = billId;
-      }
-    }
-    // 2. 第一次进入只建立基线，不把历史账报出来
-    if (isBaseline) {
-      paymentNoticeBaselineReady = true;
-      latestPaymentNoticeId = maxBillId;
-      return;
-    }
-    const freshNoticeList = noticeList.filter((noticeRow) => billIdValue(noticeRow.id) > latestPaymentNoticeId);
-    latestPaymentNoticeId = maxBillId;
-    if (freshNoticeList.length === 0) {
-      return;
-    }
-    // 3. 按账单先后各播一句，每条新账各弹一次
-    freshNoticeList.sort((leftNotice, rightNotice) => {
-      const leftBillId = billIdValue(leftNotice.id);
-      const rightBillId = billIdValue(rightNotice.id);
-      if (leftBillId < rightBillId) {
-        return -1;
-      }
-      if (leftBillId > rightBillId) {
-        return 1;
-      }
-      return 0;
-    });
-    for (const noticeRow of freshNoticeList) {
-      playPaymentNoticeSound(noticeRow.amount);
-      const remarkText = isEmpty(noticeRow.remark) ? '' : noticeRow.remark.trim();
-      const noticeMessage = isEmpty(remarkText) ? noticeRow.amount : `${noticeRow.amount} ${remarkText}`;
-      ElNotification({ title: statusLabel(noticeRow.bizType), message: noticeMessage, type: 'success' });
-    }
-  } finally {
-    paymentNoticeLoading = false;
-  }
-}
 
 /**
  * 同时刷新包厢状态，并检查新的店内消费和扫码付款。上一轮还没回来时跳过，避免请求叠在一起。

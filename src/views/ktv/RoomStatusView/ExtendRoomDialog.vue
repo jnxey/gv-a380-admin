@@ -28,6 +28,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useSaving } from '../../../hooks/saving';
 import { KtvOccupyDuration, KtvRoomStatus } from '../../../utils/constants';
+import { extendAfterOccupyEndText } from '../../../utils/ktv-occupy';
 import { isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
@@ -64,68 +65,13 @@ const extendRoomTitle = computed(() => {
 });
 
 /**
- * 把包厢结束时间解析成本地毫秒。接口里的时间带时区，按原样解析；无法解析时返回 NaN。
- */
-function occupyEndMs(occupyEndAt: string): number {
-  const dateTimeText = occupyEndAt.trim();
-  if (dateTimeText.includes('T') || dateTimeText.endsWith('Z')) {
-    const parsedMs = Date.parse(dateTimeText);
-    if (Number.isNaN(parsedMs)) {
-      return Number.NaN;
-    }
-    return parsedMs;
-  }
-  const datePartList = dateTimeText.slice(0, 10).split('-');
-  const timePartList = dateTimeText.slice(11).split(':');
-  const year = Number(datePartList[0]);
-  const month = Number(datePartList[1]);
-  const day = Number(datePartList[2]);
-  const hour = Number(timePartList[0]);
-  const minute = Number(timePartList[1]);
-  const secondText = isEmpty(timePartList[2]) ? '0' : timePartList[2].split('.')[0];
-  const second = Number(secondText);
-  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day) || Number.isNaN(hour) || Number.isNaN(minute) || Number.isNaN(second)) {
-    return Number.NaN;
-  }
-  return new Date(year, month - 1, day, hour, minute, second).getTime();
-}
-
-/**
- * 结束钟点。不是今天就写成次日。
- */
-function occupyEndClockText(occupyEndAt: string, nowMs: number): string {
-  const endAt = new Date(occupyEndMs(occupyEndAt));
-  const now = new Date(nowMs);
-  const hourText = String(endAt.getHours()).padStart(2, '0');
-  const minuteText = String(endAt.getMinutes()).padStart(2, '0');
-  const endClock = `${hourText}:${minuteText}`;
-  const sameDay = endAt.getFullYear() === now.getFullYear() && endAt.getMonth() === now.getMonth() && endAt.getDate() === now.getDate();
-  if (sameDay) {
-    return `${endClock} 结束`;
-  }
-  return `次日 ${endClock} 结束`;
-}
-
-/**
  * 延长后的到期文案，按固定延长小时从当前到期往后加。
  */
 const extendAfterEndText = computed(() => {
-  if (isEmpty(props.room) || isEmpty(props.room.occupyEndAt)) {
+  if (isEmpty(props.room)) {
     return '-';
   }
-  const endMs = occupyEndMs(props.room.occupyEndAt);
-  if (Number.isNaN(endMs)) {
-    return '-';
-  }
-  const afterEndMs = endMs + KtvOccupyDuration.EXTEND_HOURS * 60 * 60 * 1000;
-  const afterEndAt = new Date(afterEndMs);
-  const year = afterEndAt.getFullYear();
-  const month = String(afterEndAt.getMonth() + 1).padStart(2, '0');
-  const day = String(afterEndAt.getDate()).padStart(2, '0');
-  const hour = String(afterEndAt.getHours()).padStart(2, '0');
-  const minute = String(afterEndAt.getMinutes()).padStart(2, '0');
-  const second = String(afterEndAt.getSeconds()).padStart(2, '0');
-  return occupyEndClockText(`${year}-${month}-${day} ${hour}:${minute}:${second}`, Date.now());
+  return extendAfterOccupyEndText(props.room.occupyEndAt, KtvOccupyDuration.EXTEND_HOURS);
 });
 
 /**
