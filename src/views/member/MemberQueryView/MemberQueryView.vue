@@ -43,16 +43,16 @@
         </RecordField>
         <template #actions>
           <el-button link type="primary" @click="syncMember(memberRow)">同步</el-button>
+          <el-button v-if="canRecharge === true" link type="primary" @click="goRecharge(memberRow)">去充值</el-button>
+          <el-button link type="primary" @click="goMemberBill(memberRow)">流水</el-button>
           <el-button
             v-if="canQuery === true"
             link
-            type="primary"
+            :type="memberRow.status === RecordStatus.ENABLED ? 'danger' : 'success'"
             @click="toggleMemberStatus(memberRow)"
           >
             {{ memberRow.status === RecordStatus.ENABLED ? '停用' : '启用' }}
           </el-button>
-          <el-button v-if="canRecharge === true" link type="primary" @click="goRecharge(memberRow)">去充值</el-button>
-          <el-button link type="primary" @click="goMemberBill(memberRow)">流水</el-button>
         </template>
       </RecordCard>
     </div>
