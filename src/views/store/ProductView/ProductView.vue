@@ -48,20 +48,14 @@
           </el-select>
         </el-form-item>
         <el-form-item label="图片">
-          <el-upload
-            v-model:file-list="productImageFileList"
-            :class="{ 'product-image-full': productImageFileList.length >= ShopImageLimit.MAX_COUNT }"
-            list-type="picture-card"
-            :limit="ShopImageLimit.MAX_COUNT"
-            :accept="productImageAccept"
-            :http-request="uploadProductImage"
-            :before-upload="beforeUploadProductImage"
-            :on-remove="removeProductImage"
-            :on-preview="previewProductImage"
-            :on-exceed="onProductImageExceed"
-          >
-            <span class="product-image-add">+</span>
-          </el-upload>
+          <ImageGalleryUpload
+            ref="imageGalleryRef"
+            :owner-id="editingProductId"
+            :adapter="productImageAdapter"
+            :enable-cover="false"
+            :tip="false"
+            exceed-label="商品图片"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -69,23 +63,19 @@
         <el-button type="primary" @click="saveProduct">保存</el-button>
       </template>
     </el-dialog>
-    <el-dialog v-model="previewVisible" title="图片预览" width="480px">
-      <img class="product-image-preview" :src="previewUrl" alt="" />
-    </el-dialog>
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { StoreApi } from '../../../api/store';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import type { UploadRequestOptions, UploadUserFile } from 'element-plus';
+import ImageGalleryUpload, { type GalleryImageView, type ImageGalleryAdapter } from '../../../components/ImageGalleryUpload/ImageGalleryUpload.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import { PageSetting, PermissionCode, RecordStatus, ShopImageLimit, ShopImageMime } from '../../../utils/constants';
+import { PageSetting, PermissionCode, RecordStatus } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
-import { limitImageWidth, replaceUploadRawFile } from '../../../utils/image';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 import ProductCategoryBlock, { type ProductRow } from './ProductCategoryBlock.vue';
@@ -95,15 +85,6 @@ interface CategoryRow {
   categoryName: string;
   sortOrder: number;
   status: string;
-}
-
-interface ProductImageView {
-  imageId: string;
-  imageUrl: string;
-}
-
-interface ProductImageFileItem extends UploadUserFile {
-  imageId?: string;
 }
 
 interface ProductGroup {
@@ -118,16 +99,13 @@ const unknownCategoryName = '未分类';
 
 const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.STORE_PRODUCT_SAVE);
-const productImageAccept = `${ShopImageMime.JPEG},${ShopImageMime.PNG},${ShopImageMime.WEBP}`;
 const keyword = ref('');
 const filterCategoryId = ref('');
 const categoryList = ref<CategoryRow[]>([]);
 const productList = ref<ProductRow[]>([]);
 const dialogVisible = ref(false);
 const editingProductId = ref('');
-const productImageFileList = ref<ProductImageFileItem[]>([]);
-const previewVisible = ref(false);
-const previewUrl = ref('');
+const imageGalleryRef = ref<InstanceType<typeof ImageGalleryUpload> | null>(null);
 const productForm = reactive({
   categoryId: '',
   productName: '',
@@ -136,6 +114,20 @@ const productForm = reactive({
   costPrice: '',
   status: RecordStatus.ENABLED as string,
 });
+
+/**
+ * 商品图片的上传和删除。商品没有封面排序。
+ */
+const productImageAdapter: ImageGalleryAdapter = {
+  async upload(ownerId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return (await http.post(StoreApi.productImages(ownerId), formData)) as GalleryImageView;
+  },
+  async remove(ownerId, imageId) {
+    await http.delete(StoreApi.productImage(ownerId, imageId));
+  },
+};
 
 /**
  * 按分类排序把商品分成多块；空分类也保留，方便在分类下新建；筛了分类时只出该块。
@@ -218,7 +210,7 @@ function onBarcodeScanned(scanText: string): void {
 /**
  * 打开新建商品，并预选当前分类。
  */
-function openCreate(categoryId: string): void {
+async function openCreate(categoryId: string): Promise<void> {
   editingProductId.value = '';
   productForm.categoryId = categoryId;
   productForm.productName = '';
@@ -226,14 +218,15 @@ function openCreate(categoryId: string): void {
   productForm.salePrice = '';
   productForm.costPrice = '';
   productForm.status = RecordStatus.ENABLED;
-  productImageFileList.value = [];
   dialogVisible.value = true;
+  await nextTick();
+  imageGalleryRef.value?.clearImages();
 }
 
 /**
  * 打开编辑商品。
  */
-function openEdit(productRow: ProductRow): void {
+async function openEdit(productRow: ProductRow): Promise<void> {
   editingProductId.value = productRow.productId;
   productForm.categoryId = productRow.categoryId;
   productForm.productName = productRow.productName;
@@ -241,15 +234,9 @@ function openEdit(productRow: ProductRow): void {
   productForm.salePrice = productRow.salePrice;
   productForm.costPrice = productRow.costPrice;
   productForm.status = productRow.status;
-  const imageList = isEmpty(productRow.imageList) ? [] : productRow.imageList;
-  productImageFileList.value = imageList.map((productImage) => {
-    return {
-      name: productImage.imageId,
-      url: productImage.imageUrl,
-      imageId: productImage.imageId,
-    };
-  });
   dialogVisible.value = true;
+  await nextTick();
+  imageGalleryRef.value?.setImages(isEmpty(productRow.imageList) ? [] : productRow.imageList);
 }
 
 /**
@@ -275,100 +262,12 @@ async function saveProduct(): Promise<void> {
   if (isEmpty(editingProductId.value)) {
     const createdProduct = (await http.post(StoreApi.PRODUCTS, body)) as ProductRow;
     editingProductId.value = createdProduct.productId;
-    await uploadPendingProductImages(createdProduct.productId);
+    await imageGalleryRef.value?.uploadPending();
   } else {
     await http.put(StoreApi.product(editingProductId.value), body);
   }
   dialogVisible.value = false;
   await loadProducts();
-}
-
-/**
- * 只允许 jpg、png、webp，且不超过大小上限。通过后把过宽的图缩小。
- */
-async function beforeUploadProductImage(file: File): Promise<boolean | File> {
-  const mimeAllowed = file.type === ShopImageMime.JPEG || file.type === ShopImageMime.PNG || file.type === ShopImageMime.WEBP;
-  if (mimeAllowed !== true) {
-    ElMessage.error('只支持 jpg、png、webp');
-    return false;
-  }
-  if (file.size > ShopImageLimit.MAX_BYTES) {
-    ElMessage.error('图片不能超过5MB');
-    return false;
-  }
-  return limitImageWidth(file);
-}
-
-/**
- * 已满 6 张时提示，不再加入列表。
- */
-function onProductImageExceed(): void {
-  ElMessage.warning(`商品图片最多${ShopImageLimit.MAX_COUNT}张`);
-}
-
-/**
- * 编辑时立即上传。新建时只留在列表里，等商品保存成功后再传。
- */
-async function uploadProductImage(options: UploadRequestOptions): Promise<void> {
-  replaceUploadRawFile(productImageFileList.value, options.file);
-  if (isEmpty(editingProductId.value)) {
-    options.onSuccess({});
-    return;
-  }
-  try {
-    const imageView = await postProductImage(editingProductId.value, options.file);
-    const currentFile = productImageFileList.value.find((fileItem) => fileItem.uid === options.file.uid);
-    if (!isEmpty(currentFile)) {
-      currentFile.imageId = imageView.imageId;
-      currentFile.url = imageView.imageUrl;
-    }
-    options.onSuccess(imageView);
-  } catch (error) {
-    options.onError(new Error('上传失败') as Parameters<UploadRequestOptions['onError']>[0]);
-    void error;
-  }
-}
-
-/**
- * 删除已保存的图片。还没上传的只从列表移除。
- */
-async function removeProductImage(fileItem: ProductImageFileItem): Promise<void> {
-  if (isEmpty(fileItem.imageId) || isEmpty(editingProductId.value)) {
-    return;
-  }
-  await http.delete(StoreApi.productImage(editingProductId.value, fileItem.imageId));
-}
-
-/**
- * 预览一张商品图片。
- */
-function previewProductImage(fileItem: ProductImageFileItem): void {
-  previewUrl.value = isEmpty(fileItem.url) ? '' : fileItem.url;
-  previewVisible.value = true;
-}
-
-/**
- * 把一张图片传到指定商品。
- */
-async function postProductImage(productId: string, file: File): Promise<ProductImageView> {
-  const formData = new FormData();
-  formData.append('file', file);
-  return (await http.post(StoreApi.productImages(productId), formData)) as ProductImageView;
-}
-
-/**
- * 把商品保存前选中、尚未上传的图片补传上去。
- */
-async function uploadPendingProductImages(productId: string): Promise<void> {
-  const pendingFileList = productImageFileList.value.filter((fileItem) => isEmpty(fileItem.imageId) && !isEmpty(fileItem.raw));
-  for (const fileItem of pendingFileList) {
-    if (isEmpty(fileItem.raw)) {
-      continue;
-    }
-    const imageView = await postProductImage(productId, fileItem.raw);
-    fileItem.imageId = imageView.imageId;
-    fileItem.url = imageView.imageUrl;
-  }
 }
 
 onMounted(() => {
@@ -389,21 +288,6 @@ onMounted(() => {
 .barcode-row :deep(.el-button) {
   flex: 1 1 0;
   min-width: 0;
-  width: 100%;
-}
-
-.product-image-add {
-  font-size: 28px;
-  line-height: 1;
-  color: #909399;
-}
-
-.product-image-full :deep(.el-upload--picture-card) {
-  display: none;
-}
-
-.product-image-preview {
-  display: block;
   width: 100%;
 }
 
