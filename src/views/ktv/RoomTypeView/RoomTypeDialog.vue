@@ -10,25 +10,39 @@
         </el-select>
       </el-form-item>
       <el-form-item label="图片">
-        <el-upload
-          v-model:file-list="roomTypeImageFileList"
-          :class="{ 'room-type-image-full': roomTypeImageFileList.length >= ShopImageLimit.MAX_COUNT }"
-          list-type="picture-card"
-          :limit="ShopImageLimit.MAX_COUNT"
-          :accept="roomTypeImageAccept"
-          :http-request="uploadRoomTypeImage"
-          :before-upload="beforeUploadRoomTypeImage"
-          :on-remove="removeRoomTypeImage"
-          :on-preview="previewRoomTypeImage"
-          :on-exceed="onRoomTypeImageExceed"
-        >
-          <span class="room-type-image-add">+</span>
-        </el-upload>
+        <div class="room-type-image-block">
+          <el-upload
+            v-model:file-list="roomTypeImageFileList"
+            :class="{ 'room-type-image-full': roomTypeImageFileList.length >= ShopImageLimit.MAX_COUNT }"
+            list-type="picture-card"
+            :limit="ShopImageLimit.MAX_COUNT"
+            :accept="roomTypeImageAccept"
+            :http-request="uploadRoomTypeImage"
+            :before-upload="beforeUploadRoomTypeImage"
+            :on-remove="removeRoomTypeImage"
+            :on-preview="previewRoomTypeImage"
+            :on-exceed="onRoomTypeImageExceed"
+          >
+            <template #file="{ file }">
+              <div class="room-type-image-card">
+                <img class="room-type-image-thumb" :src="file.url" alt="" />
+                <span v-if="isCoverImage(file)" class="room-type-image-cover">封面</span>
+                <span class="room-type-image-actions">
+                  <button v-if="isCoverImage(file) !== true" type="button" class="room-type-image-action" @click.stop="setCoverImage(file)">设为封面</button>
+                  <button type="button" class="room-type-image-action" @click.stop="previewRoomTypeImage(file)">预览</button>
+                  <button type="button" class="room-type-image-action is-danger" @click.stop="removeRoomTypeImageFile(file)">删除</button>
+                </span>
+              </div>
+            </template>
+            <span class="room-type-image-add">+</span>
+          </el-upload>
+          <div class="room-type-image-tip">第一张为封面，可将其它图设为封面</div>
+        </div>
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button size="large" @click="visible = false">取消</el-button>
-      <el-button size="large" type="primary" @click="saveRoomType">保存</el-button>
+      <el-button size="large" :disabled="saving" @click="visible = false">取消</el-button>
+      <el-button size="large" type="primary" :loading="saving" @click="saveRoomType">保存</el-button>
     </template>
   </el-dialog>
   <el-dialog v-model="previewVisible" title="图片预览" width="480px">
@@ -41,6 +55,7 @@ import { KtvApi } from '../../../api/ktv';
 import { reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { UploadRequestOptions, UploadUserFile } from 'element-plus';
+import { useSaving } from '../../../hooks/saving';
 import { RecordStatus, ShopImageLimit, ShopImageMime } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { limitImageWidth, replaceUploadRawFile } from '../../../utils/image';
@@ -56,6 +71,7 @@ export interface RoomTypeRow {
   typeName: string;
   hourlyPrice: string;
   status: string;
+  roomCount: number;
   imageList: RoomTypeImageView[];
 }
 
@@ -76,6 +92,7 @@ const editingId = ref('');
 const roomTypeImageFileList = ref<RoomTypeImageFileItem[]>([]);
 const previewVisible = ref(false);
 const previewUrl = ref('');
+const { saving, runSaving } = useSaving();
 const roomTypeForm = reactive({
   typeName: '',
   hourlyPrice: '',
@@ -122,16 +139,27 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
  * 保存包厢类型。新建成功后再补传选中的图片。
  */
 async function saveRoomType(): Promise<void> {
-  if (isEmpty(editingId.value)) {
-    const createdRoomType = (await http.post(KtvApi.ROOM_TYPES, roomTypeForm)) as RoomTypeRow;
-    editingId.value = createdRoomType.id;
-    await uploadPendingRoomTypeImages(createdRoomType.id);
-  } else {
-    await http.put(KtvApi.roomType(editingId.value), roomTypeForm);
+  if (isEmpty(roomTypeForm.typeName)) {
+    ElMessage.warning('请填写名称');
+    return;
   }
-  ElMessage.success('保存成功');
-  visible.value = false;
-  emit('saved');
+  const hourlyPriceNumber = Number(roomTypeForm.hourlyPrice);
+  if (!Number.isFinite(hourlyPriceNumber) || hourlyPriceNumber <= 0) {
+    ElMessage.warning('每小时价格必须大于0');
+    return;
+  }
+  await runSaving(async () => {
+    if (isEmpty(editingId.value)) {
+      const createdRoomType = (await http.post(KtvApi.ROOM_TYPES, roomTypeForm)) as RoomTypeRow;
+      editingId.value = createdRoomType.id;
+      await uploadPendingRoomTypeImages(createdRoomType.id);
+    } else {
+      await http.put(KtvApi.roomType(editingId.value), roomTypeForm);
+    }
+    ElMessage.success('保存成功');
+    visible.value = false;
+    emit('saved');
+  });
 }
 
 /**
@@ -191,11 +219,64 @@ async function removeRoomTypeImage(fileItem: RoomTypeImageFileItem): Promise<voi
 }
 
 /**
+ * 自定义卡片上的删除：先删服务端，再移出列表。
+ */
+async function removeRoomTypeImageFile(fileItem: RoomTypeImageFileItem): Promise<void> {
+  await removeRoomTypeImage(fileItem);
+  roomTypeImageFileList.value = roomTypeImageFileList.value.filter((imageFile) => imageFile.uid !== fileItem.uid);
+}
+
+/**
  * 预览一张包厢类型图片。
  */
 function previewRoomTypeImage(fileItem: RoomTypeImageFileItem): void {
   previewUrl.value = isEmpty(fileItem.url) ? '' : fileItem.url;
   previewVisible.value = true;
+}
+
+/**
+ * 当前列表第一张是封面。
+ */
+function isCoverImage(fileItem: RoomTypeImageFileItem): boolean {
+  if (isEmpty(roomTypeImageFileList.value)) {
+    return false;
+  }
+  return roomTypeImageFileList.value[0].uid === fileItem.uid;
+}
+
+/**
+ * 把一张图挪到第一位作为封面。已保存的类型会同步排序。
+ */
+async function setCoverImage(fileItem: RoomTypeImageFileItem): Promise<void> {
+  const imageIndex = roomTypeImageFileList.value.findIndex((imageFile) => imageFile.uid === fileItem.uid);
+  if (imageIndex <= 0) {
+    return;
+  }
+  const nextImageList = [...roomTypeImageFileList.value];
+  const [coverImage] = nextImageList.splice(imageIndex, 1);
+  nextImageList.unshift(coverImage);
+  roomTypeImageFileList.value = nextImageList;
+  await syncRoomTypeImageSortOrder();
+}
+
+/**
+ * 按当前列表顺序把已上传图片的排序写回服务端。第一张是封面。还有未上传图时不同步。
+ */
+async function syncRoomTypeImageSortOrder(): Promise<void> {
+  if (isEmpty(editingId.value)) {
+    return;
+  }
+  const imageIdList: string[] = [];
+  for (const imageFile of roomTypeImageFileList.value) {
+    if (isEmpty(imageFile.imageId)) {
+      return;
+    }
+    imageIdList.push(imageFile.imageId);
+  }
+  if (isEmpty(imageIdList)) {
+    return;
+  }
+  await http.post(KtvApi.roomTypeImagesSort(editingId.value), { idList: imageIdList });
 }
 
 /**
@@ -224,10 +305,77 @@ async function uploadPendingRoomTypeImages(roomTypeId: string): Promise<void> {
 </script>
 
 <style scoped>
+.room-type-image-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.room-type-image-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #667085;
+}
+
 .room-type-image-add {
   font-size: 28px;
   line-height: 1;
   color: #909399;
+}
+
+.room-type-image-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.room-type-image-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room-type-image-cover {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 20px;
+  color: #ffffff;
+  background: rgba(28, 36, 52, 0.72);
+  border-radius: 4px;
+}
+
+.room-type-image-actions {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+  background: rgba(28, 36, 52, 0.72);
+}
+
+.room-type-image-action {
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  color: #ffffff;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.room-type-image-action.is-danger {
+  color: #fda29b;
 }
 
 .room-type-image-full :deep(.el-upload--picture-card) {

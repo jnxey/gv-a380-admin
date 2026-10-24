@@ -11,6 +11,7 @@ export const KtvApi = {
   ROOM_TYPES_SORT: '/ktv/room-types/sort',
   roomType: (roomTypeId: string) => `/ktv/room-types/${roomTypeId}`,
   roomTypeImages: (roomTypeId: string) => `/ktv/room-types/${roomTypeId}/images`,
+  roomTypeImagesSort: (roomTypeId: string) => `/ktv/room-types/${roomTypeId}/images/sort`,
   roomTypeImage: (roomTypeId: string, imageId: string) => `/ktv/room-types/${roomTypeId}/images/${imageId}`,
   ROOMS: '/ktv/rooms',
   ROOMS_SORT: '/ktv/rooms/sort',
