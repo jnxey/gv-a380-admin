@@ -24,5 +24,6 @@ export const KtvApi = {
   DEDUCT: '/ktv/deduct',
   BILLS: '/ktv/bills',
   BILLS_SUMMARY: '/ktv/bills/summary',
+  BILLS_EXPORT: '/ktv/bills/export',
   PAYMENT_NOTICES: '/ktv/payment-notices',
 } as const;

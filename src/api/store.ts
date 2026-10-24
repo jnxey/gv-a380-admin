@@ -19,4 +19,5 @@ export const StoreApi = {
   PAY_QR: '/store/pay-qr',
   BILLS: '/store/bills',
   BILLS_SUMMARY: '/store/bills/summary',
+  BILLS_EXPORT: '/store/bills/export',
 } as const;

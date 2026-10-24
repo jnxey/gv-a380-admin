@@ -11,6 +11,13 @@
         </el-select>
       </el-form-item>
       <el-form-item>
+        <el-button-group class="bill-date-quick">
+          <el-button @click="applyQuickDate('today')">今天</el-button>
+          <el-button @click="applyQuickDate('last7')">近7天</el-button>
+          <el-button @click="applyQuickDate('month')">本月</el-button>
+        </el-button-group>
+      </el-form-item>
+      <el-form-item>
         <el-date-picker
           v-model="billDateRange"
           class="bill-date-range"
@@ -21,6 +28,11 @@
           single-panel
         />
       </el-form-item>
+      <template #append>
+        <el-form-item class="query-actions">
+          <el-button :loading="exporting" @click="exportBills">导出</el-button>
+        </el-form-item>
+      </template>
     </QueryBar>
     <div v-if="isEmpty(summaryList) !== true" class="bill-summary-line">
       <div class="bill-total is-in">
@@ -42,39 +54,48 @@
       <div v-if="isEmpty(billList)" class="record-empty">暂无数据</div>
       <div v-else class="bill-list">
         <article v-for="billRow in billList" :key="billRow.billNo" class="bill-item">
-          <div class="bill-item-top">
+          <div class="bill-item-row">
             <div class="bill-item-main">
-              <div class="bill-item-title">{{ displayText(billRow.shopName) }} · {{ displayText(billRow.username) }}</div>
-              <div class="bill-item-sub">
-                <el-tag :type="billAmountTagType(shopDirection(billRow.direction))" effect="plain">{{ statusLabel(shopDirection(billRow.direction)) }}</el-tag>
-                <span>{{ statusLabel(billRow.bizType) }}</span>
-                <span>{{ formatLocalDateTime(billRow.createdAt) }}</span>
-              </div>
+              <el-tag :type="billAmountTagType(shopDirection(billRow.direction))" effect="plain" size="small">{{ statusLabel(shopDirection(billRow.direction)) }}</el-tag>
+              <span class="bill-item-title">
+                {{ displayText(billRow.shopName) }} ·
+                <span class="bill-member-copy" title="点击复制会员号" @click="copyMemberNo(billRow.username)">{{ displayText(billRow.username) }}</span>
+              </span>
+              <span class="bill-item-type">{{ statusLabel(billRow.bizType) }}</span>
             </div>
             <div class="bill-item-amount" :class="billAmountClass(shopDirection(billRow.direction))">{{ formatBillAmount(billRow) }}</div>
           </div>
-          <div class="bill-item-meta">
+          <div class="bill-item-row bill-item-meta">
+            <span>{{ formatLocalDateTime(billRow.createdAt) }}</span>
             <span>账单号 {{ displayText(billRow.billNo) }}</span>
             <span>业务单号 {{ displayText(billRow.bizOrderNo) }}</span>
-            <span>变动前 {{ billRow.balanceBefore }}</span>
-            <span>变动后 {{ billRow.balanceAfter }}</span>
+            <span>变动 {{ billRow.balanceBefore }} → {{ billRow.balanceAfter }}</span>
+            <span v-if="isEmpty(billRow.operatorName) !== true">操作人 {{ billRow.operatorName }}</span>
             <span v-if="isEmpty(billRow.remark) !== true">备注 {{ billRow.remark }}</span>
           </div>
         </article>
       </div>
     </section>
-    <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
+    <ListPager
+      :total="total"
+      :current-page="page"
+      :page-size="pageSize"
+      :page-sizes="[...PageSetting.PAGE_SIZE_OPTIONS]"
+      @current-change="onPageChange"
+      @size-change="onPageSizeChange"
+    />
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { KtvApi } from '../../../api/ktv';
 import { onMounted, ref } from 'vue';
+import { ElMessage } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { FinanceBizType, FinanceDirection, PageSetting, statusLabel } from '../../../utils/constants';
-import { isEmpty, formatLocalDateTime } from '../../../utils/tools';
+import { isEmpty, formatLocalDateTime, copyTextToClipboard } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 interface BillRow {
@@ -87,6 +108,7 @@ interface BillRow {
   balanceBefore: string;
   balanceAfter: string;
   bizOrderNo: string;
+  operatorName: string;
   remark: string;
   createdAt: string;
 }
@@ -109,6 +131,7 @@ const billList = ref<BillRow[]>([]);
 const total = ref(0);
 const page = ref<number>(PageSetting.DEFAULT_PAGE);
 const pageSize = ref<number>(PageSetting.DEFAULT_PAGE_SIZE);
+const exporting = ref(false);
 
 /**
  * 空文本显示成横线。
@@ -181,6 +204,16 @@ function padDatePart(datePart: number): string {
 }
 
 /**
+ * 把本地日期格式化成 YYYY-MM-DD。
+ */
+function formatLocalDateText(dateValue: Date): string {
+  const yearText = String(dateValue.getFullYear());
+  const monthText = padDatePart(dateValue.getMonth() + 1);
+  const dayText = padDatePart(dateValue.getDate());
+  return `${yearText}-${monthText}-${dayText}`;
+}
+
+/**
  * 本月 1 日到今天，按电脑本地日期。
  */
 function currentMonthDateRange(): [string, string] {
@@ -189,6 +222,37 @@ function currentMonthDateRange(): [string, string] {
   const monthText = padDatePart(today.getMonth() + 1);
   const dayText = padDatePart(today.getDate());
   return [`${yearText}-${monthText}-01`, `${yearText}-${monthText}-${dayText}`];
+}
+
+/**
+ * 今天到今天。
+ */
+function todayDateRange(): [string, string] {
+  const todayText = formatLocalDateText(new Date());
+  return [todayText, todayText];
+}
+
+/**
+ * 近 7 天（含今天）到今天。
+ */
+function last7DaysDateRange(): [string, string] {
+  const today = new Date();
+  const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
+  return [formatLocalDateText(startDate), formatLocalDateText(today)];
+}
+
+/**
+ * 点快捷日期后立刻按新范围查询。
+ */
+function applyQuickDate(quickDateKind: 'today' | 'last7' | 'month'): void {
+  if (quickDateKind === 'today') {
+    billDateRange.value = todayDateRange();
+  } else if (quickDateKind === 'last7') {
+    billDateRange.value = last7DaysDateRange();
+  } else {
+    billDateRange.value = currentMonthDateRange();
+  }
+  searchBills();
 }
 
 /**
@@ -202,6 +266,83 @@ function readBillDateQuery(): { startDate: string; endDate: string } {
     startDate: billDateRange.value[0],
     endDate: billDateRange.value[1],
   };
+}
+
+/**
+ * 点击会员号复制到剪贴板。
+ */
+async function copyMemberNo(memberNo: string): Promise<void> {
+  if (await copyTextToClipboard(memberNo)) {
+    ElMessage.success('会员号已复制');
+    return;
+  }
+  ElMessage.error('复制失败');
+}
+
+/**
+ * CSV 单元格转义。含逗号、引号或换行时用双引号包起来。
+ */
+function escapeCsvCell(cellText: string): string {
+  if (cellText.indexOf('"') >= 0 || cellText.indexOf(',') >= 0 || cellText.indexOf('\n') >= 0 || cellText.indexOf('\r') >= 0) {
+    return `"${cellText.replace(/"/g, '""')}"`;
+  }
+  return cellText;
+}
+
+/**
+ * 按当前筛选条件导出 CSV。方向按门店口径。
+ */
+async function exportBills(): Promise<void> {
+  exporting.value = true;
+  try {
+    const billDateQuery = readBillDateQuery();
+    const exportResult = (await http.get(KtvApi.BILLS_EXPORT, {
+      params: {
+        keyword: keyword.value,
+        bizType: bizType.value,
+        startDate: billDateQuery.startDate,
+        endDate: billDateQuery.endDate,
+      },
+    })) as { list: BillRow[] };
+    const headerList = ['账单号', '门店', '用户名', '流水类型', '方向', '金额', '变动前', '变动后', '业务单号', '操作人', '备注', '时间'];
+    const lineList = [headerList.map((headerText) => escapeCsvCell(headerText)).join(',')];
+    for (const billRow of exportResult.list) {
+      const direction = shopDirection(billRow.direction);
+      lineList.push(
+        [
+          billRow.billNo,
+          billRow.shopName,
+          billRow.username,
+          statusLabel(billRow.bizType),
+          statusLabel(direction),
+          formatBillAmount(billRow),
+          billRow.balanceBefore,
+          billRow.balanceAfter,
+          billRow.bizOrderNo,
+          isEmpty(billRow.operatorName) ? '' : billRow.operatorName,
+          isEmpty(billRow.remark) ? '' : billRow.remark,
+          formatLocalDateTime(billRow.createdAt),
+        ]
+          .map((cellText) => escapeCsvCell(String(cellText)))
+          .join(','),
+      );
+    }
+    const csvContent = `\uFEFF${lineList.join('\r\n')}`;
+    const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const downloadUrl = window.URL.createObjectURL(csvBlob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = downloadUrl;
+    downloadLink.download = `KTV流水_${formatLocalDateText(new Date())}.csv`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    window.URL.revokeObjectURL(downloadUrl);
+    ElMessage.success(`已导出 ${exportResult.list.length} 条`);
+  } catch {
+    // 失败文案由请求拦截器提示
+  } finally {
+    exporting.value = false;
+  }
 }
 
 /**
@@ -280,6 +421,16 @@ function onPageChange(nextPage: number): void {
   void loadBills();
 }
 
+/**
+ * 改每页条数后从第一页重查。
+ */
+function onPageSizeChange(nextPageSize: number): void {
+  pageSize.value = nextPageSize;
+  page.value = PageSetting.DEFAULT_PAGE;
+  void loadSummary();
+  void loadBills();
+}
+
 onMounted(() => {
   void loadSummary();
   void loadBills();
@@ -290,6 +441,10 @@ onMounted(() => {
 .bill-date-range {
   width: 260px;
   max-width: 100%;
+}
+
+.bill-date-quick {
+  flex-shrink: 0;
 }
 
 .bill-summary-line {
@@ -362,41 +517,41 @@ onMounted(() => {
 .bill-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .bill-item {
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: #ffffff;
   border: 1px solid #e6e8ec;
   border-radius: 8px;
 }
 
-.bill-item-top {
+.bill-item-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .bill-item-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
 
 .bill-item-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 22px;
   color: #1c2434;
   word-break: break-word;
 }
 
-.bill-item-sub {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
+.bill-item-type {
   font-size: 13px;
   line-height: 20px;
   color: #667085;
@@ -404,9 +559,9 @@ onMounted(() => {
 
 .bill-item-amount {
   flex-shrink: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  line-height: 24px;
+  line-height: 22px;
   font-variant-numeric: tabular-nums;
   color: #1c2434;
 }
@@ -420,13 +575,22 @@ onMounted(() => {
 }
 
 .bill-item-meta {
-  display: flex;
+  justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 6px 16px;
-  margin-top: 10px;
-  font-size: 13px;
-  line-height: 20px;
+  gap: 4px 16px;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 18px;
   color: #667085;
+}
+
+.bill-member-copy {
+  cursor: pointer;
+  color: #3b82f6;
+}
+
+.bill-member-copy:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {

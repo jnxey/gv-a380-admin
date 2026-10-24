@@ -102,7 +102,7 @@ import { ElMessage } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import { FinanceBizType, FinanceDirection, PageSetting, statusLabel } from '../../../utils/constants';
-import { isEmpty, formatLocalDateTime } from '../../../utils/tools';
+import { isEmpty, formatLocalDateTime, copyTextToClipboard } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -315,46 +315,10 @@ function writeEmptyTip(failMessage: string): void {
 }
 
 /**
- * 用临时输入框把文本写进剪贴板。非 HTTPS 时 Clipboard API 常不可用。
- */
-function writeClipboardTextByInput(text: string): boolean {
-  const textArea = document.createElement('textarea');
-  textArea.value = text;
-  textArea.setAttribute('readonly', 'readonly');
-  textArea.style.position = 'fixed';
-  textArea.style.left = '-9999px';
-  textArea.style.top = '0';
-  document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
-  textArea.setSelectionRange(0, text.length);
-  let copySucceeded = false;
-  try {
-    copySucceeded = document.execCommand('copy');
-  } catch {
-    copySucceeded = false;
-  }
-  document.body.removeChild(textArea);
-  return copySucceeded;
-}
-
-/**
  * 点击会员号复制到剪贴板。
  */
 async function copyMemberNo(memberNo: string): Promise<void> {
-  if (isEmpty(memberNo)) {
-    return;
-  }
-  if (window.isSecureContext === true && isEmpty(navigator.clipboard) !== true && typeof navigator.clipboard.writeText === 'function') {
-    try {
-      await navigator.clipboard.writeText(memberNo);
-      ElMessage.success('会员号已复制');
-      return;
-    } catch {
-      // 继续用临时输入框降级
-    }
-  }
-  if (writeClipboardTextByInput(memberNo)) {
+  if (await copyTextToClipboard(memberNo)) {
     ElMessage.success('会员号已复制');
     return;
   }

@@ -26,5 +26,6 @@ export const HotelApi = {
   DEDUCT: '/hotel/deduct',
   BILLS: '/hotel/bills',
   BILLS_SUMMARY: '/hotel/bills/summary',
+  BILLS_EXPORT: '/hotel/bills/export',
   PAYMENT_NOTICES: '/hotel/payment-notices',
 } as const;

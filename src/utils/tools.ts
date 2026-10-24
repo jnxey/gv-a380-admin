@@ -15,6 +15,48 @@ export function isEmpty(value: unknown): value is null | undefined | '' {
 }
 
 /**
+ * 用临时输入框把文本写进剪贴板。非 HTTPS 时 Clipboard API 常不可用。
+ */
+function writeClipboardTextByInput(text: string): boolean {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.setAttribute('readonly', 'readonly');
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-9999px';
+  textArea.style.top = '0';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  textArea.setSelectionRange(0, text.length);
+  let copySucceeded = false;
+  try {
+    copySucceeded = document.execCommand('copy');
+  } catch {
+    copySucceeded = false;
+  }
+  document.body.removeChild(textArea);
+  return copySucceeded;
+}
+
+/**
+ * 把文本写进剪贴板。优先 Clipboard API，失败时用临时输入框。
+ */
+export async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (isEmpty(text)) {
+    return false;
+  }
+  if (window.isSecureContext === true && isEmpty(navigator.clipboard) !== true && typeof navigator.clipboard.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // 继续用临时输入框降级
+    }
+  }
+  return writeClipboardTextByInput(text);
+}
+
+/**
  * 把两位数字补成两位文本。
  */
 function padDateTimePart(dateTimePart: number): string {
