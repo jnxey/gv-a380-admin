@@ -196,11 +196,11 @@ export const KtvOccupyRemind = {
 
 export const FinanceBizType = {
   RECHARGE: 'RECHARGE',
+  REFUND: 'REFUND',
   KTV_BOOKING: 'KTV_BOOKING',
   KTV_IN_STORE: 'KTV_IN_STORE',
   HOTEL_ROOM_FEE: 'HOTEL_ROOM_FEE',
   HOTEL_IN_STORE: 'HOTEL_IN_STORE',
-  REFUND: 'REFUND',
   SHOP_SCAN_PAY: 'SHOP_SCAN_PAY',
   STORE_SALE: 'STORE_SALE',
 } as const;

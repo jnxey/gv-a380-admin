@@ -39,6 +39,10 @@ const emit = defineEmits<{
   flex-wrap: nowrap;
 }
 
+.query-bar :deep(.el-date-editor){
+  --el-date-editor-daterange-width: 260px;
+}
+
 @media (max-width: 768px) {
   .query-bar {
     padding: 0;

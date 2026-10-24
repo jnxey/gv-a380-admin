@@ -17,6 +17,7 @@
           value-format="YYYY-MM-DD"
           start-placeholder="开始日期"
           end-placeholder="结束日期"
+          single-panel
         />
       </el-form-item>
     </QueryBar>

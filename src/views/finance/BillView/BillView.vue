@@ -23,51 +23,55 @@
           value-format="YYYY-MM-DD"
           start-placeholder="开始日期"
           end-placeholder="结束日期"
+          single-panel
         />
       </el-form-item>
     </QueryBar>
-    <div v-if="isEmpty(summaryList) !== true" class="bill-summary-line">
-      <div class="bill-total is-in">
-        <span class="bill-total-label">收入</span>
-        <span class="bill-total-amount">{{ summaryOutAmount }}</span>
+    <div class="bill-scope-tip">本页按门店口径：会员消费为门店收入，会员充值为门店支出。查看会员加减请用「用户流水」。</div>
+    <div v-loading="loading">
+      <div v-if="isEmpty(summaryList) !== true" class="bill-summary-line">
+        <div class="bill-total is-in">
+          <span class="bill-total-label">收入</span>
+          <span class="bill-total-amount">{{ summaryOutAmount }}</span>
+        </div>
+        <div class="bill-total is-out">
+          <span class="bill-total-label">支出</span>
+          <span class="bill-total-amount">{{ summaryInAmount }}</span>
+        </div>
+        <div v-for="summaryRow in summaryList" :key="summaryRow.shopId" class="bill-shop-chip">
+          <span class="bill-shop-name">{{ displayText(summaryRow.shopName) }}</span>
+          <span class="bill-shop-amount is-in">收入 {{ summaryRow.outAmount }}</span>
+          <span class="bill-shop-amount is-out">支出 {{ summaryRow.inAmount }}</span>
+        </div>
       </div>
-      <div class="bill-total is-out">
-        <span class="bill-total-label">支出</span>
-        <span class="bill-total-amount">{{ summaryInAmount }}</span>
-      </div>
-      <div v-for="summaryRow in summaryList" :key="summaryRow.shopId" class="bill-shop-chip">
-        <span class="bill-shop-name">{{ displayText(summaryRow.shopName) }}</span>
-        <span class="bill-shop-amount is-in">收入 {{ summaryRow.outAmount }}</span>
-        <span class="bill-shop-amount is-out">支出 {{ summaryRow.inAmount }}</span>
-      </div>
-    </div>
-    <section class="bill-section">
-      <h2 class="bill-section-title">流水明细</h2>
-      <div v-if="isEmpty(billList)" class="record-empty">暂无数据</div>
-      <div v-else class="bill-list">
-        <article v-for="billRow in billList" :key="billRow.billNo" class="bill-item">
-          <div class="bill-item-top">
-            <div class="bill-item-main">
-              <div class="bill-item-title">{{ displayText(billRow.shopName) }} · {{ displayText(billRow.username) }}</div>
-              <div class="bill-item-sub">
-                <el-tag :type="billAmountTagType(shopDirection(billRow.direction))" effect="plain">{{ statusLabel(shopDirection(billRow.direction)) }}</el-tag>
-                <span>{{ statusLabel(billRow.bizType) }}</span>
-                <span>{{ formatLocalDateTime(billRow.createdAt) }}</span>
+      <section class="bill-section">
+        <h2 class="bill-section-title">流水明细</h2>
+        <div v-if="loading !== true && isEmpty(billList)" class="record-empty">{{ emptyTip }}</div>
+        <div v-else-if="isEmpty(billList) !== true" class="bill-list">
+          <article v-for="billRow in billList" :key="billRow.billNo" class="bill-item">
+            <div class="bill-item-top">
+              <div class="bill-item-main">
+                <div class="bill-item-title">{{ displayText(billRow.shopName) }} · {{ displayText(billRow.username) }}</div>
+                <div class="bill-item-sub">
+                  <el-tag :type="billAmountTagType(shopDirection(billRow.direction))" effect="plain">{{ statusLabel(shopDirection(billRow.direction)) }}</el-tag>
+                  <span>{{ statusLabel(billRow.bizType) }}</span>
+                  <span>{{ formatLocalDateTime(billRow.createdAt) }}</span>
+                </div>
               </div>
+              <div class="bill-item-amount" :class="billAmountClass(shopDirection(billRow.direction))">{{ formatBillAmount(billRow) }}</div>
             </div>
-            <div class="bill-item-amount" :class="billAmountClass(shopDirection(billRow.direction))">{{ formatBillAmount(billRow) }}</div>
-          </div>
-          <div class="bill-item-meta">
-            <span>账单号 {{ displayText(billRow.billNo) }}</span>
-            <span>业务单号 {{ displayText(billRow.bizOrderNo) }}</span>
-            <span>变动前 {{ billRow.balanceBefore }}</span>
-            <span>变动后 {{ billRow.balanceAfter }}</span>
-            <span v-if="isEmpty(billRow.remark) !== true">备注 {{ billRow.remark }}</span>
-          </div>
-        </article>
-      </div>
-    </section>
-    <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
+            <div class="bill-item-meta">
+              <span>账单号 {{ displayText(billRow.billNo) }}</span>
+              <span>业务单号 {{ displayText(billRow.bizOrderNo) }}</span>
+              <span>变动前 {{ billRow.balanceBefore }}</span>
+              <span>变动后 {{ billRow.balanceAfter }}</span>
+              <span v-if="isEmpty(billRow.remark) !== true">备注 {{ billRow.remark }}</span>
+            </div>
+          </article>
+        </div>
+      </section>
+      <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
+    </div>
   </el-card>
 </template>
 
@@ -115,6 +119,8 @@ const billList = ref<BillRow[]>([]);
 const total = ref(0);
 const page = ref<number>(PageSetting.DEFAULT_PAGE);
 const pageSize = ref<number>(PageSetting.DEFAULT_PAGE_SIZE);
+const loading = ref(false);
+const emptyTip = ref('暂无数据');
 
 /**
  * 空文本显示成横线。
@@ -211,27 +217,56 @@ function readBillDateQuery(): { startDate: string; endDate: string } {
 }
 
 /**
- * 按门店和时间汇总收入、支出。关键字不参与。
+ * 从请求失败结果里取出后端文案。
+ */
+function readFailMessage(error: unknown): string {
+  if (isEmpty(error) || typeof error !== 'object') {
+    return '';
+  }
+  const errorRecord = error as { message?: unknown; response?: { data?: { message?: unknown } } };
+  if (typeof errorRecord.message === 'string' && isEmpty(errorRecord.message) !== true) {
+    return errorRecord.message;
+  }
+  const responseMessage = errorRecord.response?.data?.message;
+  if (typeof responseMessage === 'string' && isEmpty(responseMessage) !== true) {
+    return responseMessage;
+  }
+  return '';
+}
+
+/**
+ * 按当前条件写空列表提示。
+ */
+function writeEmptyTip(failMessage: string): void {
+  const cleanedKeyword = keyword.value.trim();
+  if (isEmpty(cleanedKeyword)) {
+    emptyTip.value = '暂无数据';
+    return;
+  }
+  if (failMessage.indexOf('未找到') >= 0) {
+    emptyTip.value = '未找到该聊天用户';
+    return;
+  }
+  emptyTip.value = '该用户在当前条件下没有流水';
+}
+
+/**
+ * 按门店、时间和关键字汇总收入、支出。关键字与明细一致。
  */
 async function loadSummary(): Promise<void> {
   const billDateQuery = readBillDateQuery();
-  try {
-    const summaryResult = (await http.get(FinanceApi.BILLS_SUMMARY, {
-      params: {
-        shopId: shopId.value,
-        bizType: bizType.value,
-        startDate: billDateQuery.startDate,
-        endDate: billDateQuery.endDate,
-      },
-    })) as { list: ShopSummaryRow[]; inAmount: string; outAmount: string };
-    summaryList.value = summaryResult.list;
-    summaryInAmount.value = summaryResult.inAmount;
-    summaryOutAmount.value = summaryResult.outAmount;
-  } catch {
-    summaryList.value = [];
-    summaryInAmount.value = '';
-    summaryOutAmount.value = '';
-  }
+  const summaryResult = (await http.get(FinanceApi.BILLS_SUMMARY, {
+    params: {
+      keyword: keyword.value,
+      shopId: shopId.value,
+      bizType: bizType.value,
+      startDate: billDateQuery.startDate,
+      endDate: billDateQuery.endDate,
+    },
+  })) as { list: ShopSummaryRow[]; inAmount: string; outAmount: string };
+  summaryList.value = summaryResult.list;
+  summaryInAmount.value = summaryResult.inAmount;
+  summaryOutAmount.value = summaryResult.outAmount;
 }
 
 /**
@@ -239,23 +274,41 @@ async function loadSummary(): Promise<void> {
  */
 async function loadBills(): Promise<void> {
   const billDateQuery = readBillDateQuery();
+  const pageResult = (await http.get(FinanceApi.BILLS, {
+    params: {
+      keyword: keyword.value,
+      shopId: shopId.value,
+      bizType: bizType.value,
+      startDate: billDateQuery.startDate,
+      endDate: billDateQuery.endDate,
+      page: page.value,
+      pageSize: pageSize.value,
+    },
+  })) as { list: BillRow[]; total: number };
+  billList.value = pageResult.list;
+  total.value = pageResult.total;
+}
+
+/**
+ * 同时拉汇总和明细，并处理空状态。
+ */
+async function loadSummaryAndBills(): Promise<void> {
+  loading.value = true;
+  emptyTip.value = '暂无数据';
   try {
-    const pageResult = (await http.get(FinanceApi.BILLS, {
-      params: {
-        keyword: keyword.value,
-        shopId: shopId.value,
-        bizType: bizType.value,
-        startDate: billDateQuery.startDate,
-        endDate: billDateQuery.endDate,
-        page: page.value,
-        pageSize: pageSize.value,
-      },
-    })) as { list: BillRow[]; total: number };
-    billList.value = pageResult.list;
-    total.value = pageResult.total;
-  } catch {
+    await Promise.all([loadSummary(), loadBills()]);
+    if (isEmpty(billList.value)) {
+      writeEmptyTip('');
+    }
+  } catch (error) {
+    summaryList.value = [];
+    summaryInAmount.value = '';
+    summaryOutAmount.value = '';
     billList.value = [];
     total.value = 0;
+    writeEmptyTip(readFailMessage(error));
+  } finally {
+    loading.value = false;
   }
 }
 
@@ -264,8 +317,7 @@ async function loadBills(): Promise<void> {
  */
 function searchBills(): void {
   page.value = PageSetting.DEFAULT_PAGE;
-  void loadSummary();
-  void loadBills();
+  void loadSummaryAndBills();
 }
 
 /**
@@ -277,21 +329,31 @@ function resetQuery(): void {
   bizType.value = '';
   billDateRange.value = currentMonthDateRange();
   page.value = PageSetting.DEFAULT_PAGE;
-  void loadSummary();
-  void loadBills();
+  void loadSummaryAndBills();
 }
 
 /**
  * 翻页。
  */
-function onPageChange(nextPage: number): void {
+async function onPageChange(nextPage: number): Promise<void> {
   page.value = nextPage;
-  void loadBills();
+  loading.value = true;
+  try {
+    await loadBills();
+    if (isEmpty(billList.value)) {
+      writeEmptyTip('');
+    }
+  } catch (error) {
+    billList.value = [];
+    total.value = 0;
+    writeEmptyTip(readFailMessage(error));
+  } finally {
+    loading.value = false;
+  }
 }
 
 onMounted(() => {
-  void loadSummary();
-  void loadBills();
+  void loadSummaryAndBills();
 });
 </script>
 
@@ -299,6 +361,13 @@ onMounted(() => {
 .bill-date-range {
   width: 260px;
   max-width: 100%;
+}
+
+.bill-scope-tip {
+  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 20px;
+  color: #667085;
 }
 
 .bill-summary-line {
@@ -452,4 +521,3 @@ onMounted(() => {
   }
 }
 </style>
-
