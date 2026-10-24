@@ -2,31 +2,14 @@
   <div class="room-status-page" @pointerdown="preparePaymentAudio">
     <ShopSwitcher />
     <el-card class="room-status-main">
-      <div class="room-status-summary">
-        <span
-          v-for="roomStatusCount in roomStatusCountList"
-          :key="roomStatusCount.value"
-          class="room-status-count"
-          :class="roomStatusCardClass(roomStatusCount.value)"
-        >
-          <span class="room-status-count-label">{{ roomStatusCount.label }}</span>
-          <span class="room-status-count-value">{{ roomStatusCount.count }}</span>
-        </span>
-        <button type="button" class="room-status-deduct" @click="deductVisible = true">
-          <AppIcon class="room-status-deduct-icon" :icon-name="MenuIconName.FINANCE_BILL" />
-          付款
-        </button>
-        <button type="button" class="room-status-refresh" title="刷新" @click="reloadPage">
-          <AppIcon class="room-status-refresh-icon" :icon-name="MenuIconName.REFRESH" />
-        </button>
-      </div>
+      <RoomStatusSummary :count-list="roomStatusCountList" @deduct="deductVisible = true" @refresh="reloadPage" />
       <div class="room-status-body">
         <div v-loading="pageLoading" class="room-status-rooms">
           <div v-if="pageLoading !== true && isEmpty(roomStatusGroupList)" class="room-status-empty">暂无数据</div>
           <section v-for="roomStatusGroup in roomStatusGroupList" :key="roomStatusGroup.roomTypeId" class="room-status-group">
             <h3 class="room-status-group-title">{{ roomStatusGroup.typeName }}</h3>
-            <div v-if="isEmpty(roomTypeWarningText(roomStatusGroup.roomTypeId)) !== true" class="room-status-warning">
-              {{ roomTypeWarningText(roomStatusGroup.roomTypeId) }}
+            <div v-if="isEmpty(roomTypeWarningText(roomTypeWarningList, roomStatusGroup.roomTypeId)) !== true" class="room-status-warning">
+              {{ roomTypeWarningText(roomTypeWarningList, roomStatusGroup.roomTypeId) }}
             </div>
             <div class="room-status-grid">
               <RoomStatusCard
@@ -82,7 +65,6 @@
 import { KtvApi } from '../../../api/ktv';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import DeductView from '../DeductView/DeductView.vue';
 import OpenRoomDialog from './OpenRoomDialog.vue';
@@ -90,6 +72,8 @@ import ExtendRoomDialog from './ExtendRoomDialog.vue';
 import PendingVerifyDialog from './PendingVerifyDialog.vue';
 import RoomStatusCard from './RoomStatusCard.vue';
 import RoomStatusOrdersAside from './RoomStatusOrdersAside.vue';
+import RoomStatusSummary from './RoomStatusSummary.vue';
+import { useKtvRoomStatusRefresh } from '../../../hooks/ktv-room-status-refresh';
 import { usePaymentNotice } from '../../../hooks/payment-notice';
 import { useSaving } from '../../../hooks/saving';
 import {
@@ -97,12 +81,16 @@ import {
   KtvOrderStatus,
   KtvPendingVerifyWindow,
   KtvRoomStatus,
-  MenuIconName,
   PageSetting,
   PermissionCode,
   RecordStatus,
 } from '../../../utils/constants';
 import { occupyEndMs, occupyRemindText, roomExtendHourText, roomOccupyEndText, roomOccupyRemindText } from '../../../utils/ktv-occupy';
+import {
+  buildPendingTypeCountList,
+  buildRoomTypeWarningList,
+  roomTypeWarningText,
+} from '../../../utils/ktv-room-type-warning';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -149,22 +137,6 @@ interface PendingBookingOrder {
   durationHours: number;
   verifyCode: string;
   orderStatus: string;
-}
-
-interface PendingTypeCount {
-  roomTypeId: string;
-  typeName: string;
-  count: number;
-}
-
-interface RoomTypeWarning {
-  roomTypeId: string;
-  warningText: string;
-}
-
-interface BookingRangePoint {
-  timeMs: number;
-  changeCount: number;
 }
 
 interface RoomStatusOption {
@@ -268,53 +240,13 @@ const roomStatusCountList = computed(() => {
 /**
  * 待核销订单按包厢类型计数。
  */
-const pendingTypeCountList = computed<PendingTypeCount[]>(() => {
-  const pendingTypeCountMap = new Map<string, PendingTypeCount>();
-  pendingBookingList.value.forEach((pendingOrder) => {
-    const pendingTypeCount = pendingTypeCountMap.get(pendingOrder.roomTypeId);
-    if (pendingTypeCount === undefined) {
-      pendingTypeCountMap.set(pendingOrder.roomTypeId, {
-        roomTypeId: pendingOrder.roomTypeId,
-        typeName: pendingOrder.roomTypeName,
-        count: 1
-      });
-      return;
-    }
-    pendingTypeCount.count += 1;
-  });
-  return Array.from(pendingTypeCountMap.values());
-});
+const pendingTypeCountList = computed(() => buildPendingTypeCountList(pendingBookingList.value));
 
 /**
  * 同一时段待核销单快占满或已经占满空闲包厢时给出提示。
  */
-const roomTypeWarningList = computed<RoomTypeWarning[]>(() => {
-  const roomTypeIdList = pendingTypeCountList.value.map((pendingTypeCount) => pendingTypeCount.roomTypeId);
-  return roomTypeIdList.flatMap((roomTypeId) => {
-    const typeOrderList = pendingBookingList.value.filter((pendingOrder) => pendingOrder.roomTypeId === roomTypeId);
-    const peakCount = peakPendingCount(typeOrderList);
-    if (peakCount === 0) {
-      return [];
-    }
-    const idleCount = roomList.value.filter((roomRow) => {
-      return roomRow.roomTypeId === roomTypeId && roomRow.roomStatus === KtvRoomStatus.IDLE;
-    }).length;
-    const freeLeft = idleCount - peakCount;
-    if (freeLeft > 1) {
-      return [];
-    }
-    const firstPendingOrder = typeOrderList[0];
-    if (isEmpty(firstPendingOrder)) {
-      return [];
-    }
-    const typeName = firstPendingOrder.roomTypeName;
-    return [
-      {
-        roomTypeId,
-        warningText: roomTypeWarningMessage(typeName, peakCount, idleCount, freeLeft)
-      }
-    ];
-  });
+const roomTypeWarningList = computed(() => {
+  return buildRoomTypeWarningList(pendingBookingList.value, roomList.value, pendingTypeCountList.value);
 });
 
 /**
@@ -373,79 +305,6 @@ async function loadAllPendingOrders(): Promise<PendingBookingOrder[]> {
 }
 
 /**
- * 开唱时刻的本地毫秒。用年月日分开构造，避免把日期串当成 UTC。
- */
-function bookingStartMs(pendingOrder: PendingBookingOrder): number {
-  const datePartList = pendingOrder.bookingDate.slice(0, 10).split('-');
-  const timePartList = pendingOrder.startTime.split(':');
-  const year = Number(datePartList[0]);
-  const month = Number(datePartList[1]);
-  const day = Number(datePartList[2]);
-  const hour = Number(timePartList[0]);
-  const minute = Number(timePartList[1]);
-  const second = Number(timePartList[2] || '0');
-  return new Date(year, month - 1, day, hour, minute, second).getTime();
-}
-
-/**
- * 计算同一包厢类型里，待核销订单在同一时刻最多叠几单。相邻小时不算重叠。
- */
-function peakPendingCount(bookingOrderList: PendingBookingOrder[]): number {
-  if (isEmpty(bookingOrderList)) {
-    return 0;
-  }
-  // 1. 每张订单拆成开唱加一、结束减一
-  const pointList: BookingRangePoint[] = [];
-  bookingOrderList.forEach((pendingOrder) => {
-    const startMs = bookingStartMs(pendingOrder);
-    const endMs = startMs + pendingOrder.durationHours * 60 * 60 * 1000;
-    pointList.push({ timeMs: startMs, changeCount: 1 });
-    pointList.push({ timeMs: endMs, changeCount: -1 });
-  });
-  // 2. 同一时刻先结束再开唱，相邻小时不叠在一起
-  pointList.sort((leftPoint, rightPoint) => {
-    if (leftPoint.timeMs !== rightPoint.timeMs) {
-      return leftPoint.timeMs - rightPoint.timeMs;
-    }
-    return leftPoint.changeCount - rightPoint.changeCount;
-  });
-  // 3. 扫一遍，留下同时在场的最大单数
-  let currentCount = 0;
-  let peakCount = 0;
-  pointList.forEach((point) => {
-    currentCount += point.changeCount;
-    if (currentCount > peakCount) {
-      peakCount = currentCount;
-    }
-  });
-  return peakCount;
-}
-
-/**
- * 按剩余空闲间数生成提示。还剩 1 间、刚好达到、已经超过各一句。
- */
-function roomTypeWarningMessage(typeName: string, peakCount: number, idleCount: number, freeLeft: number): string {
-  if (freeLeft === 1) {
-    return `${typeName}同一时段待核销 ${peakCount} 单，空闲 ${idleCount} 间，还剩 1 间`;
-  }
-  if (peakCount === idleCount) {
-    return `${typeName}同一时段待核销 ${peakCount} 单，已达到空闲包厢 ${idleCount} 间`;
-  }
-  return `${typeName}同一时段待核销 ${peakCount} 单，已超过空闲包厢 ${idleCount} 间`;
-}
-
-/**
- * 取出某个包厢类型的订满提示。没有提示时返回空字符串。
- */
-function roomTypeWarningText(roomTypeId: string): string {
-  const roomTypeWarning = roomTypeWarningList.value.find((item) => item.roomTypeId === roomTypeId);
-  if (isEmpty(roomTypeWarning)) {
-    return '';
-  }
-  return roomTypeWarning.warningText;
-}
-
-/**
  * 取出包厢类型的每小时价格。没有类型时返回空字符串。
  */
 function roomHourlyPrice(roomTypeId: string): string {
@@ -465,28 +324,6 @@ function roomStatusLabel(roomStatus: string): string {
     return roomStatus;
   }
   return roomStatusOption.label;
-}
-
-/**
- * 包厢运营状态对应的卡片底色。
- */
-function roomStatusCardClass(roomStatus: string): string {
-  if (roomStatus === KtvRoomStatus.IDLE) {
-    return 'is-idle';
-  }
-  if (roomStatus === KtvRoomStatus.IN_USE) {
-    return 'is-in-use';
-  }
-  if (roomStatus === KtvRoomStatus.CLEANING) {
-    return 'is-cleaning';
-  }
-  if (roomStatus === KtvRoomStatus.MAINTENANCE) {
-    return 'is-maintenance';
-  }
-  if (roomStatus === KtvRoomStatus.CLOSED) {
-    return 'is-closed';
-  }
-  return '';
 }
 
 /**
@@ -566,49 +403,10 @@ function reloadPage(): void {
   window.location.reload();
 }
 
-/** 包厢状态、待核销订单和到账提示的轮询间隔，单位毫秒。 */
-const roomStatusRefreshInterval = 3000;
-/** 待核销每隔多少次房态轮询再拉一次，减轻分页压力。 */
-const pendingReloadEveryPollCount = 5;
-let roomStatusTimer = 0;
-let roomStatusRefreshing = false;
-let roomStatusPollCount = 0;
-
-/**
- * 同时刷新包厢状态，并检查新的店内消费和扫码付款。上一轮还没回来时跳过，避免请求叠在一起。
- * 房型不随轮询重拉；待核销按次数节流。
- */
-async function refreshRoomStatusPage(): Promise<void> {
-  if (roomStatusRefreshing) {
-    return;
-  }
-  roomStatusRefreshing = true;
-  try {
-    roomStatusPollCount += 1;
-    const reloadPending = roomStatusPollCount % pendingReloadEveryPollCount === 0;
-    await loadRooms({ reloadPending });
-    await loadPaymentNotices();
-  } finally {
-    roomStatusRefreshing = false;
-  }
-}
-
-/**
- * 进入页面后按固定间隔刷新包厢状态和待核销订单。
- */
-function startRoomStatusRefresh(): void {
-  roomStatusTimer = window.setInterval(() => {
-    void refreshRoomStatusPage();
-  }, roomStatusRefreshInterval);
-}
-
-/**
- * 离开页面后停止包厢状态刷新。
- */
-function stopRoomStatusRefresh(): void {
-  window.clearInterval(roomStatusTimer);
-  roomStatusTimer = 0;
-}
+const { startRoomStatusRefresh, stopRoomStatusRefresh } = useKtvRoomStatusRefresh({
+  loadRooms,
+  loadPaymentNotices,
+});
 
 /**
  * 付款弹窗打开后，把焦点放进金额输入框。
@@ -661,88 +459,6 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-.room-status-summary {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.room-status-count {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  color: #fff;
-  white-space: nowrap;
-}
-
-.room-status-count-value,
-.room-status-count-label {
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  line-height: 1;
-}
-
-.room-status-count-value {
-  font-size: 22px;
-  font-weight: 600;
-  transform: translateY(-2px);
-}
-
-.room-status-count-label {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.room-status-deduct,
-.room-status-refresh {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: stretch;
-  height: auto;
-  padding: 0 10px;
-  cursor: pointer;
-  border: 0;
-  border-radius: 8px;
-}
-
-.room-status-deduct {
-  padding: 0 14px;
-  color: #ffffff;
-  background: #2563eb;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.room-status-deduct:hover {
-  background: #1d4ed8;
-}
-
-.room-status-refresh {
-  color: #1c2434;
-  background: #e4e7ec;
-}
-
-.room-status-refresh:hover {
-  background: #d5d9e0;
-}
-
-.room-status-deduct-icon,
-.room-status-refresh-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.room-status-deduct-icon {
-  margin-right: 6px;
-}
-
 .room-status-body {
   display: flex;
   flex: 1;
@@ -790,34 +506,10 @@ onBeforeUnmount(() => {
   gap: 12px;
 }
 
-.room-status-count.is-idle {
-  background: #248a4a;
-}
-
-.room-status-count.is-in-use {
-  background: #b56a08;
-}
-
-.room-status-count.is-cleaning {
-  background: #217eae;
-}
-
-.room-status-count.is-maintenance {
-  background: #b84545;
-}
-
-.room-status-count.is-closed {
-  background: #5e6772;
-}
-
 @media (max-width: 768px) {
   .room-status-main,
   .room-status-main :deep(.el-card__body) {
     min-height: auto;
-  }
-
-  .room-status-summary {
-    flex-wrap: wrap;
   }
 
   .room-status-body {
