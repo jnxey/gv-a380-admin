@@ -55,32 +55,34 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="图片">
-            <div class="shop-image-tip">第一张为封面，可将其它图设为封面</div>
-            <el-upload
-              v-model:file-list="shopImageFileList"
-              :class="{ 'shop-image-full': shopImageFileList.length >= ShopImageLimit.MAX_COUNT }"
-              list-type="picture-card"
-              :limit="ShopImageLimit.MAX_COUNT"
-              :accept="shopImageAccept"
-              :http-request="uploadShopImage"
-              :before-upload="beforeUploadShopImage"
-              :on-remove="removeShopImage"
-              :on-preview="previewShopImage"
-              :on-exceed="onShopImageExceed"
-            >
-              <template #file="{ file }">
-                <div class="shop-image-card">
-                  <img class="shop-image-thumb" :src="file.url" alt="" />
-                  <span v-if="isCoverImage(file)" class="shop-image-cover">封面</span>
-                  <span class="shop-image-actions">
-                    <button v-if="isCoverImage(file) !== true" type="button" class="shop-image-action" @click.stop="setCoverImage(file)">设为封面</button>
-                    <button type="button" class="shop-image-action" @click.stop="previewShopImage(file)">预览</button>
-                    <button type="button" class="shop-image-action is-danger" @click.stop="removeShopImageFile(file)">删除</button>
-                  </span>
-                </div>
-              </template>
-              <span class="shop-image-add">+</span>
-            </el-upload>
+            <div class="shop-image-block">
+              <el-upload
+                v-model:file-list="shopImageFileList"
+                :class="{ 'shop-image-full': shopImageFileList.length >= ShopImageLimit.MAX_COUNT }"
+                list-type="picture-card"
+                :limit="ShopImageLimit.MAX_COUNT"
+                :accept="shopImageAccept"
+                :http-request="uploadShopImage"
+                :before-upload="beforeUploadShopImage"
+                :on-remove="removeShopImage"
+                :on-preview="previewShopImage"
+                :on-exceed="onShopImageExceed"
+              >
+                <template #file="{ file }">
+                  <div class="shop-image-card">
+                    <img class="shop-image-thumb" :src="file.url" alt="" />
+                    <span v-if="isCoverImage(file)" class="shop-image-cover">封面</span>
+                    <span class="shop-image-actions">
+                      <button v-if="!isCoverImage(file)" type="button" class="shop-image-action" @click.stop="setCoverImage(file)">设为封面</button>
+                      <button type="button" class="shop-image-action" @click.stop="previewShopImage(file)">预览</button>
+                      <button type="button" class="shop-image-action is-danger" @click.stop="removeShopImageFile(file)">删除</button>
+                    </span>
+                  </div>
+                </template>
+                <span class="shop-image-add">+</span>
+              </el-upload>
+              <div class="shop-image-tip">第一张为封面，可将其它图设为封面</div>
+            </div>
           </el-form-item>
         </el-col>
       </el-row>
@@ -545,8 +547,15 @@ async function saveShop(): Promise<void> {
   width: 100%;
 }
 
+.shop-image-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
 .shop-image-tip {
-  margin-bottom: 8px;
+  margin-top: 8px;
   font-size: 12px;
   line-height: 18px;
   color: #667085;
