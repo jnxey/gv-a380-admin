@@ -61,22 +61,19 @@
         <div v-if="loading !== true && isEmpty(billList)" class="record-empty">{{ emptyTip }}</div>
         <div v-else-if="isEmpty(billList) !== true" class="bill-list">
           <article v-for="billRow in billList" :key="billRow.billNo" class="bill-item">
-            <div class="bill-item-top">
+            <div class="bill-item-row">
               <div class="bill-item-main">
-                <div class="bill-item-title">{{ displayText(billRow.shopName) }} · {{ displayText(billRow.username) }}</div>
-                <div class="bill-item-sub">
-                  <el-tag :type="billAmountTagType(shopDirection(billRow.direction))" effect="plain">{{ statusLabel(shopDirection(billRow.direction)) }}</el-tag>
-                  <span>{{ statusLabel(billRow.bizType) }}</span>
-                  <span>{{ formatLocalDateTime(billRow.createdAt) }}</span>
-                </div>
+                <el-tag :type="billAmountTagType(shopDirection(billRow.direction))" effect="plain" size="small">{{ statusLabel(shopDirection(billRow.direction)) }}</el-tag>
+                <span class="bill-item-title">{{ displayText(billRow.shopName) }} · {{ displayText(billRow.username) }}</span>
+                <span class="bill-item-type">{{ statusLabel(billRow.bizType) }}</span>
               </div>
               <div class="bill-item-amount" :class="billAmountClass(shopDirection(billRow.direction))">{{ formatBillAmount(billRow) }}</div>
             </div>
-            <div class="bill-item-meta">
+            <div class="bill-item-row bill-item-meta">
+              <span>{{ formatLocalDateTime(billRow.createdAt) }}</span>
               <span class="bill-no-copy" title="点击复制" @click="copyBillNo(billRow.billNo)">账单号 {{ displayText(billRow.billNo) }}</span>
               <span>业务单号 {{ displayText(billRow.bizOrderNo) }}</span>
-              <span>变动前 {{ billRow.balanceBefore }}</span>
-              <span>变动后 {{ billRow.balanceAfter }}</span>
+              <span>变动 {{ billRow.balanceBefore }} → {{ billRow.balanceAfter }}</span>
               <span v-if="isEmpty(billRow.operatorName) !== true">操作人 {{ billRow.operatorName }}</span>
               <span v-if="isEmpty(billRow.remark) !== true">备注 {{ billRow.remark }}</span>
             </div>
@@ -315,18 +312,50 @@ function writeEmptyTip(failMessage: string): void {
 }
 
 /**
+ * 用临时输入框把文本写进剪贴板。非 HTTPS 时 Clipboard API 常不可用。
+ */
+function writeClipboardTextByInput(text: string): boolean {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.setAttribute('readonly', 'readonly');
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-9999px';
+  textArea.style.top = '0';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  textArea.setSelectionRange(0, text.length);
+  let copySucceeded = false;
+  try {
+    copySucceeded = document.execCommand('copy');
+  } catch {
+    copySucceeded = false;
+  }
+  document.body.removeChild(textArea);
+  return copySucceeded;
+}
+
+/**
  * 点击账单号复制到剪贴板。
  */
 async function copyBillNo(billNo: string): Promise<void> {
   if (isEmpty(billNo)) {
     return;
   }
-  try {
-    await navigator.clipboard.writeText(billNo);
-    ElMessage.success('账单号已复制');
-  } catch {
-    ElMessage.error('复制失败');
+  if (window.isSecureContext === true && isEmpty(navigator.clipboard) !== true && typeof navigator.clipboard.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(billNo);
+      ElMessage.success('账单号已复制');
+      return;
+    } catch {
+      // 继续用临时输入框降级
+    }
   }
+  if (writeClipboardTextByInput(billNo)) {
+    ElMessage.success('账单号已复制');
+    return;
+  }
+  ElMessage.error('复制失败');
 }
 
 /**
@@ -601,41 +630,41 @@ onMounted(() => {
 .bill-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .bill-item {
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: #ffffff;
   border: 1px solid #e6e8ec;
   border-radius: 8px;
 }
 
-.bill-item-top {
+.bill-item-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .bill-item-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
 
 .bill-item-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 22px;
   color: #1c2434;
   word-break: break-word;
 }
 
-.bill-item-sub {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
+.bill-item-type {
   font-size: 13px;
   line-height: 20px;
   color: #667085;
@@ -643,9 +672,9 @@ onMounted(() => {
 
 .bill-item-amount {
   flex-shrink: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  line-height: 24px;
+  line-height: 22px;
   font-variant-numeric: tabular-nums;
   color: #1c2434;
 }
@@ -659,12 +688,12 @@ onMounted(() => {
 }
 
 .bill-item-meta {
-  display: flex;
+  justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 6px 16px;
-  margin-top: 10px;
-  font-size: 13px;
-  line-height: 20px;
+  gap: 4px 16px;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 18px;
   color: #667085;
 }
 
