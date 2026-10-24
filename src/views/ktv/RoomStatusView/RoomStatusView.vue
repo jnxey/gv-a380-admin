@@ -72,7 +72,9 @@
                 </button>
               </div>
               <template #reference>
-                <button type="button" class="room-status-more" title="更多状态">···</button>
+                <button type="button" class="room-status-more" title="更多状态">
+                  <AppIcon class="room-status-more-icon" :icon-name="MenuIconName.MORE" />
+                </button>
               </template>
             </el-popover>
           </div>
@@ -1503,6 +1505,13 @@ onBeforeUnmount(() => {
   height: 18px;
 }
 
+.room-status-more-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  stroke: none;
+}
+
 .room-status-name {
   margin-top: 4px;
   font-size: 13px;
@@ -1523,12 +1532,6 @@ onBeforeUnmount(() => {
   font-size: 13px;
   line-height: 20px;
   color: #fff;
-}
-
-.room-status-more {
-  font-size: 14px;
-  line-height: 1;
-  letter-spacing: 1px;
 }
 
 .room-status-more-list {

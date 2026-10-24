@@ -170,4 +170,9 @@ export const menuIconShapeListByName: Record<string, MenuIconShape[]> = {
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M7.5 8v10.5A1.5 1.5 0 0 0 9 20h6a1.5 1.5 0 0 0 1.5-1.5V8' },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M10.5 11.5v5M13.5 11.5v5' },
   ],
+  [MenuIconName.MORE]: [
+    { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 6, centerY: 12, radius: 1.3 },
+    { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 12, centerY: 12, radius: 1.3 },
+    { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 18, centerY: 12, radius: 1.3 },
+  ],
 };
