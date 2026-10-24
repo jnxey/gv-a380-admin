@@ -45,7 +45,7 @@
           </div>
           <div class="shop-pay-qr-hint">{{ ShopPayQr.HINT }}</div>
         </div>
-        <el-button class="shop-pay-qr-download" type="primary" round @click="downloadPayQrPoster">下载</el-button>
+        <el-button class="shop-pay-qr-download" link type="primary" @click="downloadPayQrPoster">下载</el-button>
       </div>
     </el-dialog>
   </el-card>
@@ -391,7 +391,7 @@ onMounted(() => {
 }
 
 .shop-pay-qr-download {
-  width: 100%;
+  align-self: center;
 }
 
 .shop-pay-qr-logo {
