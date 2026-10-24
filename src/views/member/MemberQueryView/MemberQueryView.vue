@@ -63,7 +63,7 @@
 <script setup lang="ts">
 import { MemberApi } from '../../../api/member';
 import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
@@ -92,6 +92,7 @@ interface ChatUserProfile {
   status: string;
 }
 
+const route = useRoute();
 const router = useRouter();
 const sessionStore = useSessionStore();
 const canQuery = sessionStore.hasPermission(PermissionCode.MEMBER_QUERY);
@@ -296,6 +297,12 @@ function onPageChange(nextPage: number): void {
 }
 
 onMounted(() => {
+  const keywordFromQuery = route.query.keyword;
+  if (typeof keywordFromQuery === 'string' && isEmpty(keywordFromQuery) !== true) {
+    keyword.value = keywordFromQuery;
+    void searchMembers();
+    return;
+  }
   void loadMembers();
 });
 </script>

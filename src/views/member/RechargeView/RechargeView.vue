@@ -26,10 +26,17 @@
               <AppIcon :icon-name="MenuIconName.ARROW_RIGHT" />
               <span>查找</span>
             </el-button>
-            <ScanButton type="warning" class="recharge-scan-button" aria-label="扫码" :disabled="searching" @scanned="onPayQrScanned" />
+            <ScanButton type="warning" class="recharge-scan-button" aria-label="扫充值码" :disabled="searching" @scanned="onPayQrScanned">
+              扫充值码
+            </ScanButton>
           </div>
         </div>
-        <div v-if="memberMissed === true" class="recharge-empty">没有找到会员</div>
+        <div v-if="isEmpty(missTip) !== true" class="recharge-empty">
+          <div>{{ missTip }}</div>
+          <el-button v-if="showGoQuery === true" class="recharge-empty-action" link type="primary" @click="goMemberQuery">
+            去 A380 查询
+          </el-button>
+        </div>
       </template>
       <template v-else>
         <div class="recharge-shop-tip">门店：{{ ShopType.A380 }}</div>
@@ -39,6 +46,11 @@
               <span v-if="isEmpty(selectedMember.nickname) !== true">{{ selectedMember.nickname }} </span>{{ selectedMember.username }}
             </div>
             <div v-if="isEmpty(selectedMember.contact) !== true" class="member-card-meta">{{ selectedMember.contact }}</div>
+            <div class="member-card-status">
+              <el-tag :type="selectedMember.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
+                {{ statusLabel(selectedMember.status) }}
+              </el-tag>
+            </div>
           </div>
           <div class="member-summary-balance">
             <div class="member-balance-label">余额</div>
@@ -80,10 +92,11 @@
 <script setup lang="ts">
 import { MemberApi } from '../../../api/member';
 import { nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
-import { MenuIconName, PageSetting, ShopType } from '../../../utils/constants';
+import { MenuIconName, PageSetting, RecordStatus, ShopType, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
@@ -93,6 +106,7 @@ interface MemberRow {
   nickname: string;
   contact: string;
   balance: string;
+  status: string;
 }
 
 interface ChatUserProfile {
@@ -104,11 +118,16 @@ interface RechargeBill {
   balanceAfter: string;
 }
 
+/** 按用户名打开账户的结果。 */
+type OpenMemberResult = 'opened' | 'missing' | 'disabled' | 'ambiguous';
+
 const route = useRoute();
+const router = useRouter();
 const rechargeAmountOptionList = ['100', '200', '500', '1000'];
 
 const keyword = ref('');
-const memberMissed = ref(false);
+const missTip = ref('');
+const showGoQuery = ref(false);
 const selectedMember = ref<MemberRow | null>(null);
 const amountInput = ref<{ focus: () => void } | null>(null);
 const amount = ref('');
@@ -135,21 +154,84 @@ watch(selectedMember, (member) => {
 });
 
 /**
- * 按用户名取唯一余额账户。没有或不止一条时留在查找，并返回匹配条数。
+ * 记下查找失败原因，并清空已选会员。
  */
-async function openMemberByUsername(username: string): Promise<number> {
+function setMiss(tip: string, needGoQuery: boolean): void {
+  missTip.value = tip;
+  showGoQuery.value = needGoQuery;
+  selectedMember.value = null;
+}
+
+/**
+ * 清空查找失败提示。
+ */
+function clearMiss(): void {
+  missTip.value = '';
+  showGoQuery.value = false;
+}
+
+/**
+ * 从请求失败结果里取出后端文案。
+ */
+function readFailMessage(error: unknown): string {
+  if (isEmpty(error) || typeof error !== 'object') {
+    return '';
+  }
+  const errorRecord = error as { message?: unknown; response?: { data?: { message?: unknown } } };
+  if (typeof errorRecord.message === 'string' && isEmpty(errorRecord.message) !== true) {
+    return errorRecord.message;
+  }
+  const responseMessage = errorRecord.response?.data?.message;
+  if (typeof responseMessage === 'string' && isEmpty(responseMessage) !== true) {
+    return responseMessage;
+  }
+  return '';
+}
+
+/**
+ * 按用户名取唯一余额账户。停用的不进入充值；没有或不止一条时留在查找。
+ */
+async function openMemberByUsername(username: string): Promise<OpenMemberResult> {
   const pageResult = (await http.get(MemberApi.LIST, {
     params: { username, page: PageSetting.DEFAULT_PAGE, pageSize: PageSetting.DEFAULT_PAGE_SIZE },
   })) as { list: MemberRow[] };
   const exactMemberList = pageResult.list.filter((memberRow) => memberRow.username === username);
-  if (exactMemberList.length !== 1) {
-    memberMissed.value = true;
-    selectedMember.value = null;
-    return exactMemberList.length;
+  if (exactMemberList.length === 0) {
+    return 'missing';
   }
-  memberMissed.value = false;
-  selectedMember.value = exactMemberList[0];
-  return exactMemberList.length;
+  if (exactMemberList.length !== 1) {
+    setMiss('没有找到会员', false);
+    return 'ambiguous';
+  }
+  const exactMember = exactMemberList[0];
+  if (exactMember.status === RecordStatus.DISABLED) {
+    setMiss('会员已停用，请先在 A380 查询页启用', true);
+    return 'disabled';
+  }
+  clearMiss();
+  selectedMember.value = exactMember;
+  return 'opened';
+}
+
+/**
+ * 聊天里有用户、A380 还没有账户时开户。停用账户会失败并提示去查询页。
+ */
+async function openAccountByUsername(username: string): Promise<void> {
+  try {
+    const openedMember = (await http.post(MemberApi.OPEN, {
+      username,
+    })) as MemberRow;
+    clearMiss();
+    selectedMember.value = openedMember;
+    ElMessage.success('已开户');
+  } catch (error) {
+    const failMessage = readFailMessage(error);
+    if (failMessage === '会员已停用') {
+      setMiss('会员已停用，请先在 A380 查询页启用', true);
+      return;
+    }
+    setMiss(isEmpty(failMessage) ? '开户失败' : failMessage, false);
+  }
 }
 
 /**
@@ -157,26 +239,26 @@ async function openMemberByUsername(username: string): Promise<number> {
  */
 async function searchMember(): Promise<void> {
   const cleanedKeyword = keyword.value.trim();
-  if (isEmpty(cleanedKeyword) || searching.value === true) {
+  if (isEmpty(cleanedKeyword)) {
+    ElMessage.warning('请输入用户名/手机号/邮箱');
+    return;
+  }
+  if (searching.value === true) {
     return;
   }
   searching.value = true;
+  clearMiss();
   try {
     const chatUserProfile = (await http.get(MemberApi.CHAT_USER, {
       params: { keyword: cleanedKeyword },
     })) as ChatUserProfile;
-    const matchedCount = await openMemberByUsername(chatUserProfile.username);
-    if (matchedCount !== 0) {
+    const openResult = await openMemberByUsername(chatUserProfile.username);
+    if (openResult !== 'missing') {
       return;
     }
-    const openedMember = (await http.post(MemberApi.OPEN, {
-      username: chatUserProfile.username,
-    })) as MemberRow;
-    memberMissed.value = false;
-    selectedMember.value = openedMember;
+    await openAccountByUsername(chatUserProfile.username);
   } catch {
-    memberMissed.value = true;
-    selectedMember.value = null;
+    setMiss('未找到该聊天用户', false);
   } finally {
     searching.value = false;
   }
@@ -190,23 +272,29 @@ async function onPayQrScanned(cipherText: string): Promise<void> {
     return;
   }
   searching.value = true;
+  clearMiss();
   try {
     const payQr = (await http.post(MemberApi.PAY_QR, { cipherText })) as { username: string };
-    const matchedCount = await openMemberByUsername(payQr.username);
-    if (matchedCount !== 0) {
+    const openResult = await openMemberByUsername(payQr.username);
+    if (openResult !== 'missing') {
       return;
     }
-    const openedMember = (await http.post(MemberApi.OPEN, {
-      username: payQr.username,
-    })) as MemberRow;
-    memberMissed.value = false;
-    selectedMember.value = openedMember;
+    await openAccountByUsername(payQr.username);
   } catch {
-    memberMissed.value = true;
-    selectedMember.value = null;
+    setMiss('付款码无效或已过期', false);
   } finally {
     searching.value = false;
   }
+}
+
+/**
+ * 带着关键字去 A380 查询页处理停用账户。
+ */
+function goMemberQuery(): void {
+  void router.push({
+    path: '/member/query',
+    query: isEmpty(keyword.value.trim()) ? {} : { keyword: keyword.value.trim() },
+  });
 }
 
 /**
@@ -214,7 +302,7 @@ async function onPayQrScanned(cipherText: string): Promise<void> {
  */
 function backToSearch(): void {
   selectedMember.value = null;
-  memberMissed.value = false;
+  clearMiss();
   amount.value = '';
   remark.value = '';
   rechargedAmount.value = '';
@@ -250,13 +338,39 @@ function fillAmount(amountOption: string): void {
 }
 
 /**
- * 给会员入账。流水由服务端记到 A380 中心。成功后停在结果页，并展示最新余额。
+ * 金额是否大于 0。
+ */
+function isPositiveRechargeAmount(amountText: string): boolean {
+  const amountNumber = Number(amountText);
+  if (Number.isFinite(amountNumber) !== true) {
+    return false;
+  }
+  return amountNumber > 0;
+}
+
+/**
+ * 确认后给会员入账。流水由服务端记到 A380 中心。成功后停在结果页，并展示最新余额。
  */
 async function submitRecharge(): Promise<void> {
   if (isEmpty(selectedMember.value) || isEmpty(amount.value) || submitting.value === true) {
     return;
   }
+  if (selectedMember.value.status === RecordStatus.DISABLED) {
+    ElMessage.warning('会员已停用，请先在 A380 查询页启用');
+    return;
+  }
   const paidAmount = amount.value.trim();
+  if (isPositiveRechargeAmount(paidAmount) !== true) {
+    ElMessage.warning('充值金额必须大于0');
+    return;
+  }
+  const memberName = isEmpty(selectedMember.value.nickname)
+    ? selectedMember.value.username
+    : `${selectedMember.value.nickname}（${selectedMember.value.username}）`;
+  await ElMessageBox.confirm(
+    `确认为 ${memberName} 充值 ${paidAmount}？\n门店：${ShopType.A380}`,
+    '确认充值',
+  );
   submitting.value = true;
   try {
     const financeBill = (await http.post(MemberApi.RECHARGE, {
@@ -285,8 +399,14 @@ async function openMemberFromQuery(): Promise<void> {
     return;
   }
   searching.value = true;
+  clearMiss();
   try {
-    await openMemberByUsername(cleanedUsername);
+    const openResult = await openMemberByUsername(cleanedUsername);
+    if (openResult === 'missing') {
+      setMiss('没有找到会员', false);
+    }
+  } catch {
+    setMiss('没有找到会员', false);
   } finally {
     searching.value = false;
   }
@@ -390,6 +510,10 @@ onMounted(() => {
   color: #667085;
 }
 
+.recharge-empty-action {
+  margin-top: 8px;
+}
+
 .recharge-actions {
   display: flex;
   gap: 12px;
@@ -441,9 +565,8 @@ onMounted(() => {
   color: #667085;
 }
 
-.member-card-separator {
-  margin: 0 8px;
-  color: #d0d5dd;
+.member-card-status {
+  margin-top: 8px;
 }
 
 .member-balance-label {
