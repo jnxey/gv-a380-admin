@@ -64,14 +64,17 @@
             <div class="bill-item-row">
               <div class="bill-item-main">
                 <el-tag :type="billAmountTagType(shopDirection(billRow.direction))" effect="plain" size="small">{{ statusLabel(shopDirection(billRow.direction)) }}</el-tag>
-                <span class="bill-item-title">{{ displayText(billRow.shopName) }} · {{ displayText(billRow.username) }}</span>
+                <span class="bill-item-title">
+                  {{ displayText(billRow.shopName) }} ·
+                  <span class="bill-member-copy" title="点击复制会员号" @click="copyMemberNo(billRow.username)">{{ displayText(billRow.username) }}</span>
+                </span>
                 <span class="bill-item-type">{{ statusLabel(billRow.bizType) }}</span>
               </div>
               <div class="bill-item-amount" :class="billAmountClass(shopDirection(billRow.direction))">{{ formatBillAmount(billRow) }}</div>
             </div>
             <div class="bill-item-row bill-item-meta">
               <span>{{ formatLocalDateTime(billRow.createdAt) }}</span>
-              <span class="bill-no-copy" title="点击复制" @click="copyBillNo(billRow.billNo)">账单号 {{ displayText(billRow.billNo) }}</span>
+              <span>账单号 {{ displayText(billRow.billNo) }}</span>
               <span>业务单号 {{ displayText(billRow.bizOrderNo) }}</span>
               <span>变动 {{ billRow.balanceBefore }} → {{ billRow.balanceAfter }}</span>
               <span v-if="isEmpty(billRow.operatorName) !== true">操作人 {{ billRow.operatorName }}</span>
@@ -336,23 +339,23 @@ function writeClipboardTextByInput(text: string): boolean {
 }
 
 /**
- * 点击账单号复制到剪贴板。
+ * 点击会员号复制到剪贴板。
  */
-async function copyBillNo(billNo: string): Promise<void> {
-  if (isEmpty(billNo)) {
+async function copyMemberNo(memberNo: string): Promise<void> {
+  if (isEmpty(memberNo)) {
     return;
   }
   if (window.isSecureContext === true && isEmpty(navigator.clipboard) !== true && typeof navigator.clipboard.writeText === 'function') {
     try {
-      await navigator.clipboard.writeText(billNo);
-      ElMessage.success('账单号已复制');
+      await navigator.clipboard.writeText(memberNo);
+      ElMessage.success('会员号已复制');
       return;
     } catch {
       // 继续用临时输入框降级
     }
   }
-  if (writeClipboardTextByInput(billNo)) {
-    ElMessage.success('账单号已复制');
+  if (writeClipboardTextByInput(memberNo)) {
+    ElMessage.success('会员号已复制');
     return;
   }
   ElMessage.error('复制失败');
@@ -697,12 +700,12 @@ onMounted(() => {
   color: #667085;
 }
 
-.bill-no-copy {
+.bill-member-copy {
   cursor: pointer;
   color: #3b82f6;
 }
 
-.bill-no-copy:hover {
+.bill-member-copy:hover {
   text-decoration: underline;
 }
 
