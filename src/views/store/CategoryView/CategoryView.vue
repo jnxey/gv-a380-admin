@@ -21,6 +21,7 @@
             </button>
             <span>{{ categoryRow.categoryName }}</span>
           </div>
+          <div class="category-meta">{{ categoryRow.productCount }} 个商品</div>
           <div class="category-foot">
             <el-tag :type="categoryRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
               {{ statusLabel(categoryRow.status) }}
@@ -41,8 +42,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveCategory">保存</el-button>
+        <el-button :disabled="saving" @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="saveCategory">保存</el-button>
       </template>
     </el-dialog>
   </el-card>
@@ -51,8 +52,10 @@
 <script setup lang="ts">
 import { StoreApi } from '../../../api/store';
 import { onMounted, reactive, ref } from 'vue';
+import { ElMessage } from 'element-plus';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { useDragSort } from '../../../hooks/drag-sort';
+import { useSaving } from '../../../hooks/saving';
 import { PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
@@ -63,6 +66,7 @@ interface CategoryRow {
   categoryName: string;
   sortOrder: number;
   status: string;
+  productCount: number;
 }
 
 const sessionStore = useSessionStore();
@@ -71,6 +75,7 @@ const categoryList = ref<CategoryRow[]>([]);
 const sortListRef = ref<HTMLElement | null>(null);
 const dialogVisible = ref(false);
 const editingCategoryId = ref('');
+const { saving, runSaving } = useSaving();
 const categoryForm = reactive({
   categoryName: '',
   status: RecordStatus.ENABLED as string,
@@ -113,17 +118,24 @@ function openEdit(categoryRow: CategoryRow): void {
  * 保存分类。
  */
 async function saveCategory(): Promise<void> {
-  const body = {
-    categoryName: categoryForm.categoryName,
-    status: categoryForm.status,
-  };
-  if (isEmpty(editingCategoryId.value)) {
-    await http.post(StoreApi.PRODUCT_CATEGORIES, body);
-  } else {
-    await http.put(StoreApi.productCategory(editingCategoryId.value), body);
+  if (isEmpty(categoryForm.categoryName)) {
+    ElMessage.warning('请填写名称');
+    return;
   }
-  dialogVisible.value = false;
-  await loadCategories();
+  await runSaving(async () => {
+    const body = {
+      categoryName: categoryForm.categoryName,
+      status: categoryForm.status,
+    };
+    if (isEmpty(editingCategoryId.value)) {
+      await http.post(StoreApi.PRODUCT_CATEGORIES, body);
+    } else {
+      await http.put(StoreApi.productCategory(editingCategoryId.value), body);
+    }
+    ElMessage.success('保存成功');
+    dialogVisible.value = false;
+    await loadCategories();
+  });
 }
 
 /**
@@ -173,8 +185,14 @@ onMounted(() => {
   gap: 6px;
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   word-break: break-word;
+}
+
+.category-meta {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #667085;
 }
 
 .drag-icon {

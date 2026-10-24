@@ -11,6 +11,7 @@ export const HotelApi = {
   ROOM_TYPES_SORT: '/hotel/room-types/sort',
   roomType: (roomTypeId: string) => `/hotel/room-types/${roomTypeId}`,
   roomTypeImages: (roomTypeId: string) => `/hotel/room-types/${roomTypeId}/images`,
+  roomTypeImagesSort: (roomTypeId: string) => `/hotel/room-types/${roomTypeId}/images/sort`,
   roomTypeImage: (roomTypeId: string, imageId: string) => `/hotel/room-types/${roomTypeId}/images/${imageId}`,
   ROOMS: '/hotel/rooms',
   ROOMS_SORT: '/hotel/rooms/sort',

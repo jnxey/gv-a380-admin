@@ -26,7 +26,7 @@
             </button>
             <span>{{ roomTypeRow.typeName }}</span>
           </div>
-          <div class="room-type-meta">{{ roomTypeRow.price }}</div>
+          <div class="room-type-meta">{{ roomTypeRow.price }} · {{ roomTypeRow.roomCount }} 间房</div>
           <div class="room-type-foot">
             <el-tag :type="roomTypeRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
               {{ statusLabel(roomTypeRow.status) }}
