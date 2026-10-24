@@ -1,8 +1,6 @@
 ﻿<template>
   <el-card>
-    <div class="shop-toolbar">
-      <el-input v-model="keyword" class="shop-search" clearable placeholder="搜索名称/编码/电话/地址" />
-    </div>
+    <ShopSearchBar v-model="keyword" />
     <div v-if="isEmpty(filteredShopList) && canSave !== true" class="shop-empty">暂无数据</div>
     <div v-else class="shop-grid">
       <button v-if="canSave" type="button" class="shop-card shop-create" @click="openCreate">
@@ -55,9 +53,11 @@
 
 <script setup lang="ts">
 import { HotelApi } from '../../../api/hotel';
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import QRCode from 'qrcode';
+import ShopSearchBar from '../../../components/ShopSearchBar/ShopSearchBar.vue';
+import { useShopKeywordFilter } from '../../../hooks/shop-keyword-filter';
 import { PermissionCode, RecordStatus, ShopPayQr, statusLabel, timeZoneLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
@@ -66,28 +66,14 @@ import ShopDialog, { type ShopRow } from './ShopDialog.vue';
 
 const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.HOTEL_SHOP_SAVE);
-const keyword = ref('');
 const shopList = ref<ShopRow[]>([]);
+const { keyword, filteredShopList } = useShopKeywordFilter(shopList);
 const dialogVisible = ref(false);
 const editingShop = ref<ShopRow | null>(null);
 const payQrVisible = ref(false);
 const payQrShopName = ref('');
 const payQrImageUrl = ref('');
 const payQrFileName = ref('');
-
-/**
- * 按关键字过滤门店。匹配名称、编码、电话、地址。
- */
-const filteredShopList = computed(() => {
-  const cleanedKeyword = keyword.value.trim().toLowerCase();
-  if (isEmpty(cleanedKeyword)) {
-    return shopList.value;
-  }
-  return shopList.value.filter((shopRow) => {
-    const searchText = `${shopRow.shopName} ${shopRow.shopCode} ${shopRow.contactPhone} ${shopRow.address}`.toLowerCase();
-    return searchText.indexOf(cleanedKeyword) >= 0;
-  });
-});
 
 /**
  * 营业时间显示成开始到结束。结束早于开始时标次日。没有时段时返回空字符串。
@@ -279,15 +265,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.shop-toolbar {
-  margin-bottom: 12px;
-}
-
-.shop-search {
-  width: 280px;
-  max-width: 100%;
-}
-
 .shop-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

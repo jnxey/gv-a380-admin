@@ -107,6 +107,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import type { UploadRequestOptions, UploadUserFile } from 'element-plus';
 import { useRouter } from 'vue-router';
+import { useSaving } from '../../../hooks/saving';
 import { BeijingTimeZoneOffset, BusinessHourList, RecordStatus, ShopImageLimit, ShopImageMime, TimeZoneOptionList, timeZoneLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { limitImageWidth, replaceUploadRawFile } from '../../../utils/image';
@@ -163,7 +164,7 @@ const shopImageFileList = ref<ShopImageFileItem[]>([]);
 const previewVisible = ref(false);
 const previewUrl = ref('');
 const locationDialogVisible = ref(false);
-const saving = ref(false);
+const { saving, runSaving } = useSaving();
 const shopForm = reactive({
   shopCode: '',
   shopName: '',
@@ -521,8 +522,7 @@ async function saveShop(): Promise<void> {
     ElMessage.warning('请选择门店位置');
     return;
   }
-  saving.value = true;
-  try {
+  await runSaving(async () => {
     const shopBody = shopSaveBody();
     if (isEmpty(editingShopId.value)) {
       const createdShop = (await http.post(StoreApi.SHOPS, shopBody)) as ShopRow;
@@ -536,9 +536,7 @@ async function saveShop(): Promise<void> {
     ElMessage.success('保存成功');
     visible.value = false;
     emit('saved');
-  } finally {
-    saving.value = false;
-  }
+  });
 }
 </script>
 
