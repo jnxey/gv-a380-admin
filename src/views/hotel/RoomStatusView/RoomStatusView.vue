@@ -2,74 +2,22 @@
   <div class="room-status-page" @pointerdown="preparePaymentAudio">
     <ShopSwitcher />
     <el-card class="room-status-main">
-      <div class="room-status-summary">
-        <span
-          v-for="roomStatusCount in roomStatusCountList"
-          :key="roomStatusCount.value"
-          class="room-status-count"
-          :class="roomStatusCardClass(roomStatusCount.value)"
-        >
-          <span class="room-status-count-label">{{ roomStatusCount.label }}</span>
-          <span class="room-status-count-value">{{ roomStatusCount.count }}</span>
-        </span>
-        <button type="button" class="room-status-deduct" @click="deductVisible = true">
-          <AppIcon class="room-status-deduct-icon" :icon-name="MenuIconName.FINANCE_BILL" />
-          付款
-        </button>
-        <button type="button" class="room-status-refresh" title="刷新" @click="reloadPage">
-          <AppIcon class="room-status-refresh-icon" :icon-name="MenuIconName.REFRESH" />
-        </button>
-      </div>
-      <div v-if="canCheckIn" class="room-status-check-in-bar">
-        <div class="room-status-check-in-search-row">
-          <el-input v-model="checkInContact" placeholder="联系方式" clearable />
-          <el-button type="primary" @click="searchTodayBooking">查询</el-button>
-          <el-button v-if="checkInSearched" @click="clearCheckInSearch">返回房态</el-button>
-        </div>
-        <div v-if="checkInSearched" class="room-status-check-in-detail">
-          <template v-if="todayBookingList.length > 0">
-            <el-select v-if="todayBookingList.length > 1" v-model="selectedOrderId" class="room-status-check-in-order" placeholder="选择今天的预定">
-              <el-option
-                v-for="orderRow in todayBookingList"
-                :key="orderRow.bookingOrderId"
-                :label="bookedOrderLabel(orderRow)"
-                :value="orderRow.bookingOrderId"
-              />
-            </el-select>
-            <div v-if="isEmpty(selectedTodayOrder) !== true" class="room-status-check-in-result">
-              <span>预定人 <strong>{{ selectedTodayOrder.guestName }}</strong></span>
-              <span>联系方式 <strong>{{ selectedTodayOrder.contact }}</strong></span>
-              <span>
-                入住
-                <strong>{{ formatLocalDateTime(selectedTodayOrder.checkInDate) }} 至 {{ formatLocalDateTime(selectedTodayOrder.checkOutDate) }}</strong>
-              </span>
-              <span>房型 <strong>{{ selectedTodayOrder.typeName }}</strong></span>
-              <el-button class="room-status-check-in-action" type="primary" :disabled="isEmpty(selectedCheckInRoomId)" @click="openCheckInConfirm(null)">
-                办理入住
-              </el-button>
-            </div>
-          </template>
-          <div v-else class="room-status-check-in-result">
-            <span>没有今天的预定</span>
-            <span>入住时间 <strong>{{ walkInCheckInDateText }}</strong></span>
-            <span class="room-status-check-in-hint">早上 {{ HotelBusinessDay.START_HOUR }} 点前仍算前一天</span>
-            <el-radio-group v-model="walkInNightChoice" class="room-status-night-choice">
-              <el-radio-button v-for="nightCount in HotelWalkInNight.PRESET_COUNT_LIST" :key="nightCount" :value="nightCount">{{ nightCount }} 晚</el-radio-button>
-              <el-radio-button :value="HotelWalkInNight.CUSTOM">自定义</el-radio-button>
-            </el-radio-group>
-            <el-input
-              v-if="walkInNightChoice === HotelWalkInNight.CUSTOM"
-              v-model="walkInCustomNightCount"
-              class="room-status-walk-in-nights"
-              placeholder="入住晚数"
-              clearable
-            />
-            <el-button class="room-status-check-in-action" type="primary" :disabled="isEmpty(selectedCheckInRoomId)" @click="openCheckInConfirm(null)">
-              办理入住
-            </el-button>
-          </div>
-        </div>
-      </div>
+      <RoomStatusSummary :count-list="roomStatusCountList" @deduct="deductVisible = true" @refresh="reloadPage" />
+      <CheckInBar
+        v-if="canCheckIn"
+        v-model:contact="checkInContact"
+        v-model:selected-order-id="selectedOrderId"
+        v-model:walk-in-night-choice="walkInNightChoice"
+        v-model:walk-in-custom-night-count="walkInCustomNightCount"
+        :searched="checkInSearched"
+        :today-booking-list="todayBookingList"
+        :selected-today-order="selectedTodayOrder"
+        :selected-room-id="selectedCheckInRoomId"
+        :walk-in-check-in-date-text="walkInCheckInDateText"
+        @search="searchTodayBooking"
+        @clear="clearCheckInSearch"
+        @confirm="openCheckInConfirm(null)"
+      />
       <div class="room-status-body">
         <div class="room-status-rooms">
           <template v-if="canCheckIn && checkInSearched">
@@ -77,162 +25,73 @@
             <div v-if="todayBookingList.length > 0 && isEmpty(selectedTodayOrder)" class="room-status-empty">请先选择今天的预定</div>
             <div v-else-if="checkInRoomList.length === 0" class="room-status-empty">没有可入住房间</div>
             <div v-else class="room-status-grid">
-              <article
+              <RoomStatusPickCard
                 v-for="roomRow in checkInRoomList"
                 :key="roomRow.id"
-                class="room-status-card room-status-pick-card"
-                :class="{ 'is-selected': roomRow.id === selectedCheckInRoomId }"
-                @click="selectCheckInRoom(roomRow)"
-              >
-                <div class="room-status-no">{{ roomRow.roomNo }}</div>
-                <div class="room-status-name">
-                  {{ roomTypeName(roomRow.roomTypeId) }}
-                  <template v-if="isEmpty(roomNightPrice(roomRow.roomTypeId)) !== true"> · {{ roomNightPrice(roomRow.roomTypeId) }}/晚</template>
-                </div>
-                <div class="room-status-text">{{ roomRow.id === selectedCheckInRoomId ? '已选' : roomStatusLabel(roomRow.roomStatus) }}</div>
-              </article>
+                :room="roomRow"
+                :type-name="roomTypeName(roomRow.roomTypeId)"
+                :night-price="roomNightPrice(roomRow.roomTypeId)"
+                :selected="roomRow.id === selectedCheckInRoomId"
+                @select="selectCheckInRoom(roomRow)"
+              />
             </div>
           </template>
           <template v-else>
-          <div v-if="roomFloorGroupList.length === 0" class="room-status-empty">暂无数据</div>
-          <section v-for="roomFloorGroup in roomFloorGroupList" :key="roomFloorGroup.floorNo" class="room-status-group">
-            <h3 class="room-status-group-title">{{ roomFloorGroup.floorNo }}层</h3>
-            <div class="room-status-grid">
-              <article v-for="roomRow in roomFloorGroup.roomList" :key="roomRow.id" class="room-status-card" :class="roomStatusCardClass(roomRow.roomStatus)">
-                <div class="room-status-actions">
-                  <button
-                    v-if="roomRow.roomStatus === HotelRoomStatus.CLEANING && canCheckOut"
-                    type="button"
-                    class="room-status-flow"
-                    title="空闲"
-                    @click="finishCleaning(roomRow)"
-                  >
-                    <AppIcon class="room-status-flow-icon" :icon-name="MenuIconName.KTV_ROOM_IDLE" />
-                  </button>
-                  <el-popover v-if="moreStatusOptionList(roomRow.roomStatus).length > 0" trigger="click" placement="bottom-end" :width="120">
-                    <div class="room-status-more-list">
-                      <button
-                        v-for="roomStatusOption in moreStatusOptionList(roomRow.roomStatus)"
-                        :key="roomStatusOption.value"
-                        type="button"
-                        class="room-status-more-item"
-                        @click="changeRoomStatus(roomRow, roomStatusOption.value)"
-                      >
-                        <span class="room-status-more-dot" :class="roomStatusCardClass(roomStatusOption.value)" />
-                        {{ roomStatusOption.label }}
-                      </button>
-                    </div>
-                    <template #reference>
-                      <button type="button" class="room-status-more" title="更多状态">
-                        <AppIcon class="room-status-more-icon" :icon-name="MenuIconName.MORE" />
-                      </button>
-                    </template>
-                  </el-popover>
-                </div>
-                <div class="room-status-no">{{ roomRow.roomNo }}</div>
-                <div class="room-status-name">
-                  {{ roomTypeName(roomRow.roomTypeId) }}
-                  <template v-if="isEmpty(roomNightPrice(roomRow.roomTypeId)) !== true"> · {{ roomNightPrice(roomRow.roomTypeId) }}/晚</template>
-                </div>
-                <div class="room-status-text">{{ roomStatusLabel(roomRow.roomStatus) }}</div>
-                <div v-if="isEmpty(roomGuestName(roomRow)) !== true" class="room-status-name">{{ roomGuestName(roomRow) }}</div>
-                <div
-                  v-if="isEmpty(roomCheckOutText(roomRow)) !== true || (roomRow.roomStatus === HotelRoomStatus.OCCUPIED && (canExtend || canCheckOut))"
-                  class="room-status-occupy-line"
-                >
-                  <span v-if="isEmpty(roomCheckOutText(roomRow)) !== true" class="room-status-occupy">{{ roomCheckOutText(roomRow) }}</span>
-                  <button
-                    v-if="roomRow.roomStatus === HotelRoomStatus.OCCUPIED && canExtend"
-                    type="button"
-                    class="room-status-extend"
-                    @click="showExtend(roomRow)"
-                  >
-                    续住
-                  </button>
-                  <button
-                    v-if="roomRow.roomStatus === HotelRoomStatus.OCCUPIED && canCheckOut"
-                    type="button"
-                    class="room-status-extend"
-                    @click="checkOut(roomRow)"
-                  >
-                    退房
-                  </button>
-                </div>
-              </article>
-            </div>
-          </section>
+            <div v-if="roomFloorGroupList.length === 0" class="room-status-empty">暂无数据</div>
+            <section v-for="roomFloorGroup in roomFloorGroupList" :key="roomFloorGroup.floorNo" class="room-status-group">
+              <h3 class="room-status-group-title">{{ roomFloorGroup.floorNo }}层</h3>
+              <div class="room-status-grid">
+                <RoomStatusCard
+                  v-for="roomRow in roomFloorGroup.roomList"
+                  :key="roomRow.id"
+                  :room="roomRow"
+                  :type-name="roomTypeName(roomRow.roomTypeId)"
+                  :night-price="roomNightPrice(roomRow.roomTypeId)"
+                  :guest-name="roomGuestName(roomRow)"
+                  :check-out-text="roomCheckOutText(roomRow)"
+                  :can-save="canSave"
+                  :can-extend="canExtend"
+                  :can-check-out="canCheckOut"
+                  @finish-cleaning="finishCleaning(roomRow)"
+                  @extend="showExtend(roomRow)"
+                  @check-out="checkOut(roomRow)"
+                  @change-status="(roomStatus) => changeRoomStatus(roomRow, roomStatus)"
+                />
+              </div>
+            </section>
           </template>
         </div>
-        <aside class="room-status-orders">
-          <div class="room-status-order-stat">
-            <span class="room-status-order-stat-label">已预订</span>
-            <span class="room-status-order-stat-count">{{ bookedOrderList.length }}</span>
-          </div>
-          <div v-if="bookedTypeCountList.length > 0" class="room-status-order-types">
-            <span v-for="bookedTypeCount in bookedTypeCountList" :key="bookedTypeCount.roomTypeId" class="room-status-order-type">
-              {{ bookedTypeCount.typeName }} {{ bookedTypeCount.count }}
-            </span>
-          </div>
-          <div v-for="roomTypeWarning in roomTypeWarningList" :key="roomTypeWarning.roomTypeId" class="room-status-warning">
-            {{ roomTypeWarning.warningText }}
-          </div>
-          <div v-if="bookedOrderList.length === 0" class="room-status-empty">暂无已预订订单</div>
-          <article v-for="bookedOrder in bookedOrderList" :key="bookedOrder.bookingOrderId" class="room-status-order">
-            <div class="room-status-order-head">
-              <div class="room-status-order-name">{{ bookedOrderGuestText(bookedOrder) }}</div>
-              <button v-if="canCheckIn" type="button" class="room-status-order-handle" @click="startCheckInFromOrder(bookedOrder)">办理</button>
-            </div>
-            <div v-if="isEmpty(bookedOrder.contact) !== true" class="room-status-order-line">{{ bookedOrder.contact }}</div>
-            <div class="room-status-order-line">{{ bookedOrder.typeName }}</div>
-            <div class="room-status-order-line">{{ formatLocalDateTime(bookedOrder.checkInDate) }} 至 {{ formatLocalDateTime(bookedOrder.checkOutDate) }}</div>
-          </article>
-        </aside>
+        <RoomStatusOrdersAside
+          :booked-order-list="bookedOrderList"
+          :booked-type-count-list="bookedTypeCountList"
+          :room-type-warning-list="roomTypeWarningList"
+          :can-check-in="canCheckIn"
+          @handle="startCheckInFromOrder"
+        />
       </div>
       <el-dialog v-model="deductVisible" title="付款" :width="deductDialogWidth" :trap-focus="false" destroy-on-close @opened="focusDeductAmount">
         <DeductView ref="deductView" @close="deductVisible = false" />
       </el-dialog>
-      <el-dialog v-model="checkInVisible" title="办理入住" width="420px" align-center>
-        <div v-if="isEmpty(openingRoom) !== true" class="room-status-open-room" :class="roomStatusCardClass(openingRoom.roomStatus)">
-          <div class="room-status-open-no">{{ openingRoom.roomNo }}</div>
-          <div class="room-status-open-meta">
-            {{ openingRoom.floorNo }}层
-            <template v-if="isEmpty(roomTypeName(openingRoom.roomTypeId)) !== true"> · {{ roomTypeName(openingRoom.roomTypeId) }}</template>
-            <template v-if="isEmpty(roomNightPrice(openingRoom.roomTypeId)) !== true"> · {{ roomNightPrice(openingRoom.roomTypeId) }}/晚</template>
-          </div>
-        </div>
-        <template v-if="isEmpty(selectedTodayOrder) !== true">
-          <div class="room-status-check-in-line">预定人 {{ selectedTodayOrder.guestName }}</div>
-          <div class="room-status-check-in-line">联系方式 {{ selectedTodayOrder.contact }}</div>
-          <div class="room-status-check-in-line">
-            {{ formatLocalDateTime(selectedTodayOrder.checkInDate) }} 至 {{ formatLocalDateTime(selectedTodayOrder.checkOutDate) }}
-          </div>
-        </template>
-        <template v-else>
-          <div class="room-status-check-in-line">联系方式 {{ searchedContact }}</div>
-          <div class="room-status-check-in-line">入住时间 {{ walkInCheckInDateText }}</div>
-          <div class="room-status-check-in-line">{{ walkInNightCountText }} 晚</div>
-        </template>
-        <template #footer>
-          <div class="room-status-open-actions">
-            <el-button size="large" @click="checkInVisible = false">取消</el-button>
-            <el-button size="large" type="primary" @click="submitCheckIn">确认入住</el-button>
-          </div>
-        </template>
-      </el-dialog>
-      <el-dialog v-model="extendVisible" :title="extendTitle" width="420px" align-center>
-        <div v-if="isEmpty(extendingRoom) !== true" class="room-status-open-room" :class="roomStatusCardClass(extendingRoom.roomStatus)">
-          <div class="room-status-open-no">{{ extendingRoom.roomNo }}</div>
-          <div class="room-status-open-meta">{{ extendRoomMeta(extendingRoom) }}</div>
-        </div>
-        <el-date-picker v-model="extendDate" type="date" value-format="YYYY-MM-DD" placeholder="新的离店日期" />
-        <p class="room-status-verify-hint">新的离店日期必须晚于当前离店日期。续住和退房都不扣款。</p>
-        <template #footer>
-          <div class="room-status-open-actions">
-            <el-button size="large" @click="extendVisible = false">取消</el-button>
-            <el-button size="large" type="primary" @click="submitExtend">确认续住</el-button>
-          </div>
-        </template>
-      </el-dialog>
+      <CheckInDialog
+        v-model="checkInVisible"
+        :room="openingRoom"
+        :today-order="selectedTodayOrder"
+        :searched-contact="searchedContact"
+        :walk-in-check-in-date-text="walkInCheckInDateText"
+        :walk-in-night-count-text="walkInNightCountText"
+        :walk-in-night-count="resolveWalkInNightCount()"
+        :type-name="isEmpty(openingRoom) ? '' : roomTypeName(openingRoom.roomTypeId)"
+        :night-price="isEmpty(openingRoom) ? '' : roomNightPrice(openingRoom.roomTypeId)"
+        @saved="onCheckInSaved"
+      />
+      <ExtendStayDialog
+        v-model="extendVisible"
+        v-model:extend-date="extendDate"
+        :room="extendingRoom"
+        :room-meta="extendRoomMeta(extendingRoom)"
+        :booking-order-id="extendingBookingOrderId"
+        @saved="onExtendSaved"
+      />
     </el-card>
   </div>
 </template>
@@ -241,11 +100,20 @@
 import { HotelApi } from '../../../api/hotel';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import DeductView from '../DeductView/DeductView.vue';
+import CheckInBar from './CheckInBar.vue';
+import CheckInDialog from './CheckInDialog.vue';
+import ExtendStayDialog from './ExtendStayDialog.vue';
+import RoomStatusCard from './RoomStatusCard.vue';
+import RoomStatusOrdersAside from './RoomStatusOrdersAside.vue';
+import RoomStatusPickCard from './RoomStatusPickCard.vue';
+import RoomStatusSummary from './RoomStatusSummary.vue';
+import { useHotelRoomStatusRefresh } from '../../../hooks/hotel-room-status-refresh';
 import { usePaymentNotice } from '../../../hooks/payment-notice';
-import { HotelBusinessDay, HotelOrderStatus, HotelRoomStatus, HotelWalkInNight, MenuIconName, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
+import { HotelBusinessDay, HotelOrderStatus, HotelRoomStatus, HotelWalkInNight, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
+import { hotelBusinessDateText } from '../../../utils/hotel-business-date';
+import { buildHotelRoomTypeWarningList } from '../../../utils/hotel-room-type-warning';
 import { formatLocalDateTime, isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -277,25 +145,9 @@ interface OrderRow {
   orderStatus: string;
 }
 
-interface RoomStatusOption {
-  value: string;
-  label: string;
-}
-
 interface RoomFloorGroup {
   floorNo: string;
   roomList: RoomRow[];
-}
-
-interface RoomTypeCount {
-  roomTypeId: string;
-  typeName: string;
-  count: number;
-}
-
-interface RoomTypeWarning {
-  roomTypeId: string;
-  warningText: string;
 }
 
 const sessionStore = useSessionStore();
@@ -323,11 +175,6 @@ const deductVisible = ref(false);
 const deductView = ref<{ focusAmount: () => void } | null>(null);
 const deductDialogWidth = ref('460px');
 const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
-const manualStatusOptionList: RoomStatusOption[] = [
-  { value: HotelRoomStatus.IDLE, label: statusLabel(HotelRoomStatus.IDLE) },
-  { value: HotelRoomStatus.CLEANING, label: statusLabel(HotelRoomStatus.CLEANING) },
-  { value: HotelRoomStatus.MAINTENANCE, label: statusLabel(HotelRoomStatus.MAINTENANCE) },
-];
 
 /**
  * 按楼层把房间分组。楼层按数字从小到大排。
@@ -339,7 +186,7 @@ const roomFloorGroupList = computed<RoomFloorGroup[]>(() => {
       floorNoList.push(roomRow.floorNo);
     }
   });
-  floorNoList.sort((leftFloorNo, rightFloorNo) => leftFloorNo.localeCompare(rightFloorNo, undefined, { numeric: true }));
+  floorNoList.sort((leftFloor, rightFloor) => Number(leftFloor) - Number(rightFloor));
   return floorNoList.map((floorNo) => {
     return {
       floorNo,
@@ -371,7 +218,7 @@ const bookedOrderList = computed(() => {
 /**
  * 每个房型的已预订单数。没有订单的房型不显示。
  */
-const bookedTypeCountList = computed<RoomTypeCount[]>(() => {
+const bookedTypeCountList = computed(() => {
   return roomTypeList.value
     .map((roomType) => {
       return {
@@ -386,19 +233,8 @@ const bookedTypeCountList = computed<RoomTypeCount[]>(() => {
 /**
  * 已预订单数接近或超过空闲房间时的提示。
  */
-const roomTypeWarningList = computed<RoomTypeWarning[]>(() => {
-  const warningList: RoomTypeWarning[] = [];
-  roomTypeList.value.forEach((roomType) => {
-    const warningText = roomTypeWarningText(roomType.id);
-    if (isEmpty(warningText)) {
-      return;
-    }
-    warningList.push({
-      roomTypeId: roomType.id,
-      warningText,
-    });
-  });
-  return warningList;
+const roomTypeWarningList = computed(() => {
+  return buildHotelRoomTypeWarningList(roomTypeList.value, bookedOrderList.value, roomList.value);
 });
 
 /**
@@ -477,40 +313,18 @@ const walkInNightCountText = computed(() => {
 });
 
 /**
- * 续住弹窗标题。
+ * 续住弹窗对应的在住订单主键。
  */
-const extendTitle = computed(() => {
+const extendingBookingOrderId = computed(() => {
   if (isEmpty(extendingRoom.value)) {
-    return '续住';
+    return '';
   }
-  return `${extendingRoom.value.roomNo} 续住`;
+  const stayOrder = occupiedOrder(extendingRoom.value);
+  if (isEmpty(stayOrder)) {
+    return '';
+  }
+  return stayOrder.bookingOrderId;
 });
-
-/**
- * 房态卡片底色。
- */
-function roomStatusCardClass(roomStatus: string): string {
-  if (roomStatus === HotelRoomStatus.IDLE) {
-    return 'is-idle';
-  }
-  if (roomStatus === HotelRoomStatus.OCCUPIED) {
-    return 'is-occupied';
-  }
-  if (roomStatus === HotelRoomStatus.CLEANING) {
-    return 'is-cleaning';
-  }
-  if (roomStatus === HotelRoomStatus.MAINTENANCE) {
-    return 'is-maintenance';
-  }
-  return '';
-}
-
-/**
- * 房态中文。
- */
-function roomStatusLabel(roomStatus: string): string {
-  return statusLabel(roomStatus);
-}
 
 /**
  * 房型名称。没有房型时为空。
@@ -548,6 +362,19 @@ function occupiedOrder(roomRow: RoomRow): OrderRow | null {
 }
 
 /**
+ * 订单上要显示的客人。先用预定人，没有时用账号，再没有用联系方式。
+ */
+function bookedOrderGuestText(orderRow: OrderRow): string {
+  if (isEmpty(orderRow.guestName) !== true) {
+    return orderRow.guestName;
+  }
+  if (isEmpty(orderRow.username) !== true) {
+    return orderRow.username;
+  }
+  return isEmpty(orderRow.contact) ? '' : orderRow.contact;
+}
+
+/**
  * 在住客人。先用预定人，没有时用账号，现场入住再用联系方式。
  */
 function roomGuestName(roomRow: RoomRow): string {
@@ -559,16 +386,14 @@ function roomGuestName(roomRow: RoomRow): string {
 }
 
 /**
- * 订单上要显示的客人。先用预定人，没有时用账号，再没有用联系方式。
+ * 卡片上的离店日。不是在住时为空。
  */
-function bookedOrderGuestText(orderRow: OrderRow): string {
-  if (isEmpty(orderRow.guestName) !== true) {
-    return orderRow.guestName;
+function roomCheckOutText(roomRow: RoomRow): string {
+  const stayOrder = occupiedOrder(roomRow);
+  if (isEmpty(stayOrder)) {
+    return '';
   }
-  if (isEmpty(orderRow.username) !== true) {
-    return orderRow.username;
-  }
-  return isEmpty(orderRow.contact) ? '' : orderRow.contact;
+  return `${formatLocalDateTime(stayOrder.checkOutDate)} 离店`;
 }
 
 /**
@@ -587,63 +412,6 @@ function extendRoomMeta(roomRow: RoomRow | null): string {
     return guestName;
   }
   return `${guestName} · ${checkOutText}`;
-}
-
-/**
- * 卡片上的离店日。不是在住时为空。
- */
-function roomCheckOutText(roomRow: RoomRow): string {
-  const stayOrder = occupiedOrder(roomRow);
-  if (isEmpty(stayOrder)) {
-    return '';
-  }
-  return `${formatLocalDateTime(stayOrder.checkOutDate)} 离店`;
-}
-
-/**
- * 今天的预定在下拉里的文字。
- */
-function bookedOrderLabel(orderRow: OrderRow): string {
-  return `${bookedOrderGuestText(orderRow)} ${formatLocalDateTime(orderRow.checkInDate)} 至 ${formatLocalDateTime(orderRow.checkOutDate)}`;
-}
-
-
-/**
- * 按已预订单数和空闲间数生成提示。还剩 1 间、刚好达到、已经超过各一句。
- */
-function roomTypeWarningText(roomTypeId: string): string {
-  const roomType = roomTypeList.value.find((item) => item.id === roomTypeId);
-  if (isEmpty(roomType)) {
-    return '';
-  }
-  const bookedCount = bookedOrderList.value.filter((orderRow) => orderRow.roomTypeId === roomTypeId).length;
-  const idleCount = roomList.value.filter((roomRow) => {
-    return roomRow.roomTypeId === roomTypeId && roomRow.roomStatus === HotelRoomStatus.IDLE;
-  }).length;
-  if (bookedCount === 0) {
-    return '';
-  }
-  const freeLeft = idleCount - bookedCount;
-  if (freeLeft === 1) {
-    return `${roomType.typeName}已预订 ${bookedCount} 单，空闲 ${idleCount} 间，还剩 1 间`;
-  }
-  if (bookedCount === idleCount) {
-    return `${roomType.typeName}已预订 ${bookedCount} 单，已达到空闲房间 ${idleCount} 间`;
-  }
-  if (bookedCount > idleCount) {
-    return `${roomType.typeName}已预订 ${bookedCount} 单，已超过空闲房间 ${idleCount} 间`;
-  }
-  return '';
-}
-
-/**
- * 更多操作可在空闲、打扫中和维修之间切换。在住必须先退房，没有保存权限时不出现。
- */
-function moreStatusOptionList(roomStatus: string): RoomStatusOption[] {
-  if (canSave !== true || roomStatus === HotelRoomStatus.OCCUPIED) {
-    return [];
-  }
-  return manualStatusOptionList.filter((roomStatusOption) => roomStatusOption.value !== roomStatus);
 }
 
 /**
@@ -706,66 +474,6 @@ function currentShopTimeZoneOffset(): string {
     return HotelBusinessDay.DEFAULT_TIME_ZONE_OFFSET;
   }
   return currentShop.timeZone;
-}
-
-/**
- * 把门店时区偏移换成分钟。没有偏移或写错时用东八区。
- */
-function timeZoneOffsetMinutes(timeZoneOffset: string): number {
-  const offsetText = isEmpty(timeZoneOffset) ? HotelBusinessDay.DEFAULT_TIME_ZONE_OFFSET : timeZoneOffset;
-  const signText = offsetText.slice(0, 1);
-  const hourText = offsetText.slice(1, 3);
-  const minuteText = offsetText.slice(4, 6);
-  if (isEmpty(hourText) || isEmpty(minuteText)) {
-    if (offsetText === HotelBusinessDay.DEFAULT_TIME_ZONE_OFFSET) {
-      return HotelBusinessDay.DEFAULT_OFFSET_MINUTES;
-    }
-    return timeZoneOffsetMinutes(HotelBusinessDay.DEFAULT_TIME_ZONE_OFFSET);
-  }
-  const hourNumber = Number(hourText);
-  const minuteNumber = Number(minuteText);
-  if (Number.isFinite(hourNumber) !== true || Number.isFinite(minuteNumber) !== true) {
-    if (offsetText === HotelBusinessDay.DEFAULT_TIME_ZONE_OFFSET) {
-      return HotelBusinessDay.DEFAULT_OFFSET_MINUTES;
-    }
-    return timeZoneOffsetMinutes(HotelBusinessDay.DEFAULT_TIME_ZONE_OFFSET);
-  }
-  const absoluteMinutes = hourNumber * 60 + minuteNumber;
-  if (signText === '-') {
-    return -absoluteMinutes;
-  }
-  return absoluteMinutes;
-}
-
-/**
- * 把当前时刻平移成门店钟面。日期和钟点读 UTC 字段，避免本机时区。
- */
-function toShopWallClock(now: Date, timeZoneOffset: string): Date {
-  const offsetMinutes = timeZoneOffsetMinutes(timeZoneOffset);
-  const offsetMilliseconds = offsetMinutes * HotelBusinessDay.MILLISECONDS_PER_MINUTE;
-  return new Date(now.getTime() + offsetMilliseconds);
-}
-
-/**
- * 把 UTC 日期格式化成 YYYY-MM-DD。
- */
-function formatUtcDate(date: Date): string {
-  const yearText = String(date.getUTCFullYear());
-  const monthText = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const dayText = String(date.getUTCDate()).padStart(2, '0');
-  return `${yearText}-${monthText}-${dayText}`;
-}
-
-/**
- * 门店当地的入住日。早上切点前仍算前一天。
- */
-function hotelBusinessDateText(now: Date, timeZoneOffset: string): string {
-  const shopNow = toShopWallClock(now, timeZoneOffset);
-  let businessTime = shopNow.getTime();
-  if (shopNow.getUTCHours() < HotelBusinessDay.START_HOUR) {
-    businessTime -= HotelBusinessDay.MILLISECONDS_PER_DAY;
-  }
-  return formatUtcDate(new Date(businessTime));
 }
 
 /**
@@ -855,7 +563,6 @@ function selectCheckInRoom(roomRow: RoomRow): void {
  * 打开入住确认。页面上已经选好订单或散客晚数，以及房间。
  */
 function openCheckInConfirm(roomRow: RoomRow | null): void {
-  // 1. 先确认已经按联系方式查过，多单时要先选定一单
   if (checkInSearched.value !== true) {
     ElMessage.warning('请先按联系方式查询今天的预定');
     return;
@@ -868,7 +575,6 @@ function openCheckInConfirm(roomRow: RoomRow | null): void {
     ElMessage.warning('请填写入住晚数');
     return;
   }
-  // 2. 房间必须是空闲的。对上预定时还要和房型一致
   const targetRoom = isEmpty(roomRow) ? roomList.value.find((item) => item.id === selectedCheckInRoomId.value) : roomRow;
   if (isEmpty(targetRoom)) {
     ElMessage.warning('请选择空闲房间');
@@ -888,32 +594,21 @@ function openCheckInConfirm(roomRow: RoomRow | null): void {
 }
 
 /**
- * 确认入住。对上今天的预定就办理该订单；没有订单时按今天为这位客人入住。
+ * 入住成功后清掉查询态并刷新页面。
  */
-async function submitCheckIn(): Promise<void> {
-  if (isEmpty(openingRoom.value)) {
-    return;
-  }
-  if (isEmpty(selectedTodayOrder.value) !== true) {
-    await http.post(HotelApi.bookingOrderCheckIn(selectedTodayOrder.value.bookingOrderId), { roomId: openingRoom.value.id });
-  } else {
-    const nightCount = resolveWalkInNightCount();
-    if (isEmpty(searchedContact.value) || nightCount === null) {
-      ElMessage.warning('请填写联系方式和入住晚数');
-      return;
-    }
-    await http.post(HotelApi.roomWalkIn(openingRoom.value.id), {
-      contact: searchedContact.value,
-      nightCount,
-    });
-  }
-  ElMessage.success('已入住');
-  checkInVisible.value = false;
+async function onCheckInSaved(): Promise<void> {
   checkInContact.value = '';
   searchedContact.value = '';
   checkInSearched.value = false;
   selectedOrderId.value = '';
   selectedCheckInRoomId.value = '';
+  await loadPage();
+}
+
+/**
+ * 续住成功后刷新页面。
+ */
+async function onExtendSaved(): Promise<void> {
   await loadPage();
 }
 
@@ -948,28 +643,6 @@ function showExtend(roomRow: RoomRow): void {
 }
 
 /**
- * 确认续住。新的离店日必须晚于当前离店日。
- */
-async function submitExtend(): Promise<void> {
-  if (isEmpty(extendingRoom.value)) {
-    return;
-  }
-  const stayOrder = occupiedOrder(extendingRoom.value);
-  if (isEmpty(stayOrder)) {
-    ElMessage.warning('没有找到在住订单');
-    return;
-  }
-  if (isEmpty(extendDate.value)) {
-    ElMessage.warning('请选择新的离店日期');
-    return;
-  }
-  await http.post(HotelApi.bookingOrderExtend(stayOrder.bookingOrderId), { checkOutDate: extendDate.value });
-  ElMessage.success('已续住');
-  extendVisible.value = false;
-  await loadPage();
-}
-
-/**
  * 退房。不扣房费，房间改为打扫中。
  */
 async function checkOut(roomRow: RoomRow): Promise<void> {
@@ -991,7 +664,7 @@ async function changeRoomStatus(roomRow: RoomRow, roomStatus: string): Promise<v
   if (roomStatus === roomRow.roomStatus || roomRow.roomStatus === HotelRoomStatus.OCCUPIED) {
     return;
   }
-  await ElMessageBox.confirm(`确认将 ${roomRow.roomNo} 改为${roomStatusLabel(roomStatus)}？`, '切换状态');
+  await ElMessageBox.confirm(`确认将 ${roomRow.roomNo} 改为${statusLabel(roomStatus)}？`, '切换状态');
   await http.post(HotelApi.roomStatus(roomRow.id), { roomStatus });
   await loadPage();
 }
@@ -1001,29 +674,6 @@ async function changeRoomStatus(roomRow: RoomRow, roomStatus: string): Promise<v
  */
 function reloadPage(): void {
   window.location.reload();
-}
-
-/** 房间状态和到账提示的轮询间隔，单位毫秒。 */
-const roomStatusRefreshInterval = 3000;
-let roomStatusTimer = 0;
-let roomStatusRefreshing = false;
-
-/**
- * 同时刷新房间和订单，并检查新的店内消费和扫码付款。上一轮还没回来时跳过，避免请求叠在一起。
- */
-async function refreshRoomStatusPage(): Promise<void> {
-  if (roomStatusRefreshing) {
-    return;
-  }
-  roomStatusRefreshing = true;
-  try {
-    await loadRooms();
-    await loadOrders();
-    await loadPaymentNotices();
-    syncCheckInSelection();
-  } finally {
-    roomStatusRefreshing = false;
-  }
 }
 
 /**
@@ -1050,21 +700,18 @@ function syncCheckInSelection(): void {
 }
 
 /**
- * 进入页面后按固定间隔刷新房间、订单和到账提示。
+ * 轮询一轮：房间、订单、收款，并同步入住选中态。
  */
-function startRoomStatusRefresh(): void {
-  roomStatusTimer = window.setInterval(() => {
-    void refreshRoomStatusPage();
-  }, roomStatusRefreshInterval);
+async function refreshRoomStatusPage(): Promise<void> {
+  await loadRooms();
+  await loadOrders();
+  await loadPaymentNotices();
+  syncCheckInSelection();
 }
 
-/**
- * 离开页面后停止房间状态刷新。
- */
-function stopRoomStatusRefresh(): void {
-  window.clearInterval(roomStatusTimer);
-  roomStatusTimer = 0;
-}
+const { startRoomStatusRefresh, stopRoomStatusRefresh } = useHotelRoomStatusRefresh({
+  refreshPage: refreshRoomStatusPage,
+});
 
 /**
  * 付款弹窗打开后，把焦点放进金额输入框。
@@ -1096,206 +743,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.room-status-open-room {
-  margin-bottom: 16px;
-  padding: 14px 16px;
-  border-radius: 10px;
-  color: #fff;
-}
-
-.room-status-open-no {
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 28px;
-}
-
-.room-status-open-meta {
-  margin-top: 2px;
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.room-status-verify-label {
-  margin-bottom: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 20px;
-  color: #1c2434;
-}
-
-.room-status-check-in-bar {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding: 12px 14px;
-  border: 1px solid #e6e8ec;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.room-status-check-in-detail {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.room-status-check-in-search-row {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
-}
-
-.room-status-check-in-search-row :deep(.el-input) {
-  width: 220px;
-}
-
-.room-status-check-in-order {
-  width: 280px;
-}
-
-.room-status-check-in-result {
-  display: flex;
-  flex: 0 1 auto;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  min-width: 0;
-  color: #667085;
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.room-status-check-in-result strong {
-  color: #1c2434;
-  font-weight: 600;
-}
-
-.room-status-check-in-hint {
-  color: #98a2b3;
-}
-
-.room-status-check-in-action {
-  margin-left: 0;
-  flex: 0 0 auto;
-}
-
-.room-status-check-in-line {
-  margin-top: 8px;
-  font-size: 13px;
-  line-height: 20px;
-  color: #1c2434;
-}
-
-.room-status-pick-title {
-  margin: 0 0 8px;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 22px;
-  color: #1c2434;
-}
-
-.room-status-pick-card {
-  padding-right: 12px;
-  cursor: pointer;
-  background: #d8f3e3;
-  color: #145c32;
-}
-
-.room-status-pick-card .room-status-no,
-.room-status-pick-card .room-status-name,
-.room-status-pick-card .room-status-text {
-  color: #145c32;
-}
-
-.room-status-pick-card.is-selected {
-  background: #145c32;
-  color: #fff;
-}
-
-.room-status-pick-card.is-selected .room-status-no,
-.room-status-pick-card.is-selected .room-status-name,
-.room-status-pick-card.is-selected .room-status-text {
-  color: #fff;
-}
-
-.room-status-night-choice {
-  display: flex;
-  flex-wrap: wrap;
-  width: auto;
-  margin-top: 0;
-}
-
-.room-status-night-choice :deep(.el-radio-button__inner) {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.room-status-walk-in-nights {
-  width: 120px;
-}
-
-.room-status-verify-hint {
-  margin: 8px 0 0;
-  font-size: 12px;
-  line-height: 18px;
-  color: #667085;
-}
-
-.room-status-occupy-line {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.room-status-occupy-line .room-status-occupy,
-.room-status-occupy-line .room-status-extend {
-  margin-top: 0;
-  white-space: nowrap;
-}
-
-.room-status-occupy {
-  margin-top: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 20px;
-  color: #fff;
-}
-
-.room-status-extend {
-  margin-top: 0;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 18px;
-  color: #1c2434;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.72);
-  border: 0;
-  border-radius: 6px;
-}
-
-.room-status-extend:hover {
-  background: rgba(255, 255, 255, 0.92);
-}
-
-.room-status-open-actions {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
-
-.room-status-open-actions .el-button {
-  flex: 1;
-  margin: 0;
-}
-
 .room-status-page {
   display: flex;
   flex-direction: column;
@@ -1317,188 +764,11 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-.room-status-summary {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.room-status-count {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  color: #fff;
-  white-space: nowrap;
-}
-
-.room-status-count-value,
-.room-status-count-label {
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  line-height: 1;
-}
-
-.room-status-count-value {
-  font-size: 22px;
-  font-weight: 600;
-  transform: translateY(-2px);
-}
-
-.room-status-count-label {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.room-status-deduct,
-.room-status-refresh {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: stretch;
-  height: auto;
-  padding: 0 10px;
-  cursor: pointer;
-  border: 0;
-  border-radius: 8px;
-}
-
-.room-status-deduct {
-  padding: 0 14px;
-  color: #ffffff;
-  background: #2563eb;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.room-status-deduct:hover {
-  background: #1d4ed8;
-}
-
-.room-status-refresh {
-  color: #1c2434;
-  background: #e4e7ec;
-}
-
-.room-status-refresh:hover {
-  background: #d5d9e0;
-}
-
-.room-status-deduct-icon,
-.room-status-refresh-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.room-status-deduct-icon {
-  margin-right: 6px;
-}
-
 .room-status-body {
   display: flex;
   flex: 1;
   gap: 16px;
   min-height: 0;
-}
-
-.room-status-orders {
-  width: 280px;
-  flex-shrink: 0;
-  overflow: auto;
-  padding-left: 12px;
-  border-left: 1px solid #e6e8ec;
-}
-
-.room-status-order-stat {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.room-status-order-stat-label {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 22px;
-  color: #1c2434;
-}
-
-.room-status-order-stat-count {
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 1;
-  color: #1c2434;
-}
-
-.room-status-order-types {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.room-status-order-type {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #f4f6f8;
-  font-size: 12px;
-  line-height: 20px;
-  color: #344054;
-}
-
-.room-status-warning {
-  margin-top: 8px;
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: #fdecea;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 20px;
-  color: #b42318;
-}
-
-.room-status-order {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e6e8ec;
-}
-
-.room-status-order-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.room-status-order-handle {
-  flex: 0 0 auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #2563eb;
-  font: inherit;
-  font-size: 13px;
-  line-height: 20px;
-  cursor: pointer;
-}
-
-.room-status-order-name {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 22px;
-  color: #1c2434;
-}
-
-.room-status-order-line {
-  margin-top: 2px;
-  font-size: 13px;
-  line-height: 20px;
-  color: #344054;
 }
 
 .room-status-rooms {
@@ -1523,139 +793,18 @@ onBeforeUnmount(() => {
   color: #1c2434;
 }
 
+.room-status-pick-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+  color: #1c2434;
+}
+
 .room-status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
-}
-
-.room-status-card {
-  position: relative;
-  padding: 12px 44px 12px 12px;
-  border-radius: 8px;
-}
-
-.room-status-card.is-idle,
-.room-status-count.is-idle,
-.room-status-more-dot.is-idle,
-.room-status-open-room.is-idle {
-  background: #248a4a;
-}
-
-.room-status-card.is-occupied,
-.room-status-count.is-occupied,
-.room-status-more-dot.is-occupied,
-.room-status-open-room.is-occupied {
-  background: #b56a08;
-}
-
-.room-status-card.is-cleaning,
-.room-status-count.is-cleaning,
-.room-status-more-dot.is-cleaning,
-.room-status-open-room.is-cleaning {
-  background: #217eae;
-}
-
-.room-status-card.is-maintenance,
-.room-status-count.is-maintenance,
-.room-status-more-dot.is-maintenance,
-.room-status-open-room.is-maintenance {
-  background: #b84545;
-}
-
-.room-status-actions {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.room-status-flow,
-.room-status-more {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  color: #1c2434;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.72);
-  border: 0;
-  border-radius: 6px;
-}
-
-.room-status-flow:hover,
-.room-status-more:hover {
-  color: #1c2434;
-  background: rgba(255, 255, 255, 0.92);
-}
-
-.room-status-flow-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.room-status-more-icon {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
-  stroke: none;
-}
-
-.room-status-name {
-  margin-top: 4px;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 20px;
-  color: #fff;
-}
-
-.room-status-no {
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 28px;
-  color: #fff;
-}
-
-.room-status-text {
-  margin-top: 12px;
-  font-size: 13px;
-  line-height: 20px;
-  color: #fff;
-}
-
-.room-status-more-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.room-status-more-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 0;
-  font-size: 13px;
-  line-height: 20px;
-  color: #1c2434;
-  text-align: left;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-}
-
-.room-status-more-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.room-status-more-item:hover {
-  color: #2563eb;
 }
 
 @media (max-width: 768px) {
@@ -1664,30 +813,17 @@ onBeforeUnmount(() => {
     min-height: auto;
   }
 
-  .room-status-summary {
-    flex-wrap: wrap;
-  }
-
   .room-status-body {
     flex: none;
     flex-direction: column;
     min-height: auto;
   }
 
-  .room-status-rooms,
-  .room-status-orders {
+  .room-status-rooms {
     flex: none;
     width: auto;
     min-height: auto;
     overflow: visible;
-  }
-
-  .room-status-orders {
-    margin-top: 16px;
-    padding-top: 16px;
-    padding-left: 0;
-    border-top: 1px solid #e6e8ec;
-    border-left: 0;
   }
 
   .room-status-grid {
