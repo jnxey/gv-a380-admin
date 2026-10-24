@@ -66,7 +66,7 @@
                 <el-tag :type="billAmountTagType(shopDirection(billRow.direction))" effect="plain" size="small">{{ statusLabel(shopDirection(billRow.direction)) }}</el-tag>
                 <span class="bill-item-title">
                   {{ displayText(billRow.shopName) }} ·
-                  <span class="bill-member-copy" title="点击复制会员号" @click="copyMemberNo(billRow.username)">{{ displayText(billRow.username) }}</span>
+                  <span class="bill-member-copy" title="点击复制账号" @click="copyMemberNo(billRow.username)">{{ displayText(billRow.username) }}</span>
                 </span>
                 <span class="bill-item-type">{{ statusLabel(billRow.bizType) }}</span>
               </div>
@@ -315,11 +315,11 @@ function writeEmptyTip(failMessage: string): void {
 }
 
 /**
- * 点击会员号复制到剪贴板。
+ * 点击账号复制到剪贴板。
  */
 async function copyMemberNo(memberNo: string): Promise<void> {
   if (await copyTextToClipboard(memberNo)) {
-    ElMessage.success('会员号已复制');
+    ElMessage.success('账号已复制');
     return;
   }
   ElMessage.error('复制失败');
