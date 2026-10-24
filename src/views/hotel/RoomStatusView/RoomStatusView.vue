@@ -544,7 +544,7 @@ function occupiedOrder(roomRow: RoomRow): OrderRow | null {
 }
 
 /**
- * 在住客人。先用预定人，没有时用用户名，现场入住再用联系方式。
+ * 在住客人。先用预定人，没有时用账号，现场入住再用联系方式。
  */
 function roomGuestName(roomRow: RoomRow): string {
   const stayOrder = occupiedOrder(roomRow);
@@ -555,7 +555,7 @@ function roomGuestName(roomRow: RoomRow): string {
 }
 
 /**
- * 订单上要显示的客人。先用预定人，没有时用用户名，再没有用联系方式。
+ * 订单上要显示的客人。先用预定人，没有时用账号，再没有用联系方式。
  */
 function bookedOrderGuestText(orderRow: OrderRow): string {
   if (isEmpty(orderRow.guestName) !== true) {

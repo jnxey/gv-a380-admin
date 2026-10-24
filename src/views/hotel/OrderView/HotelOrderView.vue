@@ -5,7 +5,7 @@
       <div v-if="isEmpty(orderList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
         <RecordField label="订单号">{{ orderRow.orderNo }}</RecordField>
-        <RecordField label="用户名">{{ orderGuestText(orderRow) }}</RecordField>
+        <RecordField label="账号">{{ orderGuestText(orderRow) }}</RecordField>
         <RecordField label="预定人">{{ orderRow.guestName }}</RecordField>
         <RecordField label="联系方式">{{ orderRow.contact }}</RecordField>
         <RecordField label="房型">{{ orderRow.typeName }}</RecordField>
@@ -112,7 +112,7 @@ const idleRoomList = ref<RoomRow[]>([]);
 const selectedRoomIdByOrder = ref<Record<string, string>>({});
 
 /**
- * 订单上的客人。有会员用户名用用户名，现场入住没有会员时用联系方式。
+ * 订单上的客人。有会员账号用账号，现场入住没有会员时用联系方式。
  */
 function orderGuestText(orderRow: OrderRow): string {
   if (isEmpty(orderRow.username) !== true) {

@@ -6,7 +6,7 @@
           v-model="keyword"
           v-place
           class="query-keyword"
-          placeholder="用户名/手机号/邮箱"
+          placeholder="账号/手机号/邮箱"
           clearable
         />
       </el-form-item>
@@ -19,7 +19,7 @@
     <div v-if="isEmpty(chatUser) !== true" class="chat-user-block">
       <div class="chat-user-title">用户信息</div>
       <div class="chat-user-fields">
-        <RecordField label="用户名">{{ chatUser?.username }}</RecordField>
+        <RecordField label="账号">{{ chatUser?.username }}</RecordField>
         <RecordField label="昵称">{{ chatUser?.nickname }}</RecordField>
         <RecordField label="手机号">{{ chatUser?.phone }}</RecordField>
         <RecordField label="邮箱">{{ chatUser?.email }}</RecordField>
@@ -32,7 +32,7 @@
     <div v-loading="loading" class="record-list record-list--wide-table">
       <div v-if="loading !== true && isEmpty(memberList)" class="record-empty">{{ emptyTip }}</div>
       <RecordCard v-for="memberRow in memberList" :key="memberRow.memberId">
-        <RecordField label="用户名">{{ memberRow.username }}</RecordField>
+        <RecordField label="账号">{{ memberRow.username }}</RecordField>
         <RecordField label="昵称">{{ memberRow.nickname }}</RecordField>
         <RecordField label="联系方式">{{ memberRow.contact }}</RecordField>
         <RecordField label="余额">{{ memberRow.balance }}</RecordField>
@@ -123,7 +123,7 @@ const emptyTip = computed(() => {
 });
 
 /**
- * 查询会员列表。有精确用户名时只查这一条。
+ * 查询会员列表。有精确账号时只查这一条。
  */
 async function loadMembers(): Promise<void> {
   const queryParams: { keyword?: string; username?: string; page: number; pageSize: number } = {
@@ -151,7 +151,7 @@ async function loadMembers(): Promise<void> {
 }
 
 /**
- * 先按关键字取聊天用户，再用用户名精确查询余额账户。关键字为空时列出全部账户。
+ * 先按关键字取聊天用户，再用账号精确查询余额账户。关键字为空时列出全部账户。
  */
 async function searchMembers(): Promise<void> {
   page.value = PageSetting.DEFAULT_PAGE;
@@ -183,7 +183,7 @@ async function searchMembers(): Promise<void> {
 }
 
 /**
- * 扫付款码后按用户名查询。
+ * 扫付款码后按账号查询。
  */
 async function onPayQrScanned(cipherText: string): Promise<void> {
   try {
@@ -257,7 +257,7 @@ async function toggleMemberStatus(memberRow: MemberRow): Promise<void> {
 }
 
 /**
- * 带着用户名跳到充值页。
+ * 带着账号跳到充值页。
  */
 function goRecharge(memberRow: MemberRow): void {
   void router.push({
@@ -267,7 +267,7 @@ function goRecharge(memberRow: MemberRow): void {
 }
 
 /**
- * 带着用户名跳到用户流水。
+ * 带着账号跳到用户流水。
  */
 function goMemberBill(memberRow: MemberRow): void {
   void router.push({

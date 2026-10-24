@@ -2,7 +2,7 @@
   <el-card>
     <QueryBar @search="searchBills" @reset="resetQuery">
       <el-form-item>
-        <el-input v-model="keyword" v-place class="query-keyword" placeholder="用户名/手机号/邮箱" clearable />
+        <el-input v-model="keyword" v-place class="query-keyword" placeholder="账号/手机号/邮箱" clearable />
       </el-form-item>
       <el-form-item>
         <el-select v-model="bizType" v-place class="query-keyword" clearable placeholder="流水类型">
@@ -265,7 +265,7 @@ async function exportBills(): Promise<void> {
         endDate: billDateQuery.endDate,
       },
     })) as { list: BillRow[] };
-    const headerList = ['账单号', '门店', '用户名', '流水类型', '方向', '金额', '变动前', '变动后', '业务单号', '操作人', '备注', '时间'];
+    const headerList = ['账单号', '门店', '账号', '流水类型', '方向', '金额', '变动前', '变动后', '业务单号', '操作人', '备注', '时间'];
     const lineList = [headerList.map((headerText) => escapeCsvCell(headerText)).join(',')];
     for (const billRow of exportResult.list) {
       lineList.push(

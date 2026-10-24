@@ -17,7 +17,7 @@
           <el-input
             v-model="keyword"
             class="recharge-search-input"
-            placeholder="用户名/手机号/邮箱"
+            placeholder="账号/手机号/邮箱"
             clearable
             @keyup.enter="searchMember"
           />
@@ -118,7 +118,7 @@ interface RechargeBill {
   balanceAfter: string;
 }
 
-/** 按用户名打开账户的结果。 */
+/** 按账号打开账户的结果。 */
 type OpenMemberResult = 'opened' | 'missing' | 'disabled' | 'ambiguous';
 
 const route = useRoute();
@@ -189,7 +189,7 @@ function readFailMessage(error: unknown): string {
 }
 
 /**
- * 按用户名取唯一余额账户。停用的不进入充值；没有或不止一条时留在查找。
+ * 按账号取唯一余额账户。停用的不进入充值；没有或不止一条时留在查找。
  */
 async function openMemberByUsername(username: string): Promise<OpenMemberResult> {
   const pageResult = (await http.get(MemberApi.LIST, {
@@ -235,12 +235,12 @@ async function openAccountByUsername(username: string): Promise<void> {
 }
 
 /**
- * 先按用户名、手机号或邮箱取聊天用户，再用用户名进入充值。聊天里有、A380 还没有账户时先开户。
+ * 先按账号、手机号或邮箱取聊天用户，再用账号进入充值。聊天里有、A380 还没有账户时先开户。
  */
 async function searchMember(): Promise<void> {
   const cleanedKeyword = keyword.value.trim();
   if (isEmpty(cleanedKeyword)) {
-    ElMessage.warning('请输入用户名/手机号/邮箱');
+    ElMessage.warning('请输入账号/手机号/邮箱');
     return;
   }
   if (searching.value === true) {
@@ -265,7 +265,7 @@ async function searchMember(): Promise<void> {
 }
 
 /**
- * 扫付款码解开后按用户名进入充值。A380 还没有账户时先开户。
+ * 扫付款码解开后按账号进入充值。A380 还没有账户时先开户。
  */
 async function onPayQrScanned(cipherText: string): Promise<void> {
   if (searching.value === true) {
@@ -386,7 +386,7 @@ async function submitRecharge(): Promise<void> {
 }
 
 /**
- * 查询页「去充值」已带精确用户名，直接打开账户，不再走聊天用户解析。
+ * 查询页「去充值」已带精确账号，直接打开账户，不再走聊天用户解析。
  */
 async function openMemberFromQuery(): Promise<void> {
   const usernameFromQuery = route.query.username;
