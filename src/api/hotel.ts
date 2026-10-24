@@ -5,6 +5,7 @@ export const HotelApi = {
   SHOPS: '/hotel/shops',
   shop: (shopId: string) => `/hotel/shops/${shopId}`,
   shopImages: (shopId: string) => `/hotel/shops/${shopId}/images`,
+  shopImagesSort: (shopId: string) => `/hotel/shops/${shopId}/images/sort`,
   shopImage: (shopId: string, imageId: string) => `/hotel/shops/${shopId}/images/${imageId}`,
   ROOM_TYPES: '/hotel/room-types',
   ROOM_TYPES_SORT: '/hotel/room-types/sort',

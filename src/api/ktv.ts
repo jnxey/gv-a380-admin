@@ -5,6 +5,7 @@ export const KtvApi = {
   SHOPS: '/ktv/shops',
   shop: (shopId: string) => `/ktv/shops/${shopId}`,
   shopImages: (shopId: string) => `/ktv/shops/${shopId}/images`,
+  shopImagesSort: (shopId: string) => `/ktv/shops/${shopId}/images/sort`,
   shopImage: (shopId: string, imageId: string) => `/ktv/shops/${shopId}/images/${imageId}`,
   ROOM_TYPES: '/ktv/room-types',
   ROOM_TYPES_SORT: '/ktv/room-types/sort',

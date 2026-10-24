@@ -5,6 +5,7 @@ export const StoreApi = {
   SHOPS: '/store/shops',
   shop: (shopId: string) => `/store/shops/${shopId}`,
   shopImages: (shopId: string) => `/store/shops/${shopId}/images`,
+  shopImagesSort: (shopId: string) => `/store/shops/${shopId}/images/sort`,
   shopImage: (shopId: string, imageId: string) => `/store/shops/${shopId}/images/${imageId}`,
   PRODUCT_CATEGORIES: '/store/product-categories',
   PRODUCT_CATEGORIES_SORT: '/store/product-categories/sort',

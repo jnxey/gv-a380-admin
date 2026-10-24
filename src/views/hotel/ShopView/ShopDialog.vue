@@ -3,7 +3,9 @@
     <el-form class="shop-form" label-position="top">
       <el-row :gutter="16">
         <el-col :span="12">
-          <el-form-item label="编码"><el-input v-model="shopForm.shopCode" /></el-form-item>
+          <el-form-item label="编码">
+            <el-input v-model="shopForm.shopCode" :disabled="isEmpty(editingShopId) !== true" placeholder="保存后不可修改" />
+          </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="名称"><el-input v-model="shopForm.shopName" /></el-form-item>
@@ -26,6 +28,7 @@
                 <el-option v-for="businessHour in endTimeOptionList" :key="businessHour" :label="businessHour" :value="businessHour" />
               </el-select>
             </div>
+            <div v-if="isOvernightBusinessHours" class="shop-hours-tip">结束早于开始，按跨天营业到次日</div>
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -52,27 +55,39 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="图片">
-        <el-upload
-          v-model:file-list="shopImageFileList"
-          :class="{ 'shop-image-full': shopImageFileList.length >= ShopImageLimit.MAX_COUNT }"
-          list-type="picture-card"
-          :limit="ShopImageLimit.MAX_COUNT"
-          :accept="shopImageAccept"
-          :http-request="uploadShopImage"
-          :before-upload="beforeUploadShopImage"
-          :on-remove="removeShopImage"
-          :on-preview="previewShopImage"
-          :on-exceed="onShopImageExceed"
-        >
-          <span class="shop-image-add">+</span>
-        </el-upload>
+            <div class="shop-image-tip">第一张为封面，可将其它图设为封面</div>
+            <el-upload
+              v-model:file-list="shopImageFileList"
+              :class="{ 'shop-image-full': shopImageFileList.length >= ShopImageLimit.MAX_COUNT }"
+              list-type="picture-card"
+              :limit="ShopImageLimit.MAX_COUNT"
+              :accept="shopImageAccept"
+              :http-request="uploadShopImage"
+              :before-upload="beforeUploadShopImage"
+              :on-remove="removeShopImage"
+              :on-preview="previewShopImage"
+              :on-exceed="onShopImageExceed"
+            >
+              <template #file="{ file }">
+                <div class="shop-image-card">
+                  <img class="shop-image-thumb" :src="file.url" alt="" />
+                  <span v-if="isCoverImage(file)" class="shop-image-cover">封面</span>
+                  <span class="shop-image-actions">
+                    <button v-if="isCoverImage(file) !== true" type="button" class="shop-image-action" @click.stop="setCoverImage(file)">设为封面</button>
+                    <button type="button" class="shop-image-action" @click.stop="previewShopImage(file)">预览</button>
+                    <button type="button" class="shop-image-action is-danger" @click.stop="removeShopImageFile(file)">删除</button>
+                  </span>
+                </div>
+              </template>
+              <span class="shop-image-add">+</span>
+            </el-upload>
           </el-form-item>
         </el-col>
       </el-row>
     </el-form>
     <template #footer>
-      <el-button size="large" @click="visible = false">取消</el-button>
-      <el-button size="large" type="primary" @click="saveShop">保存</el-button>
+      <el-button size="large" :disabled="saving" @click="visible = false">取消</el-button>
+      <el-button size="large" type="primary" :loading="saving" @click="saveShop">保存</el-button>
     </template>
   </el-dialog>
   <el-dialog v-model="previewVisible" title="图片预览" width="480px">
@@ -97,7 +112,7 @@ import { isEmpty } from '../../../utils/tools';
 import { limitImageWidth, replaceUploadRawFile } from '../../../utils/image';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
-import ShopLocationDialog from '../../ktv/ShopView/ShopLocationDialog.vue';
+import ShopLocationDialog from './ShopLocationDialog.vue';
 
 export interface ShopImageView {
   imageId: string;
@@ -148,6 +163,7 @@ const shopImageFileList = ref<ShopImageFileItem[]>([]);
 const previewVisible = ref(false);
 const previewUrl = ref('');
 const locationDialogVisible = ref(false);
+const saving = ref(false);
 const shopForm = reactive({
   shopCode: '',
   shopName: '',
@@ -161,9 +177,6 @@ const shopForm = reactive({
   status: RecordStatus.ENABLED as string,
 });
 
-/**
- * 时区下拉。已保存但不在列表里的偏移，补到最前面。
- */
 const timeZoneOptionList = computed(() => {
   const optionList = TimeZoneOptionList.map((timeZoneOption) => ({
     offset: timeZoneOption.offset,
@@ -176,9 +189,6 @@ const timeZoneOptionList = computed(() => {
   return [{ offset: shopForm.timeZone, label: shopForm.timeZone }, ...optionList];
 });
 
-/**
- * 已选经纬度。还没选点时显示未选择。
- */
 const locationLabel = computed(() => {
   if (isEmpty(shopForm.longitude) || isEmpty(shopForm.latitude)) {
     return '未选择';
@@ -199,42 +209,52 @@ function businessHourOptionList(selectedTime: string): string[] {
 const startTimeOptionList = computed(() => businessHourOptionList(shopForm.startTime));
 
 /**
- * 结束时间只列出开始之后的档。已保存但不合法的结束时间仍留在最前面。
+ * 结束时间可早于开始（跨天），只排除与开始相同的档。已保存但不在半点档里的结束时间仍留在最前面。
  */
 const endTimeOptionList = computed(() => {
   if (isEmpty(shopForm.startTime)) {
-    if (isEmpty(shopForm.endTime)) {
-      return [];
-    }
-    return [shopForm.endTime];
+    return businessHourOptionList(shopForm.endTime);
   }
-  const laterHourList = BusinessHourList.filter((businessHour) => businessHour > shopForm.startTime);
-  if (isEmpty(shopForm.endTime) || laterHourList.some((businessHour) => businessHour === shopForm.endTime)) {
-    return laterHourList;
+  const optionList = BusinessHourList.filter((businessHour) => businessHour !== shopForm.startTime);
+  if (isEmpty(shopForm.endTime) || optionList.some((businessHour) => businessHour === shopForm.endTime)) {
+    return optionList;
   }
-  return [shopForm.endTime, ...laterHourList];
+  if (shopForm.endTime === shopForm.startTime) {
+    return optionList;
+  }
+  return [shopForm.endTime, ...optionList];
 });
 
 /**
- * 开始改到不早于结束时，清空结束。
+ * 结束早于开始时按跨天营业。
+ */
+const isOvernightBusinessHours = computed(() => {
+  if (isEmpty(shopForm.startTime) || isEmpty(shopForm.endTime)) {
+    return false;
+  }
+  return shopForm.endTime < shopForm.startTime;
+});
+
+/**
+ * 开始改成与结束相同时，清空结束。
  */
 function alignEndTime(): void {
   if (isEmpty(shopForm.endTime)) {
     return;
   }
-  if (isEmpty(shopForm.startTime) || shopForm.endTime <= shopForm.startTime) {
+  if (isEmpty(shopForm.startTime) !== true && shopForm.endTime === shopForm.startTime) {
     shopForm.endTime = '';
   }
 }
 
 /**
- * 营业时间必须两边都填，且结束要晚于开始。
+ * 营业时间必须两边都填，且开始和结束不能相同。
  */
 function businessHoursInvalid(): boolean {
   if (isEmpty(shopForm.startTime) || isEmpty(shopForm.endTime)) {
     return true;
   }
-  return shopForm.endTime <= shopForm.startTime;
+  return shopForm.endTime === shopForm.startTime;
 }
 
 /**
@@ -344,11 +364,64 @@ async function removeShopImage(fileItem: ShopImageFileItem): Promise<void> {
 }
 
 /**
+ * 自定义卡片上的删除：先删服务端，再移出列表。
+ */
+async function removeShopImageFile(fileItem: ShopImageFileItem): Promise<void> {
+  await removeShopImage(fileItem);
+  shopImageFileList.value = shopImageFileList.value.filter((imageFile) => imageFile.uid !== fileItem.uid);
+}
+
+/**
  * 预览一张门店图片。
  */
 function previewShopImage(fileItem: ShopImageFileItem): void {
   previewUrl.value = isEmpty(fileItem.url) ? '' : fileItem.url;
   previewVisible.value = true;
+}
+
+/**
+ * 当前列表第一张是封面。
+ */
+function isCoverImage(fileItem: ShopImageFileItem): boolean {
+  if (isEmpty(shopImageFileList.value)) {
+    return false;
+  }
+  return shopImageFileList.value[0].uid === fileItem.uid;
+}
+
+/**
+ * 把一张图挪到第一位作为封面。已保存的门店会同步排序。
+ */
+async function setCoverImage(fileItem: ShopImageFileItem): Promise<void> {
+  const imageIndex = shopImageFileList.value.findIndex((imageFile) => imageFile.uid === fileItem.uid);
+  if (imageIndex <= 0) {
+    return;
+  }
+  const nextImageList = [...shopImageFileList.value];
+  const [coverImage] = nextImageList.splice(imageIndex, 1);
+  nextImageList.unshift(coverImage);
+  shopImageFileList.value = nextImageList;
+  await syncShopImageSortOrder();
+}
+
+/**
+ * 按当前列表顺序把已上传图片的排序写回服务端。第一张是封面。还有未上传图时不同步。
+ */
+async function syncShopImageSortOrder(): Promise<void> {
+  if (isEmpty(editingShopId.value)) {
+    return;
+  }
+  const imageIdList: string[] = [];
+  for (const imageFile of shopImageFileList.value) {
+    if (isEmpty(imageFile.imageId)) {
+      return;
+    }
+    imageIdList.push(imageFile.imageId);
+  }
+  if (isEmpty(imageIdList)) {
+    return;
+  }
+  await http.post(HotelApi.shopImagesSort(editingShopId.value), { idList: imageIdList });
 }
 
 /**
@@ -441,26 +514,31 @@ async function saveShop(): Promise<void> {
     return;
   }
   if (businessHoursInvalid()) {
-    ElMessage.warning('结束时间必须晚于开始时间');
+    ElMessage.warning('结束时间不能与开始时间相同');
     return;
   }
   if (isEmpty(shopForm.longitude) || isEmpty(shopForm.latitude)) {
     ElMessage.warning('请选择门店位置');
     return;
   }
-  const shopBody = shopSaveBody();
-  if (isEmpty(editingShopId.value)) {
-    const createdShop = (await http.post(HotelApi.SHOPS, shopBody)) as ShopRow;
-    editingShopId.value = createdShop.shopId;
-    sessionStore.menuLoaded = false;
-    await sessionStore.loadSession(router);
-    await uploadPendingShopImages(createdShop.shopId);
-  } else {
-    await http.put(HotelApi.shop(editingShopId.value), shopBody);
+  saving.value = true;
+  try {
+    const shopBody = shopSaveBody();
+    if (isEmpty(editingShopId.value)) {
+      const createdShop = (await http.post(HotelApi.SHOPS, shopBody)) as ShopRow;
+      editingShopId.value = createdShop.shopId;
+      sessionStore.menuLoaded = false;
+      await sessionStore.loadSession(router);
+      await uploadPendingShopImages(createdShop.shopId);
+    } else {
+      await http.put(HotelApi.shop(editingShopId.value), shopBody);
+    }
+    ElMessage.success('保存成功');
+    visible.value = false;
+    emit('saved');
+  } finally {
+    saving.value = false;
   }
-  ElMessage.success('保存成功');
-  visible.value = false;
-  emit('saved');
 }
 </script>
 
@@ -469,10 +547,70 @@ async function saveShop(): Promise<void> {
   width: 100%;
 }
 
+.shop-image-tip {
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #667085;
+}
+
 .shop-image-add {
   font-size: 28px;
   line-height: 1;
   color: #909399;
+}
+
+.shop-image-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.shop-image-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shop-image-cover {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 20px;
+  color: #ffffff;
+  background: rgba(28, 36, 52, 0.72);
+  border-radius: 4px;
+}
+
+.shop-image-actions {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+  background: rgba(28, 36, 52, 0.72);
+}
+
+.shop-image-action {
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  color: #ffffff;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.shop-image-action.is-danger {
+  color: #fda29b;
 }
 
 .shop-hours {
@@ -489,6 +627,13 @@ async function saveShop(): Promise<void> {
 
 .shop-hours-split {
   flex-shrink: 0;
+  color: #667085;
+}
+
+.shop-hours-tip {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 18px;
   color: #667085;
 }
 

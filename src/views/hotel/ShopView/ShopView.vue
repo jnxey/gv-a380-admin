@@ -1,12 +1,15 @@
 ﻿<template>
   <el-card>
-    <div v-if="isEmpty(shopList) && canSave !== true" class="shop-empty">暂无数据</div>
+    <div class="shop-toolbar">
+      <el-input v-model="keyword" class="shop-search" clearable placeholder="搜索名称/编码/电话/地址" />
+    </div>
+    <div v-if="isEmpty(filteredShopList) && canSave !== true" class="shop-empty">暂无数据</div>
     <div v-else class="shop-grid">
       <button v-if="canSave" type="button" class="shop-card shop-create" @click="openCreate">
         <span class="shop-create-plus">+</span>
         <span>新建门店</span>
       </button>
-      <article v-for="shopRow in shopList" :key="shopRow.shopId" class="shop-card">
+      <article v-for="shopRow in filteredShopList" :key="shopRow.shopId" class="shop-card">
         <div class="shop-cover">
           <img v-if="!isEmpty(coverImageUrl(shopRow))" :src="coverImageUrl(shopRow)" alt="" />
           <span v-else class="shop-cover-empty">暂无图片</span>
@@ -52,7 +55,7 @@
 
 <script setup lang="ts">
 import { HotelApi } from '../../../api/hotel';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import QRCode from 'qrcode';
 import { PermissionCode, RecordStatus, ShopPayQr, statusLabel, timeZoneLabel } from '../../../utils/constants';
@@ -63,6 +66,7 @@ import ShopDialog, { type ShopRow } from './ShopDialog.vue';
 
 const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.HOTEL_SHOP_SAVE);
+const keyword = ref('');
 const shopList = ref<ShopRow[]>([]);
 const dialogVisible = ref(false);
 const editingShop = ref<ShopRow | null>(null);
@@ -72,7 +76,21 @@ const payQrImageUrl = ref('');
 const payQrFileName = ref('');
 
 /**
- * 营业时间显示成开始到结束。没有时段时返回空字符串。
+ * 按关键字过滤门店。匹配名称、编码、电话、地址。
+ */
+const filteredShopList = computed(() => {
+  const cleanedKeyword = keyword.value.trim().toLowerCase();
+  if (isEmpty(cleanedKeyword)) {
+    return shopList.value;
+  }
+  return shopList.value.filter((shopRow) => {
+    const searchText = `${shopRow.shopName} ${shopRow.shopCode} ${shopRow.contactPhone} ${shopRow.address}`.toLowerCase();
+    return searchText.indexOf(cleanedKeyword) >= 0;
+  });
+});
+
+/**
+ * 营业时间显示成开始到结束。结束早于开始时标次日。没有时段时返回空字符串。
  */
 function shopBusinessHoursText(shopRow: ShopRow): string {
   if (isEmpty(shopRow.businessHours)) {
@@ -82,6 +100,9 @@ function shopBusinessHoursText(shopRow: ShopRow): string {
   const endTime = shopRow.businessHours.endTime;
   if (isEmpty(startTime) && isEmpty(endTime)) {
     return '';
+  }
+  if (isEmpty(startTime) !== true && isEmpty(endTime) !== true && endTime < startTime) {
+    return `${startTime} - 次日 ${endTime}`;
   }
   return `${startTime} - ${endTime}`;
 }
@@ -97,7 +118,7 @@ function coverImageUrl(shopRow: ShopRow): string {
 }
 
 /**
- * 查询已绑定的酒店门店。
+ * 查询已绑定的 KTV 门店。
  */
 async function loadShops(): Promise<void> {
   shopList.value = (await http.get(HotelApi.SHOPS)) as ShopRow[];
@@ -258,6 +279,15 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.shop-toolbar {
+  margin-bottom: 12px;
+}
+
+.shop-search {
+  width: 280px;
+  max-width: 100%;
+}
+
 .shop-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
