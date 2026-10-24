@@ -25,7 +25,7 @@ const emit = defineEmits<{
 }
 
 .query-bar :deep(.el-form-item) {
-  margin-right: 12px;
+  margin-right: 8px;
   margin-bottom: 12px;
   max-width: 100%;
 }

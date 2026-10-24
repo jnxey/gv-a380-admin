@@ -216,6 +216,7 @@ export const FinanceDirection = {
 export const PageSetting = {
   DEFAULT_PAGE: 1,
   DEFAULT_PAGE_SIZE: 10,
+  PAGE_SIZE_OPTIONS: [10, 20, 50, 100],
   ROOM_LOOKUP_PAGE_SIZE: 100,
 } as const;
 

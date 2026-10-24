@@ -16,6 +16,13 @@
         </el-select>
       </el-form-item>
       <el-form-item>
+        <el-button-group class="bill-date-quick">
+          <el-button @click="applyQuickDate('today')">今天</el-button>
+          <el-button @click="applyQuickDate('last7')">近7天</el-button>
+          <el-button @click="applyQuickDate('month')">本月</el-button>
+        </el-button-group>
+      </el-form-item>
+      <el-form-item>
         <el-date-picker
           v-model="billDateRange"
           class="bill-date-range"
@@ -26,6 +33,11 @@
           single-panel
         />
       </el-form-item>
+      <template #append>
+        <el-form-item class="query-actions">
+          <el-button :loading="exporting" @click="exportBills">导出</el-button>
+        </el-form-item>
+      </template>
     </QueryBar>
     <div class="bill-scope-tip">本页按门店口径：会员消费为门店收入，会员充值为门店支出。查看会员加减请用「用户流水」。</div>
     <div v-loading="loading">
@@ -61,16 +73,24 @@
               <div class="bill-item-amount" :class="billAmountClass(shopDirection(billRow.direction))">{{ formatBillAmount(billRow) }}</div>
             </div>
             <div class="bill-item-meta">
-              <span>账单号 {{ displayText(billRow.billNo) }}</span>
+              <span class="bill-no-copy" title="点击复制" @click="copyBillNo(billRow.billNo)">账单号 {{ displayText(billRow.billNo) }}</span>
               <span>业务单号 {{ displayText(billRow.bizOrderNo) }}</span>
               <span>变动前 {{ billRow.balanceBefore }}</span>
               <span>变动后 {{ billRow.balanceAfter }}</span>
+              <span v-if="isEmpty(billRow.operatorName) !== true">操作人 {{ billRow.operatorName }}</span>
               <span v-if="isEmpty(billRow.remark) !== true">备注 {{ billRow.remark }}</span>
             </div>
           </article>
         </div>
       </section>
-      <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
+      <ListPager
+        :total="total"
+        :current-page="page"
+        :page-size="pageSize"
+        :page-sizes="[...PageSetting.PAGE_SIZE_OPTIONS]"
+        @current-change="onPageChange"
+        @size-change="onPageSizeChange"
+      />
     </div>
   </el-card>
 </template>
@@ -78,6 +98,7 @@
 <script setup lang="ts">
 import { FinanceApi } from '../../../api/finance';
 import { onMounted, ref } from 'vue';
+import { ElMessage } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import { FinanceBizType, FinanceDirection, PageSetting, statusLabel } from '../../../utils/constants';
@@ -95,6 +116,7 @@ interface BillRow {
   balanceBefore: string;
   balanceAfter: string;
   bizOrderNo: string;
+  operatorName: string;
   remark: string;
   createdAt: string;
 }
@@ -120,6 +142,7 @@ const total = ref(0);
 const page = ref<number>(PageSetting.DEFAULT_PAGE);
 const pageSize = ref<number>(PageSetting.DEFAULT_PAGE_SIZE);
 const loading = ref(false);
+const exporting = ref(false);
 const emptyTip = ref('暂无数据');
 
 /**
@@ -193,6 +216,16 @@ function padDatePart(datePart: number): string {
 }
 
 /**
+ * 把本地日期格式化成 YYYY-MM-DD。
+ */
+function formatLocalDateText(dateValue: Date): string {
+  const yearText = String(dateValue.getFullYear());
+  const monthText = padDatePart(dateValue.getMonth() + 1);
+  const dayText = padDatePart(dateValue.getDate());
+  return `${yearText}-${monthText}-${dayText}`;
+}
+
+/**
  * 本月 1 日到今天，按电脑本地日期。
  */
 function currentMonthDateRange(): [string, string] {
@@ -201,6 +234,37 @@ function currentMonthDateRange(): [string, string] {
   const monthText = padDatePart(today.getMonth() + 1);
   const dayText = padDatePart(today.getDate());
   return [`${yearText}-${monthText}-01`, `${yearText}-${monthText}-${dayText}`];
+}
+
+/**
+ * 今天到今天。
+ */
+function todayDateRange(): [string, string] {
+  const todayText = formatLocalDateText(new Date());
+  return [todayText, todayText];
+}
+
+/**
+ * 近 7 天（含今天）到今天。
+ */
+function last7DaysDateRange(): [string, string] {
+  const today = new Date();
+  const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
+  return [formatLocalDateText(startDate), formatLocalDateText(today)];
+}
+
+/**
+ * 点快捷日期后立刻按新范围查询。
+ */
+function applyQuickDate(quickDateKind: 'today' | 'last7' | 'month'): void {
+  if (quickDateKind === 'today') {
+    billDateRange.value = todayDateRange();
+  } else if (quickDateKind === 'last7') {
+    billDateRange.value = last7DaysDateRange();
+  } else {
+    billDateRange.value = currentMonthDateRange();
+  }
+  searchBills();
 }
 
 /**
@@ -248,6 +312,90 @@ function writeEmptyTip(failMessage: string): void {
     return;
   }
   emptyTip.value = '该用户在当前条件下没有流水';
+}
+
+/**
+ * 点击账单号复制到剪贴板。
+ */
+async function copyBillNo(billNo: string): Promise<void> {
+  if (isEmpty(billNo)) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(billNo);
+    ElMessage.success('账单号已复制');
+  } catch {
+    ElMessage.error('复制失败');
+  }
+}
+
+/**
+ * CSV 单元格转义。含逗号、引号或换行时用双引号包起来。
+ */
+function escapeCsvCell(cellText: string): string {
+  if (cellText.indexOf('"') >= 0 || cellText.indexOf(',') >= 0 || cellText.indexOf('\n') >= 0 || cellText.indexOf('\r') >= 0) {
+    return `"${cellText.replace(/"/g, '""')}"`;
+  }
+  return cellText;
+}
+
+/**
+ * 按当前筛选条件导出 CSV。方向按门店口径。
+ */
+async function exportBills(): Promise<void> {
+  exporting.value = true;
+  try {
+    const billDateQuery = readBillDateQuery();
+    const exportResult = (await http.get(FinanceApi.BILLS_EXPORT, {
+      params: {
+        keyword: keyword.value,
+        shopId: shopId.value,
+        bizType: bizType.value,
+        startDate: billDateQuery.startDate,
+        endDate: billDateQuery.endDate,
+      },
+    })) as { list: BillRow[] };
+    const headerList = ['账单号', '门店', '用户名', '流水类型', '方向', '金额', '变动前', '变动后', '业务单号', '操作人', '备注', '时间'];
+    const lineList = [headerList.map((headerText) => escapeCsvCell(headerText)).join(',')];
+    for (const billRow of exportResult.list) {
+      const direction = shopDirection(billRow.direction);
+      lineList.push(
+        [
+          billRow.billNo,
+          billRow.shopName,
+          billRow.username,
+          statusLabel(billRow.bizType),
+          statusLabel(direction),
+          formatBillAmount(billRow),
+          billRow.balanceBefore,
+          billRow.balanceAfter,
+          billRow.bizOrderNo,
+          isEmpty(billRow.operatorName) ? '' : billRow.operatorName,
+          isEmpty(billRow.remark) ? '' : billRow.remark,
+          formatLocalDateTime(billRow.createdAt),
+        ]
+          .map((cellText) => escapeCsvCell(String(cellText)))
+          .join(','),
+      );
+    }
+    // 1. 加 BOM，方便 Excel 直接打开中文
+    const csvContent = `\uFEFF${lineList.join('\r\n')}`;
+    const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const downloadUrl = window.URL.createObjectURL(csvBlob);
+    const downloadLink = document.createElement('a');
+    const todayText = formatLocalDateText(new Date());
+    downloadLink.href = downloadUrl;
+    downloadLink.download = `财务流水_${todayText}.csv`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    window.URL.revokeObjectURL(downloadUrl);
+    ElMessage.success(`已导出 ${exportResult.list.length} 条`);
+  } catch {
+    // 失败文案由请求拦截器提示
+  } finally {
+    exporting.value = false;
+  }
 }
 
 /**
@@ -352,6 +500,15 @@ async function onPageChange(nextPage: number): Promise<void> {
   }
 }
 
+/**
+ * 改每页条数后从第一页重查。
+ */
+function onPageSizeChange(nextPageSize: number): void {
+  pageSize.value = nextPageSize;
+  page.value = PageSetting.DEFAULT_PAGE;
+  void loadSummaryAndBills();
+}
+
 onMounted(() => {
   void loadSummaryAndBills();
 });
@@ -361,6 +518,10 @@ onMounted(() => {
 .bill-date-range {
   width: 260px;
   max-width: 100%;
+}
+
+.bill-date-quick {
+  flex-shrink: 0;
 }
 
 .bill-scope-tip {
@@ -505,6 +666,15 @@ onMounted(() => {
   font-size: 13px;
   line-height: 20px;
   color: #667085;
+}
+
+.bill-no-copy {
+  cursor: pointer;
+  color: #3b82f6;
+}
+
+.bill-no-copy:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {
