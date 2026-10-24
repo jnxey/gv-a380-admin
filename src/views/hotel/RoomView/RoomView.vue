@@ -1,14 +1,31 @@
 ﻿<template>
   <ShopSwitcher />
   <el-card>
-    <el-button v-if="canSave" type="primary" @click="openCreate">新建房间</el-button>
+    <QueryBar @search="searchRooms" @reset="resetRoomFilter">
+      <el-form-item>
+        <el-select v-model="filterRoomTypeId" clearable placeholder="全部房型" style="width: 160px">
+          <el-option v-for="roomType in roomTypeList" :key="roomType.id" :label="roomType.typeName" :value="roomType.id" />
+        </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-select v-model="filterRoomStatus" clearable placeholder="全部房态" style="width: 140px">
+          <el-option label="空闲" :value="HotelRoomStatus.IDLE" />
+          <el-option label="在住" :value="HotelRoomStatus.OCCUPIED" />
+          <el-option label="打扫中" :value="HotelRoomStatus.CLEANING" />
+          <el-option label="维修" :value="HotelRoomStatus.MAINTENANCE" />
+        </el-select>
+      </el-form-item>
+      <template #append>
+        <el-button v-if="canSave" type="primary" @click="openCreate">新建房间</el-button>
+      </template>
+    </QueryBar>
     <div ref="sortListRef" class="record-list record-list--wide-table">
       <RecordTableHead />
       <div v-if="isEmpty(roomList)" class="record-empty">暂无数据</div>
       <RecordCard v-for="roomRow in roomList" :key="roomRow.id">
         <RecordField label="房号">
           <span class="name-box" :data-key="roomRow.id">
-            <button v-if="canSave" type="button" class="drag-icon">
+            <button v-if="canDragSort" type="button" class="drag-icon">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <path
                   fill="currentColor"
@@ -37,8 +54,9 @@
 
 <script setup lang="ts">
 import { HotelApi } from '../../../api/hotel';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
+import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordTableHead from '../../../components/RecordTableHead/RecordTableHead.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
@@ -53,20 +71,41 @@ const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.HOTEL_ROOM_SAVE);
 const roomList = ref<RoomRow[]>([]);
 const roomTypeList = ref<RoomTypeOption[]>([]);
+const filterRoomTypeId = ref('');
+const filterRoomStatus = ref('');
+const appliedRoomTypeId = ref('');
+const appliedRoomStatus = ref('');
 const sortListRef = ref<HTMLElement | null>(null);
 const dialogVisible = ref(false);
 const editingRoom = ref<RoomRow | null>(null);
+
+/**
+ * 有筛选时不能拖排序，否则提交的编号列表不完整。
+ */
+const canDragSort = computed(() => {
+  return canSave === true && isEmpty(appliedRoomTypeId.value) && isEmpty(appliedRoomStatus.value);
+});
+
 const { initDragSort } = useDragSort(
   () => sortListRef.value,
-  () => canSave === true,
+  () => canDragSort.value === true,
   saveRoomSort,
 );
 
 /**
- * 查询当前门店全部房间，并加载房型名称。
+ * 按当前已应用的筛选条件查询房间，并加载房型名称。
  */
 async function loadRooms(): Promise<void> {
-  const roomPage = (await http.get(HotelApi.ROOMS)) as { list: RoomRow[] };
+  const queryParams: { roomTypeId?: string; roomStatus?: string } = {};
+  if (isEmpty(appliedRoomTypeId.value) !== true) {
+    queryParams.roomTypeId = appliedRoomTypeId.value;
+  }
+  if (isEmpty(appliedRoomStatus.value) !== true) {
+    queryParams.roomStatus = appliedRoomStatus.value;
+  }
+  const roomPage = (await http.get(HotelApi.ROOMS, {
+    params: queryParams,
+  })) as { list: RoomRow[] };
   const roomTypePage = (await http.get(HotelApi.ROOM_TYPES)) as { list: RoomTypeOption[] };
   roomList.value = roomPage.list;
   roomTypeList.value = roomTypePage.list;
@@ -95,6 +134,26 @@ function roomStatusTagType(roomStatus: string): 'success' | 'warning' | 'info' {
     return 'warning';
   }
   return 'info';
+}
+
+/**
+ * 应用房型和房态筛选后重新查询。
+ */
+function searchRooms(): void {
+  appliedRoomTypeId.value = filterRoomTypeId.value;
+  appliedRoomStatus.value = filterRoomStatus.value;
+  void loadRooms();
+}
+
+/**
+ * 清空筛选后重新查询全部房间。
+ */
+function resetRoomFilter(): void {
+  filterRoomTypeId.value = '';
+  filterRoomStatus.value = '';
+  appliedRoomTypeId.value = '';
+  appliedRoomStatus.value = '';
+  void loadRooms();
 }
 
 /**

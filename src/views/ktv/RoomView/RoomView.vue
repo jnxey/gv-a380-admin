@@ -1,14 +1,29 @@
 ﻿<template>
   <ShopSwitcher />
   <el-card>
-    <el-button v-if="canSave" type="primary" @click="openCreate">新建包厢</el-button>
+    <QueryBar @search="applyRoomFilter" @reset="resetRoomFilter">
+      <el-form-item>
+        <el-select v-model="filterRoomTypeId" clearable placeholder="全部类型" style="width: 160px">
+          <el-option v-for="roomType in roomTypeList" :key="roomType.id" :label="roomType.typeName" :value="roomType.id" />
+        </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-select v-model="filterStatus" clearable placeholder="全部状态" style="width: 140px">
+          <el-option label="启用" :value="RecordStatus.ENABLED" />
+          <el-option label="停用" :value="RecordStatus.DISABLED" />
+        </el-select>
+      </el-form-item>
+      <template #append>
+        <el-button v-if="canSave" type="primary" @click="openCreate">新建包厢</el-button>
+      </template>
+    </QueryBar>
     <div ref="sortListRef" class="record-list record-list--wide-table">
       <RecordTableHead />
-      <div v-if="isEmpty(roomList)" class="record-empty">暂无数据</div>
-      <RecordCard v-for="roomRow in roomList" :key="roomRow.id">
+      <div v-if="isEmpty(displayRoomList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="roomRow in displayRoomList" :key="roomRow.id">
         <RecordField label="编号">
           <span class="name-box" :data-key="roomRow.id">
-            <button v-if="canSave" type="button" class="drag-icon">
+            <button v-if="canDragSort" type="button" class="drag-icon">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <path
                   fill="currentColor"
@@ -40,8 +55,9 @@
 
 <script setup lang="ts">
 import { KtvApi } from '../../../api/ktv';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
+import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordTableHead from '../../../components/RecordTableHead/RecordTableHead.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
@@ -56,12 +72,39 @@ const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.KTV_ROOM_SAVE);
 const roomList = ref<RoomRow[]>([]);
 const roomTypeList = ref<RoomTypeOption[]>([]);
+const filterRoomTypeId = ref('');
+const filterStatus = ref('');
+const appliedRoomTypeId = ref('');
+const appliedStatus = ref('');
 const sortListRef = ref<HTMLElement | null>(null);
 const dialogVisible = ref(false);
 const editingRoom = ref<RoomRow | null>(null);
+
+/**
+ * 有筛选时不能拖排序，否则提交的编号列表不完整。
+ */
+const canDragSort = computed(() => {
+  return canSave === true && isEmpty(appliedRoomTypeId.value) && isEmpty(appliedStatus.value);
+});
+
+/**
+ * 按已应用的筛选条件展示包厢。
+ */
+const displayRoomList = computed(() => {
+  return roomList.value.filter((roomRow) => {
+    if (isEmpty(appliedRoomTypeId.value) !== true && roomRow.roomTypeId !== appliedRoomTypeId.value) {
+      return false;
+    }
+    if (isEmpty(appliedStatus.value) !== true && roomRow.status !== appliedStatus.value) {
+      return false;
+    }
+    return true;
+  });
+});
+
 const { initDragSort } = useDragSort(
   () => sortListRef.value,
-  () => canSave,
+  () => canDragSort.value === true,
   saveRoomSort,
 );
 
@@ -85,6 +128,26 @@ function roomTypeName(roomTypeId: string): string {
     return '';
   }
   return roomType.typeName;
+}
+
+/**
+ * 应用类型和启用状态筛选。
+ */
+function applyRoomFilter(): void {
+  appliedRoomTypeId.value = filterRoomTypeId.value;
+  appliedStatus.value = filterStatus.value;
+  void initDragSort();
+}
+
+/**
+ * 清空筛选后展示全部包厢。
+ */
+function resetRoomFilter(): void {
+  filterRoomTypeId.value = '';
+  filterStatus.value = '';
+  appliedRoomTypeId.value = '';
+  appliedStatus.value = '';
+  void initDragSort();
 }
 
 /**
