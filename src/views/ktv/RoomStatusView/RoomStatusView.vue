@@ -21,8 +21,8 @@
         </button>
       </div>
       <div class="room-status-body">
-        <div class="room-status-rooms">
-          <div v-if="isEmpty(roomStatusGroupList)" class="room-status-empty">暂无数据</div>
+        <div v-loading="pageLoading" class="room-status-rooms">
+          <div v-if="pageLoading !== true && isEmpty(roomStatusGroupList)" class="room-status-empty">暂无数据</div>
           <section v-for="roomStatusGroup in roomStatusGroupList" :key="roomStatusGroup.roomTypeId" class="room-status-group">
             <h3 class="room-status-group-title">{{ roomStatusGroup.typeName }}</h3>
             <div v-if="isEmpty(roomTypeWarningText(roomStatusGroup.roomTypeId)) !== true" class="room-status-warning">
@@ -58,10 +58,10 @@
             >
               <AppIcon class="room-status-flow-icon" :icon-name="MenuIconName.KTV_ROOM_IDLE" />
             </button>
-            <el-popover v-if="moreStatusOptionList(roomRow.roomStatus).length > 0" trigger="click" placement="bottom-end" :width="120">
+            <el-popover v-if="moreStatusOptionList(roomRow).length > 0" trigger="click" placement="bottom-end" :width="120">
               <div class="room-status-more-list">
                 <button
-                  v-for="roomStatusOption in moreStatusOptionList(roomRow.roomStatus)"
+                  v-for="roomStatusOption in moreStatusOptionList(roomRow)"
                   :key="roomStatusOption.value"
                   type="button"
                   class="room-status-more-item"
@@ -133,6 +133,9 @@
             <div class="room-status-order-line">{{ pendingOrder.roomTypeName }}</div>
             <div class="room-status-order-line">{{ pendingOrder.bookingDate }} {{ formatClock(pendingOrder.startTime) }} - {{ formatBookingEnd(pendingOrder) }}</div>
             <div class="room-status-order-line">核销码 {{ VerifyCodeMask }}</div>
+            <div v-if="canVerify" class="room-status-order-actions">
+              <el-button link type="primary" @click="openPendingVerify(pendingOrder)">办理</el-button>
+            </div>
           </article>
         </aside>
       </div>
@@ -162,8 +165,8 @@
         <p class="room-status-verify-hint">有预约就扫核销码；线下开包厢不填核销码，请选择 {{ KtvOccupyDuration.HOUR_LIST.join('、') }} 小时。</p>
         <template #footer>
           <div class="room-status-open-actions">
-            <el-button size="large" @click="openRoomVisible = false">取消</el-button>
-            <el-button size="large" type="primary" @click="submitOpenRoom">确认开包厢</el-button>
+            <el-button size="large" :disabled="saving" @click="openRoomVisible = false">取消</el-button>
+            <el-button size="large" type="primary" :loading="saving" @click="submitOpenRoom">确认开包厢</el-button>
           </div>
         </template>
       </el-dialog>
@@ -176,11 +179,40 @@
             <template v-if="isEmpty(roomExtendHourText(extendingRoom)) !== true"> · {{ roomExtendHourText(extendingRoom) }}</template>
           </div>
         </div>
+        <div v-if="isEmpty(extendingRoom) !== true && isEmpty(roomOccupyEndText(extendingRoom)) !== true" class="room-status-extend-preview">
+          <div>当前到期：{{ roomOccupyEndText(extendingRoom) }}</div>
+          <div>延长后：{{ extendAfterEndText(extendingRoom) }}</div>
+        </div>
         <p class="room-status-verify-hint">每次延长 {{ KtvOccupyDuration.EXTEND_HOURS }} 小时，从当前到期时间往后加。多次延长只累计小时数。</p>
         <template #footer>
           <div class="room-status-open-actions">
-            <el-button size="large" @click="extendRoomVisible = false">取消</el-button>
-            <el-button size="large" type="primary" @click="submitExtendOccupy">确认延长</el-button>
+            <el-button size="large" :disabled="saving" @click="extendRoomVisible = false">取消</el-button>
+            <el-button size="large" type="primary" :loading="saving" @click="submitExtendOccupy">确认延长</el-button>
+          </div>
+        </template>
+      </el-dialog>
+      <el-dialog v-model="pendingVerifyVisible" title="分配包厢" :width="openRoomDialogWidth" align-center>
+        <div v-if="isEmpty(pendingVerifyOrder) !== true" class="room-status-pending-meta">
+          <div>{{ pendingVerifyOrder.username }} · {{ pendingVerifyOrder.roomTypeName }}</div>
+          <div>{{ pendingVerifyOrder.bookingDate }} {{ formatClock(pendingVerifyOrder.startTime) }} - {{ formatBookingEnd(pendingVerifyOrder) }}</div>
+        </div>
+        <div v-if="isEmpty(pendingFreeRoomList)" class="room-status-empty">该时段没有空闲包厢</div>
+        <el-form v-else label-position="top">
+          <el-form-item label="包厢">
+            <el-select v-model="pendingVerifyRoomId" style="width: 100%">
+              <el-option
+                v-for="freeRoom in pendingFreeRoomList"
+                :key="freeRoom.id"
+                :label="`${freeRoom.roomNo} ${freeRoom.roomName}`"
+                :value="freeRoom.id"
+              />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <div class="room-status-open-actions">
+            <el-button size="large" :disabled="saving" @click="pendingVerifyVisible = false">取消</el-button>
+            <el-button size="large" type="primary" :loading="saving" :disabled="isEmpty(pendingFreeRoomList)" @click="submitPendingVerify">确认核销</el-button>
           </div>
         </template>
       </el-dialog>
@@ -196,6 +228,7 @@ import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import DeductView from '../DeductView/DeductView.vue';
+import { useSaving } from '../../../hooks/saving';
 import { KtvOccupyDuration, KtvOccupyRemind, KtvOrderStatus, KtvPendingVerifyWindow, KtvRoomStatus, MenuIconName, PageSetting, PermissionCode, RecordStatus, VerifyCodeMask, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
@@ -272,16 +305,25 @@ interface RoomStatusOption {
   label: string;
 }
 
+interface FreeRoomOption {
+  id: string;
+  roomNo: string;
+  roomName: string;
+}
+
 const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.KTV_ROOM_SAVE);
 const canVerify = sessionStore.hasPermission(PermissionCode.KTV_ORDER_VERIFY);
+const { saving, runSaving } = useSaving();
 const roomList = ref<RoomStatusRow[]>([]);
 const roomTypeList = ref<RoomTypeOption[]>([]);
 const pendingBookingList = ref<PendingBookingOrder[]>([]);
+const pageLoading = ref(true);
 const verifyCode = ref('');
 const occupyDurationHours = ref<number | undefined>(undefined);
 const openRoomVisible = ref(false);
 const extendRoomVisible = ref(false);
+const pendingVerifyVisible = ref(false);
 const deductVisible = ref(false);
 const deductView = ref<{ focusAmount: () => void } | null>(null);
 const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
@@ -289,6 +331,9 @@ const deductDialogWidth = ref('460px');
 const openRoomDialogWidth = ref('420px');
 const openingRoom = ref<RoomStatusRow | null>(null);
 const extendingRoom = ref<RoomStatusRow | null>(null);
+const pendingVerifyOrder = ref<PendingBookingOrder | null>(null);
+const pendingVerifyRoomId = ref('');
+const pendingFreeRoomList = ref<FreeRoomOption[]>([]);
 
 /**
  * 延长弹窗标题。没有选中包厢时只显示延长。
@@ -435,15 +480,32 @@ const roomTypeWarningList = computed<RoomTypeWarning[]>(() => {
 });
 
 /**
- * 查询当前门店启用中的包厢，并带上待核销订单。
+ * 查询当前门店启用中的包厢。可按需补拉房型和待核销。
  */
-async function loadRooms(): Promise<void> {
+async function loadRooms(options?: { reloadRoomTypes?: boolean; reloadPending?: boolean }): Promise<void> {
+  const reloadRoomTypes = options?.reloadRoomTypes === true || isEmpty(roomTypeList.value);
+  const reloadPending = options?.reloadPending !== false;
   const pageResult = (await http.get(KtvApi.ROOMS)) as { list: RoomStatusRow[] };
-  const roomTypePage = (await http.get(KtvApi.ROOM_TYPES)) as { list: RoomTypeOption[] };
-  const pendingOrderList = await loadAllPendingOrders();
   roomList.value = pageResult.list.filter((roomRow) => roomRow.status === RecordStatus.ENABLED);
-  roomTypeList.value = roomTypePage.list;
-  pendingBookingList.value = pendingOrderList;
+  if (reloadRoomTypes) {
+    const roomTypePage = (await http.get(KtvApi.ROOM_TYPES)) as { list: RoomTypeOption[] };
+    roomTypeList.value = roomTypePage.list;
+  }
+  if (reloadPending) {
+    pendingBookingList.value = await loadAllPendingOrders();
+  }
+}
+
+/**
+ * 首次进入页面：包厢、房型、待核销都拉一遍，并关掉首屏 loading。
+ */
+async function loadRoomsFirst(): Promise<void> {
+  pageLoading.value = true;
+  try {
+    await loadRooms({ reloadRoomTypes: true, reloadPending: true });
+  } finally {
+    pageLoading.value = false;
+  }
 }
 
 /**
@@ -728,15 +790,15 @@ function roomStatusCardClass(roomStatus: string): string {
 }
 
 /**
- * 更多操作列出除当前状态以外的全部状态。使用中走开包厢，没有保存权限时不出现其余状态。
+ * 更多操作列出除当前状态以外的可选状态。使用中仅空闲可开；没有保存权限时不出现其余状态。
  */
-function moreStatusOptionList(roomStatus: string): RoomStatusOption[] {
+function moreStatusOptionList(roomRow: RoomStatusRow): RoomStatusOption[] {
   return roomStatusOptionList.filter((roomStatusOption) => {
-    if (roomStatusOption.value === roomStatus) {
+    if (roomStatusOption.value === roomRow.roomStatus) {
       return false;
     }
     if (roomStatusOption.value === KtvRoomStatus.IN_USE) {
-      return canVerify || canSave;
+      return roomRow.roomStatus === KtvRoomStatus.IDLE && (canVerify || canSave);
     }
     return canSave;
   });
@@ -795,38 +857,64 @@ async function submitOpenRoom(): Promise<void> {
       ElMessage.warning(`请选择${KtvOccupyDuration.HOUR_LIST.join('、')}小时`);
       return;
     }
-    await http.put(KtvApi.roomStatus(openingRoom.value.id), {
-      roomStatus: KtvRoomStatus.IN_USE,
-      durationHours: occupyDurationHours.value,
+    await runSaving(async () => {
+      await http.put(KtvApi.roomStatus(openingRoom.value!.id), {
+        roomStatus: KtvRoomStatus.IN_USE,
+        durationHours: occupyDurationHours.value,
+      });
+      ElMessage.success('开包厢成功');
+      openRoomVisible.value = false;
+      verifyCode.value = '';
+      occupyDurationHours.value = undefined;
+      await loadRooms({ reloadPending: false });
+    });
+    return;
+  }
+  await runSaving(async () => {
+    const pageResult = (await http.get(KtvApi.BOOKING_ORDERS, {
+      params: {
+        verifyCode: verifyCodeText,
+        page: PageSetting.DEFAULT_PAGE,
+        pageSize: PageSetting.DEFAULT_PAGE_SIZE,
+      },
+    })) as { list: PendingOrder[] };
+    const pendingOrder = pageResult.list.find((bookingOrder) => {
+      return bookingOrder.verifyCode === verifyCodeText && bookingOrder.orderStatus === KtvOrderStatus.PENDING_VERIFY;
+    });
+    if (isEmpty(pendingOrder)) {
+      ElMessage.warning('没有找到待核销订单');
+      return;
+    }
+    await http.post(KtvApi.bookingOrderVerify(pendingOrder.bookingOrderId), {
+      roomId: openingRoom.value!.id,
     });
     ElMessage.success('开包厢成功');
     openRoomVisible.value = false;
     verifyCode.value = '';
-    occupyDurationHours.value = undefined;
-    await loadRooms();
-    return;
-  }
-  const pageResult = (await http.get(KtvApi.BOOKING_ORDERS, {
-    params: {
-      verifyCode: verifyCodeText,
-      page: PageSetting.DEFAULT_PAGE,
-      pageSize: PageSetting.DEFAULT_PAGE_SIZE,
-    },
-  })) as { list: PendingOrder[] };
-  const pendingOrder = pageResult.list.find((bookingOrder) => {
-    return bookingOrder.verifyCode === verifyCodeText && bookingOrder.orderStatus === KtvOrderStatus.PENDING_VERIFY;
+    await loadRooms({ reloadPending: true });
   });
-  if (isEmpty(pendingOrder)) {
-    ElMessage.warning('没有找到待核销订单');
-    return;
+}
+
+/**
+ * 延长后的到期文案，按固定延长小时从当前到期往后加。
+ */
+function extendAfterEndText(roomRow: RoomStatusRow | null): string {
+  if (isEmpty(roomRow) || isEmpty(roomRow.occupyEndAt)) {
+    return '-';
   }
-  await http.post(KtvApi.bookingOrderVerify(pendingOrder.bookingOrderId), {
-    roomId: openingRoom.value.id,
-  });
-  ElMessage.success('开包厢成功');
-  openRoomVisible.value = false;
-  verifyCode.value = '';
-  await loadRooms();
+  const endMs = occupyEndMs(roomRow.occupyEndAt);
+  if (Number.isNaN(endMs)) {
+    return '-';
+  }
+  const afterEndMs = endMs + KtvOccupyDuration.EXTEND_HOURS * 60 * 60 * 1000;
+  const afterEndAt = new Date(afterEndMs);
+  const year = afterEndAt.getFullYear();
+  const month = String(afterEndAt.getMonth() + 1).padStart(2, '0');
+  const day = String(afterEndAt.getDate()).padStart(2, '0');
+  const hour = String(afterEndAt.getHours()).padStart(2, '0');
+  const minute = String(afterEndAt.getMinutes()).padStart(2, '0');
+  const second = String(afterEndAt.getSeconds()).padStart(2, '0');
+  return occupyEndClockText(`${year}-${month}-${day} ${hour}:${minute}:${second}`, Date.now());
 }
 
 /**
@@ -836,12 +924,49 @@ async function submitExtendOccupy(): Promise<void> {
   if (isEmpty(extendingRoom.value)) {
     return;
   }
-  await http.post(KtvApi.roomExtendOccupy(extendingRoom.value.id), {
-    durationHours: KtvOccupyDuration.EXTEND_HOURS,
+  await runSaving(async () => {
+    await http.post(KtvApi.roomExtendOccupy(extendingRoom.value!.id), {
+      durationHours: KtvOccupyDuration.EXTEND_HOURS,
+    });
+    ElMessage.success('延长成功');
+    extendRoomVisible.value = false;
+    await loadRooms({ reloadPending: false });
   });
-  ElMessage.success('延长成功');
-  extendRoomVisible.value = false;
-  await loadRooms();
+}
+
+/**
+ * 打开待核销办理弹窗，并加载该时段还能分配的包厢。
+ */
+async function openPendingVerify(pendingOrder: PendingBookingOrder): Promise<void> {
+  pendingVerifyOrder.value = pendingOrder;
+  pendingVerifyRoomId.value = '';
+  pendingFreeRoomList.value = [];
+  pendingVerifyVisible.value = true;
+  pendingFreeRoomList.value = (await http.get(KtvApi.bookingOrderFreeRooms(pendingOrder.bookingOrderId))) as FreeRoomOption[];
+  if (isEmpty(pendingFreeRoomList.value) !== true) {
+    pendingVerifyRoomId.value = pendingFreeRoomList.value[0].id;
+  }
+}
+
+/**
+ * 把选中的空闲包厢写入订单并核销开房。
+ */
+async function submitPendingVerify(): Promise<void> {
+  if (isEmpty(pendingVerifyOrder.value)) {
+    return;
+  }
+  if (isEmpty(pendingVerifyRoomId.value)) {
+    ElMessage.warning('请选择包厢');
+    return;
+  }
+  await runSaving(async () => {
+    await http.post(KtvApi.bookingOrderVerify(pendingVerifyOrder.value!.bookingOrderId), {
+      roomId: pendingVerifyRoomId.value,
+    });
+    ElMessage.success('核销成功，已开包厢');
+    pendingVerifyVisible.value = false;
+    await loadRooms({ reloadPending: true });
+  });
 }
 
 /**
@@ -852,8 +977,10 @@ async function changeRoomStatus(roomRow: RoomStatusRow, roomStatus: string): Pro
     return;
   }
   await ElMessageBox.confirm(`确认将 ${roomRow.roomNo} 改为${roomStatusLabel(roomStatus)}？`, '切换状态');
-  await http.put(KtvApi.roomStatus(roomRow.id), { roomStatus });
-  await loadRooms();
+  await runSaving(async () => {
+    await http.put(KtvApi.roomStatus(roomRow.id), { roomStatus });
+    await loadRooms({ reloadPending: false });
+  });
 }
 
 /**
@@ -865,6 +992,8 @@ function reloadPage(): void {
 
 /** 包厢状态、待核销订单和到账提示的轮询间隔，单位毫秒。 */
 const roomStatusRefreshInterval = 3000;
+/** 待核销每隔多少次房态轮询再拉一次，减轻分页压力。 */
+const pendingReloadEveryPollCount = 5;
 /** 收款播报语言。 */
 const paymentNoticeSpeechLanguage = 'zh-CN';
 /** 收款播报开头。 */
@@ -873,6 +1002,7 @@ const paymentNoticeSpeechPrefix = '收款';
 const paymentNoticeSpeechSuffix = '元';
 let roomStatusTimer = 0;
 let roomStatusRefreshing = false;
+let roomStatusPollCount = 0;
 let paymentNoticeBaselineReady = false;
 let paymentNoticeLoading = false;
 let latestPaymentNoticeId = 0n;
@@ -1007,6 +1137,7 @@ async function loadPaymentNotices(): Promise<void> {
 
 /**
  * 同时刷新包厢状态，并检查新的店内消费和扫码付款。上一轮还没回来时跳过，避免请求叠在一起。
+ * 房型不随轮询重拉；待核销按次数节流。
  */
 async function refreshRoomStatusPage(): Promise<void> {
   if (roomStatusRefreshing) {
@@ -1014,7 +1145,9 @@ async function refreshRoomStatusPage(): Promise<void> {
   }
   roomStatusRefreshing = true;
   try {
-    await loadRooms();
+    roomStatusPollCount += 1;
+    const reloadPending = roomStatusPollCount % pendingReloadEveryPollCount === 0;
+    await loadRooms({ reloadPending });
     await loadPaymentNotices();
   } finally {
     roomStatusRefreshing = false;
@@ -1064,7 +1197,7 @@ onMounted(() => {
   syncOpenRoomDialogWidth();
   narrowScreenQuery.addEventListener('change', syncDeductDialogWidth);
   narrowScreenQuery.addEventListener('change', syncOpenRoomDialogWidth);
-  void loadRooms();
+  void loadRoomsFirst();
   void loadPaymentNotices();
   startRoomStatusRefresh();
 });
@@ -1172,6 +1305,24 @@ onBeforeUnmount(() => {
 .room-status-occupy-line .room-status-extend {
   margin-top: 0;
   white-space: nowrap;
+}
+
+.room-status-extend-preview {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 22px;
+  color: #344054;
+}
+
+.room-status-pending-meta {
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 22px;
+  color: #344054;
+}
+
+.room-status-order-actions {
+  margin-top: 8px;
 }
 
 .room-status-occupy {
@@ -1598,6 +1749,10 @@ onBeforeUnmount(() => {
 
   .room-status-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .room-status-occupy-line {
+    flex-wrap: wrap;
   }
 }
 </style>
