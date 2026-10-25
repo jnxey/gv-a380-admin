@@ -26,7 +26,14 @@
         </RecordField>
         <template #actions>
           <el-button v-if="canCheckIn && orderRow.orderStatus === HotelOrderStatus.BOOKED" link type="primary" @click="openCheckIn(orderRow)">办理入住</el-button>
-          <el-button v-if="canCancel && orderRow.orderStatus === HotelOrderStatus.BOOKED" link type="danger" @click="cancelOrder(orderRow.bookingOrderId)">取消</el-button>
+          <el-button
+            v-if="canCancel && (orderRow.orderStatus === HotelOrderStatus.PENDING_PAY || orderRow.orderStatus === HotelOrderStatus.BOOKED)"
+            link
+            type="danger"
+            @click="cancelOrder(orderRow.bookingOrderId)"
+          >
+            取消
+          </el-button>
           <el-button v-if="canExtend && orderRow.orderStatus === HotelOrderStatus.CHECKED_IN" link type="primary" @click="openExtend(orderRow)">续住</el-button>
           <el-button v-if="canCheckOut && orderRow.orderStatus === HotelOrderStatus.CHECKED_IN" link type="primary" @click="checkOut(orderRow.bookingOrderId)">退房</el-button>
         </template>

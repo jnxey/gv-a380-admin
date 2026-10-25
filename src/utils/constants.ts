@@ -30,6 +30,13 @@ export const StorePayMethod = {
   CASH: 'CASH',
 } as const;
 
+export const StoreSaleStatus = {
+  PENDING_PAY: 'PENDING_PAY',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
+} as const;
+
 /**
  * 门店收款二维码。文案是前缀加门店编码，海报是紫底白码。
  */
@@ -118,6 +125,7 @@ export const RecordStatus = {
 } as const;
 
 export const KtvOrderStatus = {
+  PENDING_PAY: 'PENDING_PAY',
   PENDING_VERIFY: 'PENDING_VERIFY',
   VERIFIED: 'VERIFIED',
   COMPLETED: 'COMPLETED',
@@ -126,10 +134,12 @@ export const KtvOrderStatus = {
 } as const;
 
 export const HotelOrderStatus = {
+  PENDING_PAY: 'PENDING_PAY',
   BOOKED: 'BOOKED',
   CHECKED_IN: 'CHECKED_IN',
   CHECKED_OUT: 'CHECKED_OUT',
   CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
 } as const;
 
 export const HotelRoomStatus = {
@@ -408,6 +418,7 @@ export const menuIconNameByPath: Record<string, string> = {
 export const statusLabelMap: Record<string, string> = {
   ENABLED: '启用',
   DISABLED: '停用',
+  PENDING_PAY: '待支付',
   PENDING_VERIFY: '待核销',
   VERIFIED: '已核销',
   COMPLETED: '已完成',

@@ -8,7 +8,8 @@
           <div>
             <div class="sale-no">{{ saleRow.saleNo }}</div>
             <div class="sale-meta">
-              {{ statusLabel(saleRow.payMethod) }}
+              {{ statusLabel(saleRow.saleStatus) }}
+              · {{ statusLabel(saleRow.payMethod) }}
               <template v-if="isEmpty(saleRow.username) !== true"> · {{ saleRow.username }}</template>
               · {{ formatLocalDateTime(saleRow.createdAt) }}
             </div>
@@ -48,6 +49,7 @@ interface SaleRow {
   saleNo: string;
   username: string;
   payMethod: string;
+  saleStatus: string;
   amount: string;
   remark: string;
   deliveryAddress: string;

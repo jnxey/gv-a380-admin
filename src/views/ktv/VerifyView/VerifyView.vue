@@ -22,7 +22,22 @@
         <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
         <template #actions>
           <el-button v-if="canVerify && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="primary" @click="openVerify(orderRow.bookingOrderId)">核销</el-button>
-          <el-button v-if="canCancel && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY" link type="danger" @click="cancelOrder(orderRow.bookingOrderId)">取消退款</el-button>
+          <el-button
+            v-if="canCancel && orderRow.orderStatus === KtvOrderStatus.PENDING_PAY"
+            link
+            type="danger"
+            @click="cancelOrder(orderRow.bookingOrderId, false)"
+          >
+            取消
+          </el-button>
+          <el-button
+            v-if="canCancel && orderRow.orderStatus === KtvOrderStatus.PENDING_VERIFY"
+            link
+            type="danger"
+            @click="cancelOrder(orderRow.bookingOrderId, true)"
+          >
+            取消退款
+          </el-button>
         </template>
       </RecordCard>
     </div>
@@ -143,12 +158,12 @@ async function submitVerify(): Promise<void> {
 }
 
 /**
- * 取消订单并退回包厢费。
+ * 取消订单。已支付的待核销会退回包厢费；待支付只关单。
  */
-async function cancelOrder(bookingOrderId: string): Promise<void> {
-  await ElMessageBox.confirm('确认取消并退款？', '取消订单');
+async function cancelOrder(bookingOrderId: string, needRefund: boolean): Promise<void> {
+  await ElMessageBox.confirm(needRefund ? '确认取消并退款？' : '确认取消该待支付订单？', '取消订单');
   await http.post(KtvApi.bookingOrderCancel(bookingOrderId));
-  ElMessage.success('已退款');
+  ElMessage.success(needRefund ? '已退款' : '已取消');
   await loadOrders();
 }
 
