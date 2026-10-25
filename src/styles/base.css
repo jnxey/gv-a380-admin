@@ -124,7 +124,7 @@ label {
   position: relative;
   padding: 0 12px;
   min-width: 60px;
-  text-align: center;
+  justify-content: center;
   margin-right: 12px;
   border-radius: 16px;
   border: 2px solid var(--el-fill-color);
