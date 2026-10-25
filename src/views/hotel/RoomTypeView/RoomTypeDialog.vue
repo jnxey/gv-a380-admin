@@ -2,6 +2,13 @@
   <el-dialog v-model="visible" :title="isEmpty(roomType) ? '新建房型' : '编辑房型'" width="480px">
     <el-form label-position="top">
       <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
+      <el-form-item label="每晚价格"><el-input v-model="roomTypeForm.price" /></el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="roomTypeForm.status">
+          <el-option label="启用" :value="RecordStatus.ENABLED" />
+          <el-option label="停用" :value="RecordStatus.DISABLED" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="详细描述">
         <el-input
           v-model="roomTypeForm.description"
@@ -11,13 +18,6 @@
           show-word-limit
           placeholder="选填"
         />
-      </el-form-item>
-      <el-form-item label="每晚价格"><el-input v-model="roomTypeForm.price" /></el-form-item>
-      <el-form-item label="状态">
-        <el-select v-model="roomTypeForm.status">
-          <el-option label="启用" :value="RecordStatus.ENABLED" />
-          <el-option label="停用" :value="RecordStatus.DISABLED" />
-        </el-select>
       </el-form-item>
       <el-form-item label="图片">
         <ImageGalleryUpload

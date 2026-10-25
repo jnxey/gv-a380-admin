@@ -12,16 +12,6 @@
         </el-select>
       </el-form-item>
       <el-form-item label="名称"><el-input v-model="productForm.productName" /></el-form-item>
-      <el-form-item label="详细描述">
-        <el-input
-          v-model="productForm.description"
-          type="textarea"
-          :rows="3"
-          :maxlength="DetailDescriptionLimit.MAX_LENGTH"
-          show-word-limit
-          placeholder="选填"
-        />
-      </el-form-item>
       <el-form-item label="条码" required>
         <div class="barcode-row">
           <el-input v-model="productForm.barcode" placeholder="必填，同门店唯一" />
@@ -35,6 +25,16 @@
           <el-option label="启用" :value="RecordStatus.ENABLED" />
           <el-option label="停用" :value="RecordStatus.DISABLED" />
         </el-select>
+      </el-form-item>
+      <el-form-item label="详细描述">
+        <el-input
+          v-model="productForm.description"
+          type="textarea"
+          :rows="3"
+          :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+          show-word-limit
+          placeholder="选填"
+        />
       </el-form-item>
       <el-form-item label="图片">
         <ImageGalleryUpload
