@@ -124,6 +124,13 @@ const DeliveryFieldPlaceholder = {
   OPTIONAL: '非必填',
 };
 
+const PendingDeliverySpeech = {
+  LANGUAGE: 'zh-CN',
+  SINGLE: '有新的待发货订单',
+  COUNT_PREFIX: '有',
+  COUNT_SUFFIX: '笔新的待发货订单',
+};
+
 const props = defineProps<{
   pauseProductScan: () => boolean;
   resumeProductScan: () => void;
@@ -145,16 +152,113 @@ const deliveryForm = reactive({
   deliveryNo: '',
   deliveryRemark: '',
 });
+let pendingDeliveryBaselineReady = false;
+let pendingDeliverySpeechUnlocked = false;
+let knownPendingSaleIdSet = new Set<string>();
 
 /**
- * 读取当前门店的待发货销售单。
+ * 选出中文语音。还没有中文语音时返回空，交给浏览器默认语音。
+ */
+function findChineseVoice(): SpeechSynthesisVoice | null {
+  if (isEmpty(window.speechSynthesis)) {
+    return null;
+  }
+  const voiceList = window.speechSynthesis.getVoices();
+  for (const voice of voiceList) {
+    if (voice.lang === PendingDeliverySpeech.LANGUAGE || voice.lang.startsWith('zh')) {
+      return voice;
+    }
+  }
+  return null;
+}
+
+/**
+ * 第一次点击页面时解锁语音。浏览器要有过操作才允许出声。
+ */
+function preparePendingDeliveryAudio(): void {
+  if (pendingDeliverySpeechUnlocked === true || isEmpty(window.speechSynthesis)) {
+    return;
+  }
+  pendingDeliverySpeechUnlocked = true;
+  window.speechSynthesis.getVoices();
+  const unlockUtterance = new SpeechSynthesisUtterance('');
+  unlockUtterance.volume = 0;
+  window.speechSynthesis.speak(unlockUtterance);
+}
+
+/**
+ * 播报新到的待发货订单。多笔合成一句。
+ */
+function playPendingDeliverySound(freshOrderCount: number): void {
+  if (freshOrderCount < 1 || isEmpty(window.speechSynthesis)) {
+    return;
+  }
+  const speechText = freshOrderCount === 1
+    ? PendingDeliverySpeech.SINGLE
+    : `${PendingDeliverySpeech.COUNT_PREFIX}${freshOrderCount}${PendingDeliverySpeech.COUNT_SUFFIX}`;
+  const utterance = new SpeechSynthesisUtterance(speechText);
+  utterance.lang = PendingDeliverySpeech.LANGUAGE;
+  const chineseVoice = findChineseVoice();
+  if (isEmpty(chineseVoice) !== true) {
+    utterance.voice = chineseVoice;
+  }
+  window.speechSynthesis.speak(utterance);
+}
+
+/**
+ * 停掉还没播完的待发货提醒。离开收银台时调用。
+ */
+function stopPendingDeliveryAudio(): void {
+  if (isEmpty(window.speechSynthesis)) {
+    return;
+  }
+  window.speechSynthesis.cancel();
+}
+
+/**
+ * 读出销售单主键。没有主键的行不参与新旧比较。
+ */
+function readPendingSaleId(saleRow: PendingSaleRow): string {
+  if (isEmpty(saleRow) || isEmpty(saleRow.saleId)) {
+    return '';
+  }
+  return saleRow.saleId;
+}
+
+/**
+ * 读取当前门店的待发货销售单。第一次只记住已有订单，之后出现新单再出声。
  */
 async function loadPendingDeliverySales(): Promise<void> {
+  let nextPendingDeliveryList: PendingSaleRow[] = [];
   try {
-    pendingDeliveryList.value = (await http.get(StoreApi.SALES_PENDING_DELIVERY)) as PendingSaleRow[];
+    nextPendingDeliveryList = (await http.get(StoreApi.SALES_PENDING_DELIVERY)) as PendingSaleRow[];
   } catch {
     pendingDeliveryList.value = [];
+    return;
   }
+  if (Array.isArray(nextPendingDeliveryList) !== true) {
+    pendingDeliveryList.value = [];
+    return;
+  }
+  pendingDeliveryList.value = nextPendingDeliveryList;
+  const nextSaleIdSet = new Set<string>();
+  const freshSaleIdList: string[] = [];
+  for (const saleRow of nextPendingDeliveryList) {
+    const saleId = readPendingSaleId(saleRow);
+    if (isEmpty(saleId)) {
+      continue;
+    }
+    nextSaleIdSet.add(saleId);
+    if (pendingDeliveryBaselineReady === true && knownPendingSaleIdSet.has(saleId) !== true) {
+      freshSaleIdList.push(saleId);
+    }
+  }
+  knownPendingSaleIdSet = nextSaleIdSet;
+  if (pendingDeliveryBaselineReady !== true) {
+    pendingDeliveryBaselineReady = true;
+    return;
+  }
+  playPendingDeliverySound(freshSaleIdList.length);
 }
 
 const { startPendingDeliveryRefresh, stopPendingDeliveryRefresh } = useCashierPendingRefresh({
@@ -367,12 +471,15 @@ async function cancelPendingSale(saleRow: PendingSaleRow): Promise<void> {
 }
 
 onMounted(() => {
+  window.addEventListener('pointerdown', preparePendingDeliveryAudio);
   void loadPendingDeliverySales();
   startPendingDeliveryRefresh();
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener('pointerdown', preparePendingDeliveryAudio);
   stopPendingDeliveryRefresh();
+  stopPendingDeliveryAudio();
 });
 </script>
 
