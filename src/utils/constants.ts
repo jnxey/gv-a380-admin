@@ -62,6 +62,13 @@ export const ShopImageLimit = {
 } as const;
 
 /**
+ * 包厢类型、房型、商品详细描述上限。与服务端一致。
+ */
+export const DetailDescriptionLimit = {
+  MAX_LENGTH: 500,
+} as const;
+
+/**
  * 允许上传的门店图片类型。
  */
 export const ShopImageMime = {

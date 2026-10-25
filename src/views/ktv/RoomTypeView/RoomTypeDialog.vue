@@ -2,6 +2,16 @@
   <el-dialog v-model="visible" :title="isEmpty(roomType) ? '新建类型' : '编辑类型'" width="480px">
     <el-form label-position="top">
       <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
+      <el-form-item label="详细描述">
+        <el-input
+          v-model="roomTypeForm.description"
+          type="textarea"
+          :rows="3"
+          :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+          show-word-limit
+          placeholder="选填"
+        />
+      </el-form-item>
       <el-form-item label="每小时价格"><el-input v-model="roomTypeForm.hourlyPrice" /></el-form-item>
       <el-form-item label="状态">
         <el-select v-model="roomTypeForm.status">
@@ -31,7 +41,7 @@ import { nextTick, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import ImageGalleryUpload, { type GalleryImageView, type ImageGalleryAdapter } from '../../../components/ImageGalleryUpload/ImageGalleryUpload.vue';
 import { useSaving } from '../../../hooks/saving';
-import { RecordStatus } from '../../../utils/constants';
+import { DetailDescriptionLimit, RecordStatus } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
@@ -40,6 +50,7 @@ export type RoomTypeImageView = GalleryImageView;
 export interface RoomTypeRow {
   id: string;
   typeName: string;
+  description: string;
   hourlyPrice: string;
   status: string;
   roomCount: number;
@@ -59,6 +70,7 @@ const imageGalleryRef = ref<InstanceType<typeof ImageGalleryUpload> | null>(null
 const { saving, runSaving } = useSaving();
 const roomTypeForm = reactive({
   typeName: '',
+  description: '',
   hourlyPrice: '',
   status: RecordStatus.ENABLED as string,
 });
@@ -98,6 +110,7 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
   if (isEmpty(roomTypeRow)) {
     editingId.value = '';
     roomTypeForm.typeName = '';
+    roomTypeForm.description = '';
     roomTypeForm.hourlyPrice = '';
     roomTypeForm.status = RecordStatus.ENABLED;
     imageGalleryRef.value?.clearImages();
@@ -105,6 +118,7 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
   }
   editingId.value = roomTypeRow.id;
   roomTypeForm.typeName = roomTypeRow.typeName;
+  roomTypeForm.description = isEmpty(roomTypeRow.description) ? '' : roomTypeRow.description;
   roomTypeForm.hourlyPrice = roomTypeRow.hourlyPrice;
   roomTypeForm.status = roomTypeRow.status;
   imageGalleryRef.value?.setImages(isEmpty(roomTypeRow.imageList) ? [] : roomTypeRow.imageList);

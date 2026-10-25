@@ -12,6 +12,16 @@
         </el-select>
       </el-form-item>
       <el-form-item label="名称"><el-input v-model="productForm.productName" /></el-form-item>
+      <el-form-item label="详细描述">
+        <el-input
+          v-model="productForm.description"
+          type="textarea"
+          :rows="3"
+          :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+          show-word-limit
+          placeholder="选填"
+        />
+      </el-form-item>
       <el-form-item label="条码" required>
         <div class="barcode-row">
           <el-input v-model="productForm.barcode" placeholder="必填，同门店唯一" />
@@ -51,7 +61,7 @@ import { ElMessage } from 'element-plus';
 import ImageGalleryUpload, { type GalleryImageView, type ImageGalleryAdapter } from '../../../components/ImageGalleryUpload/ImageGalleryUpload.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import { useSaving } from '../../../hooks/saving';
-import { RecordStatus } from '../../../utils/constants';
+import { DetailDescriptionLimit, RecordStatus } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
@@ -71,6 +81,7 @@ export interface ProductRow {
   categoryId: string;
   categoryName: string;
   productName: string;
+  description: string;
   barcode: string;
   salePrice: string;
   costPrice: string;
@@ -95,6 +106,7 @@ const { saving, runSaving } = useSaving();
 const productForm = reactive({
   categoryId: '',
   productName: '',
+  description: '',
   barcode: '',
   salePrice: '',
   costPrice: '',
@@ -162,6 +174,7 @@ async function fillProductForm(productRow: ProductRow | null): Promise<void> {
     editingProductId.value = '';
     productForm.categoryId = resolveCreateCategoryId();
     productForm.productName = '';
+    productForm.description = '';
     productForm.barcode = '';
     productForm.salePrice = '';
     productForm.costPrice = '';
@@ -173,6 +186,7 @@ async function fillProductForm(productRow: ProductRow | null): Promise<void> {
   editingProductId.value = productRow.productId;
   productForm.categoryId = productRow.categoryId;
   productForm.productName = productRow.productName;
+  productForm.description = isEmpty(productRow.description) ? '' : productRow.description;
   productForm.barcode = productRow.barcode;
   productForm.salePrice = productRow.salePrice;
   productForm.costPrice = productRow.costPrice;
@@ -204,6 +218,7 @@ async function saveProduct(): Promise<void> {
     const body = {
       categoryId: productForm.categoryId,
       productName: productForm.productName,
+      description: productForm.description,
       barcode: productForm.barcode,
       salePrice: productForm.salePrice,
       costPrice: productForm.costPrice,
