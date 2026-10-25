@@ -58,6 +58,11 @@ export const menuIconShapeListByName: Record<string, MenuIconShape[]> = {
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M7 3.5h10v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4z' },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M9.5 8h5M9.5 12h5' },
   ],
+  [MenuIconName.POINT]: [
+    { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 12, centerY: 12, radius: 8 },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M12 8.2v7.6' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M9.4 10.4h5.2M9.4 13.6h5.2' },
+  ],
   [MenuIconName.KTV]: [
     { shapeKind: MenuIconShapeKind.RECT, offsetX: 9, offsetY: 3.5, width: 6, height: 10, cornerRadius: 3 },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M7 11a5 5 0 0 0 10 0' },

@@ -27,10 +27,22 @@
               <AppIcon class="menu-icon" :icon-name="resolveMenuIconName(menu.menuPath)" />
               <span>{{ menu.menuName }}</span>
             </template>
-            <el-menu-item v-for="childMenu in menu.children" :key="childMenu.menuId" :index="childMenu.menuPath">
-              <AppIcon class="menu-icon" :icon-name="resolveMenuIconName(childMenu.menuPath)" />
-              <span>{{ childMenu.menuName }}</span>
-            </el-menu-item>
+            <template v-for="childMenu in menu.children" :key="childMenu.menuId">
+              <el-sub-menu v-if="isEmpty(childMenu.children) !== true" :index="childMenu.menuPath">
+                <template #title>
+                  <AppIcon class="menu-icon" :icon-name="resolveMenuIconName(childMenu.menuPath)" />
+                  <span>{{ childMenu.menuName }}</span>
+                </template>
+                <el-menu-item v-for="pageMenu in childMenu.children" :key="pageMenu.menuId" :index="pageMenu.menuPath">
+                  <AppIcon class="menu-icon" :icon-name="resolveMenuIconName(pageMenu.menuPath)" />
+                  <span>{{ pageMenu.menuName }}</span>
+                </el-menu-item>
+              </el-sub-menu>
+              <el-menu-item v-else :index="childMenu.menuPath">
+                <AppIcon class="menu-icon" :icon-name="resolveMenuIconName(childMenu.menuPath)" />
+                <span>{{ childMenu.menuName }}</span>
+              </el-menu-item>
+            </template>
           </el-sub-menu>
         </el-menu>
       </el-scrollbar>
@@ -195,7 +207,16 @@ function resolveMenuIconName(menuPath: string): string {
  * 进入后台时把菜单分组全部展开。
  */
 const openedMenuPathList = computed(() => {
-  return sessionStore.menuTree.map((menu) => menu.menuPath);
+  const menuPathList: string[] = [];
+  sessionStore.menuTree.forEach((menu) => {
+    menuPathList.push(menu.menuPath);
+    menu.children.forEach((childMenu) => {
+      if (isEmpty(childMenu.children) !== true) {
+        menuPathList.push(childMenu.menuPath);
+      }
+    });
+  });
+  return menuPathList;
 });
 
 /**
@@ -465,6 +486,15 @@ onBeforeUnmount(() => {
 
 .admin-aside :deep(.el-sub-menu .el-menu-item) {
   padding-left: 36px;
+}
+
+.admin-aside :deep(.el-sub-menu .el-sub-menu > .el-sub-menu__title) {
+  padding-left: 36px;
+  font-weight: 500;
+}
+
+.admin-aside :deep(.el-sub-menu .el-sub-menu .el-menu-item) {
+  padding-left: 52px;
 }
 
 .admin-main {

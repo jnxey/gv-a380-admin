@@ -120,6 +120,42 @@ label {
   width: 100%;
 }
 
+.el-radio {
+  position: relative;
+  padding: 0 12px;
+  min-width: 60px;
+  text-align: center;
+  margin-right: 12px;
+  border-radius: 16px;
+  border: 2px solid var(--el-fill-color);
+  background-color: var(--el-fill-color);
+
+  .el-radio__input {
+    display: none;
+  }
+
+  .el-radio__label {
+    padding-left: 0;
+
+    & > span {
+      vertical-align: middle;
+    }
+  }
+
+  &.is-disabled {
+    opacity: 0.6;
+  }
+
+  &.is-checked {
+    border-color: var(--el-color-primary-light-8);
+    background-color: var(--el-color-primary);
+
+    .el-radio__label {
+      color: var(--el-color-white);
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .el-dialog {
     width: calc(100vw - 32px) !important;

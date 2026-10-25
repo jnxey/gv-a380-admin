@@ -30,7 +30,7 @@ import { ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import { viewComponentMap } from '../../../router/view-map';
-import { useSessionStore } from '../../../stores/session';
+import { useSessionStore, type MenuNode } from '../../../stores/session';
 import { menuIconNameByPath } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 
@@ -55,17 +55,7 @@ const sessionStore = useSessionStore();
 const entryGroupList = computed(() => {
   const groupList: HomeEntryGroup[] = [];
   sessionStore.menuTree.forEach((menuNode) => {
-    const entryList = menuNode.children
-      .filter((childMenu) => {
-        return !isEmpty(childMenu.menuPath) && viewComponentMap[childMenu.componentPath] !== undefined;
-      })
-      .map((childMenu) => {
-        return {
-          menuId: childMenu.menuId,
-          menuName: childMenu.menuName,
-          menuPath: childMenu.menuPath,
-        };
-      });
+    const entryList = collectPageEntryList(menuNode.children);
     if (isEmpty(entryList)) {
       return;
     }
@@ -77,6 +67,26 @@ const entryGroupList = computed(() => {
   });
   return groupList;
 });
+
+/**
+ * 收集这一组里能打开的页面，目录下面的页面也算进来。
+ */
+function collectPageEntryList(menuNodeList: MenuNode[]): HomeEntry[] {
+  const entryList: HomeEntry[] = [];
+  menuNodeList.forEach((menuNode) => {
+    if (isEmpty(menuNode.menuPath) !== true && viewComponentMap[menuNode.componentPath] !== undefined) {
+      entryList.push({
+        menuId: menuNode.menuId,
+        menuName: menuNode.menuName,
+        menuPath: menuNode.menuPath,
+      });
+    }
+    if (isEmpty(menuNode.children) !== true) {
+      entryList.push(...collectPageEntryList(menuNode.children));
+    }
+  });
+  return entryList;
+}
 
 /**
  * 按菜单路径取图标名。没有对应图标时返回空字符串。

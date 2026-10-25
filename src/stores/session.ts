@@ -114,25 +114,25 @@ export const useSessionStore = defineStore('session', {
      * 把叶子菜单注册到布局路由下。
      */
     registerMenuRoutes(router: Router, menuTree: MenuNode[]): void {
-      menuTree.forEach((menuNode) => {
-        menuNode.children.forEach((childMenu) => {
-          const viewLoader = viewComponentMap[childMenu.componentPath];
-          if (isEmpty(childMenu.componentPath) || viewLoader === undefined) {
-            return;
-          }
-          if (router.hasRoute(childMenu.componentPath)) {
-            return;
-          }
+      const registerMenuNode = (menuNode: MenuNode): void => {
+        const viewLoader = viewComponentMap[menuNode.componentPath];
+        if (isEmpty(menuNode.componentPath) !== true && viewLoader !== undefined && router.hasRoute(menuNode.componentPath) !== true) {
           router.addRoute('admin-layout', {
-            path: childMenu.menuPath,
-            name: childMenu.componentPath,
+            path: menuNode.menuPath,
+            name: menuNode.componentPath,
             component: viewLoader,
             meta: {
-              moduleCode: childMenu.moduleCode,
-              title: childMenu.menuName,
+              moduleCode: menuNode.moduleCode,
+              title: menuNode.menuName,
             },
           });
+        }
+        menuNode.children.forEach((childMenu) => {
+          registerMenuNode(childMenu);
         });
+      };
+      menuTree.forEach((menuNode) => {
+        registerMenuNode(menuNode);
       });
     },
     /**
