@@ -40,6 +40,10 @@
           </span>
         </RecordField>
         <RecordField label="分类">{{ productRow.categoryName }}</RecordField>
+        <RecordField label="图片">
+          <img v-if="!isEmpty(coverImageUrl(productRow))" class="product-thumb" :src="coverImageUrl(productRow)" alt="" />
+          <template v-else>{{ displayText('') }}</template>
+        </RecordField>
         <RecordField label="条码">{{ displayText(productRow.barcode) }}</RecordField>
         <RecordField label="售价">{{ productRow.salePrice }}</RecordField>
         <RecordField label="进价">{{ productRow.costPrice }}</RecordField>
@@ -114,6 +118,16 @@ function displayText(text: string): string {
     return '—';
   }
   return text;
+}
+
+/**
+ * 列表缩略图取第一张商品图片。没有图片时返回空字符串。
+ */
+function coverImageUrl(productRow: ProductRow): string {
+  if (isEmpty(productRow.imageList)) {
+    return '';
+  }
+  return productRow.imageList[0].imageUrl;
 }
 
 /**
@@ -247,6 +261,14 @@ onMounted(async () => {
   align-items: center;
   gap: 4px;
   max-width: 100%;
+}
+
+.product-thumb {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .drag-icon {
