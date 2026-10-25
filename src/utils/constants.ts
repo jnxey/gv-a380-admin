@@ -56,6 +56,13 @@ export const StoreProductBarcode = {
 } as const;
 
 /**
+ * 收银台无筛选时只查快捷商品。和商品列表查询参数一致。
+ */
+export const QuickProductQuery = {
+  ONLY: '1',
+} as const;
+
+/**
  * 付款/充值二维码是 AES-GCM 的 Base64，比商品条码长。听枪只认字符集，不在前端解密。
  */
 export const PayRechargeQrText = {

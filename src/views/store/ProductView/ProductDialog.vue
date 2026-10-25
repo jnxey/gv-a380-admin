@@ -1,51 +1,77 @@
 <template>
-  <el-dialog v-model="visible" :title="isEmpty(product) ? '新建商品' : '编辑商品'" width="480px">
+  <el-dialog v-model="visible" :title="isEmpty(product) ? '新建商品' : '编辑商品'" width="720px">
     <el-form label-position="top">
-      <el-form-item label="分类" required>
-        <el-select v-model="productForm.categoryId" placeholder="请选择分类" style="width: 100%">
-          <el-option
-            v-for="categoryRow in selectableCategoryList"
-            :key="categoryRow.categoryId"
-            :label="categoryRow.categoryName"
-            :value="categoryRow.categoryId"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="名称"><el-input v-model="productForm.productName" /></el-form-item>
-      <el-form-item label="条码" required>
-        <div class="barcode-row">
-          <el-input v-model="productForm.barcode" placeholder="必填，同门店唯一" />
-          <ScanButton @scanned="onBarcodeScanned" />
-        </div>
-      </el-form-item>
-      <el-form-item label="售价"><el-input v-model="productForm.salePrice" /></el-form-item>
-      <el-form-item label="进价"><el-input v-model="productForm.costPrice" /></el-form-item>
-      <el-form-item label="状态">
-        <el-radio-group v-model="productForm.status">
-          <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
-          <el-radio :value="RecordStatus.DISABLED">停用</el-radio>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item label="详细描述">
-        <el-input
-          v-model="productForm.description.content"
-          type="textarea"
-          :rows="3"
-          :maxlength="DetailDescriptionLimit.MAX_LENGTH"
-          show-word-limit
-          placeholder="选填"
-        />
-      </el-form-item>
-      <el-form-item label="图片">
-        <ImageGalleryUpload
-          ref="imageGalleryRef"
-          :owner-id="editingProductId"
-          :adapter="productImageAdapter"
-          :enable-cover="false"
-          :tip="false"
-          exceed-label="商品图片"
-        />
-      </el-form-item>
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="分类" required>
+            <el-select v-model="productForm.categoryId" placeholder="请选择分类" style="width: 100%">
+              <el-option
+                v-for="categoryRow in selectableCategoryList"
+                :key="categoryRow.categoryId"
+                :label="categoryRow.categoryName"
+                :value="categoryRow.categoryId"
+              />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="名称"><el-input v-model="productForm.productName" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="条码" required>
+            <div class="barcode-row">
+              <el-input v-model="productForm.barcode" placeholder="必填，同门店唯一" />
+              <ScanButton @scanned="onBarcodeScanned" />
+            </div>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="售价"><el-input v-model="productForm.salePrice" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="进价"><el-input v-model="productForm.costPrice" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="快捷商品">
+            <el-radio-group v-model="productForm.quickProduct">
+              <el-radio :value="true">是</el-radio>
+              <el-radio :value="false">否</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="状态">
+            <el-radio-group v-model="productForm.status">
+              <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
+              <el-radio :value="RecordStatus.DISABLED">停用</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="详细描述">
+            <el-input
+              v-model="productForm.description.content"
+              type="textarea"
+              :rows="3"
+              :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+              show-word-limit
+              placeholder="选填"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="图片">
+            <ImageGalleryUpload
+              ref="imageGalleryRef"
+              :owner-id="editingProductId"
+              :adapter="productImageAdapter"
+              :enable-cover="false"
+              :tip="false"
+              exceed-label="商品图片"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
     </el-form>
     <template #footer>
       <el-button size="large" :disabled="saving" @click="visible = false">取消</el-button>
@@ -86,6 +112,7 @@ export interface ProductRow {
   salePrice: string;
   costPrice: string;
   stockQuantity: number;
+  quickProduct: boolean;
   status: string;
   imageList: ProductImageView[];
 }
@@ -110,6 +137,7 @@ const productForm = reactive({
   barcode: '',
   salePrice: '',
   costPrice: '',
+  quickProduct: false,
   status: RecordStatus.ENABLED as string,
 });
 
@@ -178,6 +206,7 @@ async function fillProductForm(productRow: ProductRow | null): Promise<void> {
     productForm.barcode = '';
     productForm.salePrice = '';
     productForm.costPrice = '';
+    productForm.quickProduct = false;
     productForm.status = RecordStatus.ENABLED;
     await nextTick();
     imageGalleryRef.value?.clearImages();
@@ -192,6 +221,7 @@ async function fillProductForm(productRow: ProductRow | null): Promise<void> {
   productForm.barcode = productRow.barcode;
   productForm.salePrice = productRow.salePrice;
   productForm.costPrice = productRow.costPrice;
+  productForm.quickProduct = productRow.quickProduct === true;
   productForm.status = productRow.status;
   await nextTick();
   imageGalleryRef.value?.setImages(isEmpty(productRow.imageList) ? [] : productRow.imageList);
@@ -224,6 +254,7 @@ async function saveProduct(): Promise<void> {
       barcode: productForm.barcode,
       salePrice: productForm.salePrice,
       costPrice: productForm.costPrice,
+      quickProduct: productForm.quickProduct,
       status: productForm.status,
     };
     if (isEmpty(editingProductId.value)) {

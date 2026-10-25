@@ -7,7 +7,7 @@
         size="large"
         placeholder="商品名称/条码"
         clearable
-        @update:model-value="emit('update:keyword', $event)"
+        @update:model-value="updateKeyword"
         @keyup.enter="searchProducts"
       />
       <el-button
@@ -67,6 +67,7 @@ const props = defineProps<{
   keyword: string;
   productList: ProductRow[];
   searchProducts: () => Promise<ProductRow[]>;
+  findProductsByScan: (scanText: string) => Promise<ProductRow[]>;
   payByMemberScan: (cipherText: string) => Promise<void>;
 }>();
 
@@ -74,6 +75,14 @@ const emit = defineEmits<{
   'update:keyword': [keyword: string];
   add: [productRow: ProductRow];
 }>();
+
+/**
+ * 写入搜索词并刷新列表。有关键字时查全部商品，清空后回到快捷商品。
+ */
+function updateKeyword(keywordText: string): void {
+  emit('update:keyword', keywordText);
+  void props.searchProducts();
+}
 
 /**
  * 按当前关键字查询商品。
@@ -112,15 +121,14 @@ function isPayRechargeQrText(scanText: string): boolean {
 }
 
 /**
- * 扫码查商品；仅命中一件可卖时加入购物车。扫到付款码时按会员余额收款，并等这次收款结束。
+ * 扫码查商品；仅命中一件可卖时加入购物车。不改搜索框和当前列表。扫到付款码时按会员余额收款，并等这次收款结束。
  */
 async function applyProductScan(scanText: string): Promise<void> {
   if (isPayRechargeQrText(scanText) === true) {
     await props.payByMemberScan(scanText);
     return;
   }
-  emit('update:keyword', scanText);
-  const productRows = await props.searchProducts();
+  const productRows = await props.findProductsByScan(scanText);
   if (productRows.length !== 1) {
     return;
   }
@@ -174,7 +182,7 @@ function toggleProductScanListen(): void {
 }
 
 /**
- * 商品听枪是否正在跑。现金收款失败时用这个决定要不要恢复。
+ * 商品听枪是否正在跑。提交订单前用这个决定成功或失败后要不要恢复。
  */
 function isProductScanLoopRunning(): boolean {
   return productScanLoopRunning.value === true;

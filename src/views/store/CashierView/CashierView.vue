@@ -7,6 +7,7 @@
         v-model:keyword="keyword"
         :product-list="productList"
         :search-products="loadProducts"
+        :find-products-by-scan="findProductsByScan"
         :pay-by-member-scan="onPayQrScanned"
         @add="addCartLine"
       />
@@ -35,7 +36,7 @@ import { StoreApi } from '../../../api/store';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import { FinanceBizType, PageSetting, PermissionCode, statusLabel, StorePayMethod } from '../../../utils/constants';
+import { FinanceBizType, PageSetting, PermissionCode, QuickProductQuery, statusLabel, StorePayMethod } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import { usePaymentNotice } from '../../../hooks/payment-notice';
@@ -82,6 +83,7 @@ const productList = ref<ProductRow[]>([]);
 const cartLineList = ref<CartLine[]>([]);
 const submitting = ref(false);
 const productPanelRef = ref<CashierProductPanelExpose | null>(null);
+let productQuerySerial = 0;
 
 /** 会员扫码收款播报，和用户扫码付款同一句。 */
 const MemberPaySpeech = {
@@ -141,18 +143,43 @@ function resumeProductScan(): void {
 }
 
 /**
- * 查询可卖商品。
+ * 按关键字查商品。关键字为空时只查快捷商品，有关键字时不限快捷标记。
+ */
+async function queryProducts(keywordText: string, quickProductOnly: boolean): Promise<ProductRow[]> {
+  const requestParams: { keyword: string; page: number; pageSize: number; quickProduct?: string } = {
+    keyword: keywordText,
+    page: PageSetting.DEFAULT_PAGE,
+    pageSize: 100,
+  };
+  if (quickProductOnly === true) {
+    requestParams.quickProduct = QuickProductQuery.ONLY;
+  }
+  const pageResult = (await http.get(StoreApi.PRODUCTS, {
+    params: requestParams,
+  })) as { list: ProductRow[] };
+  return pageResult.list;
+}
+
+/**
+ * 按当前搜索框刷新商品列表。后发出的查询先回来时，不覆盖更新的结果。
  */
 async function loadProducts(): Promise<ProductRow[]> {
-  const pageResult = (await http.get(StoreApi.PRODUCTS, {
-    params: {
-      keyword: keyword.value,
-      page: PageSetting.DEFAULT_PAGE,
-      pageSize: 100,
-    },
-  })) as { list: ProductRow[] };
-  productList.value = pageResult.list;
-  return pageResult.list;
+  const keywordText = keyword.value;
+  const querySerial = productQuerySerial + 1;
+  productQuerySerial = querySerial;
+  const productRows = await queryProducts(keywordText, isEmpty(keywordText));
+  if (querySerial !== productQuerySerial) {
+    return productRows;
+  }
+  productList.value = productRows;
+  return productRows;
+}
+
+/**
+ * 按扫码内容另查商品，不改搜索框和当前列表。
+ */
+async function findProductsByScan(scanText: string): Promise<ProductRow[]> {
+  return queryProducts(scanText, false);
 }
 
 /**
@@ -228,13 +255,15 @@ function playMemberPaySound(amountText: string): void {
 }
 
 /**
- * 现金收款成功后清空购物车并重新听商品码。
+ * 现金收款成功后清空购物车。提交前已在听枪时，再重新听枪。
  */
-async function afterCashSaleSucceeded(): Promise<void> {
+async function afterCashSaleSucceeded(wasListening: boolean): Promise<void> {
   ElMessage.success('收款成功');
   cartLineList.value = [];
   await loadProducts();
-  resumeProductScan();
+  if (wasListening === true) {
+    resumeProductScan();
+  }
 }
 
 /**
@@ -252,7 +281,7 @@ async function afterMemberSaleSucceeded(amountText: string): Promise<void> {
 }
 
 /**
- * 现金收款。成功后清空购物车，并自动进入听枪。
+ * 现金收款。成功后清空购物车。提交前已在听枪时，失败或成功后再重新听枪。
  */
 async function submitCashSale(): Promise<void> {
   if (checkoutDisabled.value || canCash !== true) {
@@ -275,7 +304,7 @@ async function submitCashSale(): Promise<void> {
         quantity: cartLine.quantity,
       })),
     });
-    await afterCashSaleSucceeded();
+    await afterCashSaleSucceeded(wasListening);
   } catch {
     if (wasListening === true) {
       resumeProductScan();
@@ -335,7 +364,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .cashier-layout {
   display: grid;
-  grid-template-columns: 1.45fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
   align-items: start;
 }
