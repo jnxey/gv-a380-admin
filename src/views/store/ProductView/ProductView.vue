@@ -3,292 +3,257 @@
   <el-card>
     <QueryBar @search="searchProducts" @reset="resetQuery">
       <el-form-item>
-        <el-input v-model="keyword" v-place class="query-keyword" placeholder="商品名称/条码" clearable />
-      </el-form-item>
-      <el-form-item>
-        <el-select v-model="filterCategoryId" clearable placeholder="全部分类" style="width: 160px">
-          <el-option v-for="categoryRow in categoryList" :key="categoryRow.categoryId" :label="categoryRow.categoryName" :value="categoryRow.categoryId" />
-        </el-select>
+        <el-input v-model="keyword" v-place class="query-keyword" placeholder="条码/名称" clearable />
       </el-form-item>
     </QueryBar>
-    <div v-if="isEmpty(productGroupList)" class="record-empty">暂无数据</div>
-    <div v-else class="product-group-list">
-      <ProductCategoryBlock
-        v-for="productGroup in productGroupList"
-        :key="productGroup.categoryId"
-        :category-id="productGroup.categoryId"
-        :category-name="productGroup.categoryName"
-        :product-list="productGroup.productList"
-        :can-save="canSave"
-        @create="openCreate(productGroup.categoryId)"
-        @edit="openEdit"
-        @reload="loadProducts"
-      />
+    <div class="product-toolbar">
+      <el-button v-if="canSave" type="primary" :disabled="isEmpty(filterCategoryId)" @click="openCreate">新建商品</el-button>
+      <el-radio-group v-model="filterCategoryId" class="product-category-radio" @change="onCategoryChange">
+        <el-radio-button
+          v-for="categoryRow in categoryList"
+          :key="categoryRow.categoryId"
+          :value="categoryRow.categoryId"
+        >
+          {{ categoryRow.categoryName }}
+        </el-radio-button>
+      </el-radio-group>
     </div>
-    <el-dialog v-model="dialogVisible" :title="isEmpty(editingProductId) ? '新建商品' : '编辑商品'" width="480px">
-      <el-form label-position="top">
-        <el-form-item label="分类" required>
-          <el-select v-model="productForm.categoryId" placeholder="请选择分类" style="width: 100%">
-            <el-option v-for="categoryRow in categoryList" :key="categoryRow.categoryId" :label="categoryRow.categoryName" :value="categoryRow.categoryId" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="名称"><el-input v-model="productForm.productName" /></el-form-item>
-        <el-form-item label="条码" required>
-          <div class="barcode-row">
-            <el-input v-model="productForm.barcode" placeholder="必填，同门店唯一" />
-            <ScanButton @scanned="onBarcodeScanned" />
-          </div>
-        </el-form-item>
-        <el-form-item label="售价"><el-input v-model="productForm.salePrice" /></el-form-item>
-        <el-form-item label="进价"><el-input v-model="productForm.costPrice" /></el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="productForm.status">
-            <el-option label="启用" :value="RecordStatus.ENABLED" />
-            <el-option label="停用" :value="RecordStatus.DISABLED" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="图片">
-          <ImageGalleryUpload
-            ref="imageGalleryRef"
-            :owner-id="editingProductId"
-            :adapter="productImageAdapter"
-            :enable-cover="false"
-            :tip="false"
-            exceed-label="商品图片"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveProduct">保存</el-button>
-      </template>
-    </el-dialog>
+    <div ref="sortListRef" class="record-list record-list--wide-table">
+      <RecordTableHead />
+      <div v-if="isEmpty(filterCategoryId)" class="record-empty">请先创建商品分类</div>
+      <div v-else-if="isEmpty(productList)" class="record-empty">暂无数据</div>
+      <RecordCard v-for="productRow in productList" :key="productRow.productId">
+        <RecordField label="名称">
+          <span class="name-box" :data-key="productRow.productId">
+            <button v-if="canDragSort" type="button" class="drag-icon">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M5.33333 5.33335C6.06971 5.33335 6.66667 4.7364 6.66667 4.00002C6.66667 3.26364 6.06971 2.66669 5.33333 2.66669C4.59695 2.66669 4 3.26364 4 4.00002C4 4.7364 4.59695 5.33335 5.33333 5.33335ZM10.6667 5.33335C11.403 5.33335 12 4.7364 12 4.00002C12 3.26364 11.403 2.66669 10.6667 2.66669C9.93029 2.66669 9.33333 3.26364 9.33333 4.00002C9.33333 4.7364 9.93029 5.33335 10.6667 5.33335ZM6.66667 8.00002C6.66667 8.7364 6.06971 9.33335 5.33333 9.33335C4.59695 9.33335 4 8.7364 4 8.00002C4 7.26364 4.59695 6.66669 5.33333 6.66669C6.06971 6.66669 6.66667 7.26364 6.66667 8.00002ZM10.6667 9.33335C11.403 9.33335 12 8.7364 12 8.00002C12 7.26364 11.403 6.66669 10.6667 6.66669C9.93029 6.66669 9.33333 7.26364 9.33333 8.00002C9.33333 8.7364 9.93029 9.33335 10.6667 9.33335ZM6.66667 12C6.66667 12.7364 6.06971 13.3334 5.33333 13.3334C4.59695 13.3334 4 12.7364 4 12C4 11.2636 4.59695 10.6667 5.33333 10.6667C6.06971 10.6667 6.66667 11.2636 6.66667 12ZM10.6667 13.3334C11.403 13.3334 12 12.7364 12 12C12 11.2636 11.403 10.6667 10.6667 10.6667C9.93029 10.6667 9.33333 11.2636 9.33333 12C9.33333 12.7364 9.93029 13.3334 10.6667 13.3334Z"
+                />
+              </svg>
+            </button>
+            <span>{{ productRow.productName }}</span>
+          </span>
+        </RecordField>
+        <RecordField label="分类">{{ productRow.categoryName }}</RecordField>
+        <RecordField label="条码">{{ displayText(productRow.barcode) }}</RecordField>
+        <RecordField label="售价">{{ productRow.salePrice }}</RecordField>
+        <RecordField label="进价">{{ productRow.costPrice }}</RecordField>
+        <RecordField label="库存">{{ productRow.stockQuantity }}</RecordField>
+        <RecordField label="状态">
+          <el-tag :type="productRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
+            {{ statusLabel(productRow.status) }}
+          </el-tag>
+        </RecordField>
+        <template v-if="canSave" #actions>
+          <el-button link type="primary" @click="openEdit(productRow)">编辑</el-button>
+        </template>
+      </RecordCard>
+    </div>
+    <ProductDialog
+      v-model="dialogVisible"
+      :product="editingProduct"
+      :category-list="categoryList"
+      :default-category-id="filterCategoryId"
+      @saved="loadProducts"
+    />
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { StoreApi } from '../../../api/store';
-import { computed, nextTick, onMounted, reactive, ref } from 'vue';
-import { ElMessage } from 'element-plus';
-import ImageGalleryUpload, { type GalleryImageView, type ImageGalleryAdapter } from '../../../components/ImageGalleryUpload/ImageGalleryUpload.vue';
+import { computed, onMounted, ref } from 'vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
-import ScanButton from '../../../components/ScanButton/ScanButton.vue';
+import RecordCard from '../../../components/RecordCard/RecordCard.vue';
+import RecordField from '../../../components/RecordField/RecordField.vue';
+import RecordTableHead from '../../../components/RecordTableHead/RecordTableHead.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import { PageSetting, PermissionCode, RecordStatus } from '../../../utils/constants';
+import { useDragSort } from '../../../hooks/drag-sort';
+import { PageSetting, PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
-import ProductCategoryBlock, { type ProductRow } from './ProductCategoryBlock.vue';
-
-interface CategoryRow {
-  categoryId: string;
-  categoryName: string;
-  sortOrder: number;
-  status: string;
-}
-
-interface ProductGroup {
-  categoryId: string;
-  categoryName: string;
-  productList: ProductRow[];
-}
+import ProductDialog, { type ProductCategoryOption, type ProductRow } from './ProductDialog.vue';
 
 const productListPageSize = 1000;
-const unknownCategoryId = '';
-const unknownCategoryName = '未分类';
 
 const sessionStore = useSessionStore();
 const canSave = sessionStore.hasPermission(PermissionCode.STORE_PRODUCT_SAVE);
 const keyword = ref('');
 const filterCategoryId = ref('');
-const categoryList = ref<CategoryRow[]>([]);
+const appliedKeyword = ref('');
+const categoryList = ref<ProductCategoryOption[]>([]);
 const productList = ref<ProductRow[]>([]);
+const sortListRef = ref<HTMLElement | null>(null);
 const dialogVisible = ref(false);
-const editingProductId = ref('');
-const imageGalleryRef = ref<InstanceType<typeof ImageGalleryUpload> | null>(null);
-const productForm = reactive({
-  categoryId: '',
-  productName: '',
-  barcode: '',
-  salePrice: '',
-  costPrice: '',
-  status: RecordStatus.ENABLED as string,
+const editingProduct = ref<ProductRow | null>(null);
+
+/**
+ * 有关键字筛选时不能拖排序，否则提交的编号列表不完整。分类始终按当前选中项加载。
+ */
+const canDragSort = computed(() => {
+  return canSave === true && isEmpty(appliedKeyword.value) && isEmpty(filterCategoryId.value) !== true;
 });
 
-/**
- * 商品图片的上传和删除。商品没有封面排序。
- */
-const productImageAdapter: ImageGalleryAdapter = {
-  async upload(ownerId, file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    return (await http.post(StoreApi.productImages(ownerId), formData)) as GalleryImageView;
-  },
-  async remove(ownerId, imageId) {
-    await http.delete(StoreApi.productImage(ownerId, imageId));
-  },
-};
+const { initDragSort } = useDragSort(
+  () => sortListRef.value,
+  () => canDragSort.value === true,
+  saveProductSort,
+);
 
 /**
- * 按分类排序把商品分成多块；空分类也保留，方便在分类下新建；筛了分类时只出该块。
+ * 空文本显示成横线。
  */
-const productGroupList = computed((): ProductGroup[] => {
-  const groupList: ProductGroup[] = [];
-  const usedProductIdSet = new Set<string>();
-  categoryList.value.forEach((categoryRow) => {
-    if (isEmpty(filterCategoryId.value) !== true && categoryRow.categoryId !== filterCategoryId.value) {
-      return;
-    }
-    const categoryProductList = productList.value.filter((productRow) => productRow.categoryId === categoryRow.categoryId);
-    categoryProductList.forEach((productRow) => {
-      usedProductIdSet.add(productRow.productId);
-    });
-    groupList.push({
-      categoryId: categoryRow.categoryId,
-      categoryName: categoryRow.categoryName,
-      productList: categoryProductList,
-    });
-  });
-  if (isEmpty(filterCategoryId.value)) {
-    const unknownProductList = productList.value.filter((productRow) => usedProductIdSet.has(productRow.productId) !== true);
-    if (isEmpty(unknownProductList) !== true) {
-      groupList.push({
-        categoryId: unknownCategoryId,
-        categoryName: unknownCategoryName,
-        productList: unknownProductList,
-      });
-    }
+function displayText(text: string): string {
+  if (isEmpty(text)) {
+    return '—';
   }
-  return groupList;
-});
-
-/**
- * 查询当前门店商品分类，供筛选和下拉使用。
- */
-async function loadCategories(): Promise<void> {
-  categoryList.value = (await http.get(StoreApi.PRODUCT_CATEGORIES)) as CategoryRow[];
+  return text;
 }
 
 /**
- * 一次拉全量筛选结果，再按分类分块展示。
+ * 查询当前门店商品分类；默认选中第一项。
+ */
+async function loadCategories(): Promise<void> {
+  categoryList.value = (await http.get(StoreApi.PRODUCT_CATEGORIES)) as ProductCategoryOption[];
+  if (isEmpty(categoryList.value)) {
+    filterCategoryId.value = '';
+    return;
+  }
+  const matchedCategory = categoryList.value.find((categoryRow) => categoryRow.categoryId === filterCategoryId.value);
+  if (isEmpty(matchedCategory)) {
+    filterCategoryId.value = categoryList.value[0].categoryId;
+  }
+}
+
+/**
+ * 按当前分类和已应用的关键字查询商品。
  */
 async function loadProducts(): Promise<void> {
+  if (isEmpty(filterCategoryId.value)) {
+    productList.value = [];
+    return;
+  }
   const pageResult = (await http.get(StoreApi.PRODUCTS, {
     params: {
-      keyword: keyword.value,
+      keyword: appliedKeyword.value,
       categoryId: filterCategoryId.value,
       page: PageSetting.DEFAULT_PAGE,
       pageSize: productListPageSize,
     },
   })) as { list: ProductRow[]; total: number };
   productList.value = pageResult.list;
+  await initDragSort();
 }
 
 /**
- * 按关键字重新查。
+ * 切换分类后重新查当前分类商品。
  */
-function searchProducts(): void {
+function onCategoryChange(): void {
   void loadProducts();
 }
 
 /**
- * 清空关键字和分类筛选后重新查。
+ * 应用条码/名称筛选后重新查。
+ */
+function searchProducts(): void {
+  appliedKeyword.value = keyword.value.trim();
+  void loadProducts();
+}
+
+/**
+ * 清空关键字后重新查；分类保持必选，不重置。
  */
 function resetQuery(): void {
   keyword.value = '';
-  filterCategoryId.value = '';
+  appliedKeyword.value = '';
   void loadProducts();
 }
 
 /**
- * 扫码结果写入商品条码。
+ * 打开新建商品。
  */
-function onBarcodeScanned(scanText: string): void {
-  productForm.barcode = scanText;
-}
-
-/**
- * 打开新建商品，并预选当前分类。
- */
-async function openCreate(categoryId: string): Promise<void> {
-  editingProductId.value = '';
-  productForm.categoryId = categoryId;
-  productForm.productName = '';
-  productForm.barcode = '';
-  productForm.salePrice = '';
-  productForm.costPrice = '';
-  productForm.status = RecordStatus.ENABLED;
+function openCreate(): void {
+  editingProduct.value = null;
   dialogVisible.value = true;
-  await nextTick();
-  imageGalleryRef.value?.clearImages();
 }
 
 /**
  * 打开编辑商品。
  */
-async function openEdit(productRow: ProductRow): Promise<void> {
-  editingProductId.value = productRow.productId;
-  productForm.categoryId = productRow.categoryId;
-  productForm.productName = productRow.productName;
-  productForm.barcode = productRow.barcode;
-  productForm.salePrice = productRow.salePrice;
-  productForm.costPrice = productRow.costPrice;
-  productForm.status = productRow.status;
+function openEdit(productRow: ProductRow): void {
+  editingProduct.value = productRow;
   dialogVisible.value = true;
-  await nextTick();
-  imageGalleryRef.value?.setImages(isEmpty(productRow.imageList) ? [] : productRow.imageList);
 }
 
 /**
- * 保存商品。新建成功后再补传选中的图片。
+ * 按拖动后的编号顺序保存商品。失败时重新查询。
  */
-async function saveProduct(): Promise<void> {
-  if (isEmpty(productForm.categoryId)) {
-    ElMessage.error('请选择商品分类');
-    return;
+async function saveProductSort(idList: string[]): Promise<void> {
+  productList.value = idList.flatMap((recordId) => {
+    const productRow = productList.value.find((item) => item.productId === recordId);
+    if (isEmpty(productRow)) {
+      return [];
+    }
+    return [productRow];
+  });
+  try {
+    await http.put(StoreApi.PRODUCTS_SORT, { idList });
+  } catch (error) {
+    void error;
+    await loadProducts();
   }
-  if (isEmpty(productForm.barcode) || isEmpty(productForm.barcode.trim())) {
-    ElMessage.error('请填写条码');
-    return;
-  }
-  const body = {
-    categoryId: productForm.categoryId,
-    productName: productForm.productName,
-    barcode: productForm.barcode,
-    salePrice: productForm.salePrice,
-    costPrice: productForm.costPrice,
-    status: productForm.status,
-  };
-  if (isEmpty(editingProductId.value)) {
-    const createdProduct = (await http.post(StoreApi.PRODUCTS, body)) as ProductRow;
-    editingProductId.value = createdProduct.productId;
-    await imageGalleryRef.value?.uploadPending();
-  } else {
-    await http.put(StoreApi.product(editingProductId.value), body);
-  }
-  dialogVisible.value = false;
-  await loadProducts();
 }
 
-onMounted(() => {
-  void loadCategories();
-  void loadProducts();
+onMounted(async () => {
+  await loadCategories();
+  await loadProducts();
 });
 </script>
 
 <style scoped>
-.barcode-row {
+.product-toolbar {
   display: flex;
-  align-items: stretch;
-  gap: 8px;
-  width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
 }
 
-.barcode-row :deep(.el-input),
-.barcode-row :deep(.el-button) {
-  flex: 1 1 0;
+.product-category-radio {
+  flex: 1 1 auto;
   min-width: 0;
-  width: 100%;
+}
+
+.record-list {
+  margin-top: 16px;
+}
+
+.name-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.drag-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: #98a2b3;
+  cursor: move;
+  background: transparent;
+  border: none;
+}
+
+.drag-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .record-empty {
