@@ -59,6 +59,21 @@
         </div>
         <span v-else class="admin-title admin-title-center">{{ currentPageTitle }}</span>
         <div v-if="narrowScreen !== true" class="header-right">
+          <button type="button" class="header-action" aria-label="刷新当前页面" @click="refreshCurrentPage">
+            <AppIcon class="header-action-icon" :icon-name="MenuIconName.REFRESH" />
+          </button>
+          <button
+            type="button"
+            class="header-action"
+            :aria-label="browserFullscreen === true ? '关闭全屏' : '打开全屏'"
+            @click="toggleBrowserFullscreen"
+          >
+            <AppIcon
+              class="header-action-icon"
+              :icon-name="browserFullscreen === true ? MenuIconName.FULLSCREEN_EXIT : MenuIconName.FULLSCREEN"
+            />
+          </button>
+          <span class="header-admin-name">{{ adminDisplayName }}</span>
           <el-popover v-model:visible="accountMenuVisible" trigger="click" placement="bottom-end" :width="168">
             <template #reference>
               <button type="button" class="header-avatar" aria-label="账号菜单">
@@ -94,13 +109,25 @@ const sessionStore = useSessionStore();
 const menuCollapsed = ref(false);
 const menuDrawerOpen = ref(false);
 const accountMenuVisible = ref(false);
+const pageRefreshSerial = ref(0);
+const browserFullscreen = ref(false);
 const narrowScreen = ref(false);
 const narrowScreenQuery = window.matchMedia('(max-width: 768px)');
 
 /**
- * 门店或路由变化时重挂页面，让列表按新门店重新请求。
+ * 门店、路由或手动刷新变化时重挂页面，让列表重新请求。
  */
-const viewKey = computed(() => `${sessionStore.currentShopId}-${route.fullPath}`);
+const viewKey = computed(() => `${sessionStore.currentShopId}-${route.fullPath}-${pageRefreshSerial.value}`);
+
+/**
+ * 顶栏显示的管理员名称。有姓名时用姓名，没有时用账号。
+ */
+const adminDisplayName = computed(() => {
+  if (isEmpty(sessionStore.realName) !== true) {
+    return sessionStore.realName;
+  }
+  return sessionStore.username;
+});
 
 /**
  * 当前页面所属模块。没有声明时按核心模块处理。
@@ -220,6 +247,31 @@ function toggleMenuCollapsed(): void {
 }
 
 /**
+ * 刷新当前页面。只重挂当前路由，不刷新整个浏览器。
+ */
+function refreshCurrentPage(): void {
+  pageRefreshSerial.value = pageRefreshSerial.value + 1;
+}
+
+/**
+ * 按浏览器全屏状态切换图标。按 Esc 退出时也会走到这里。
+ */
+function syncBrowserFullscreen(): void {
+  browserFullscreen.value = isEmpty(document.fullscreenElement) !== true;
+}
+
+/**
+ * 打开或关闭浏览器全屏。
+ */
+async function toggleBrowserFullscreen(): Promise<void> {
+  if (isEmpty(document.fullscreenElement)) {
+    await document.documentElement.requestFullscreen();
+    return;
+  }
+  await document.exitFullscreen();
+}
+
+/**
  * 打开个人中心。
  */
 function openAccountCenter(): void {
@@ -237,11 +289,14 @@ async function onLogout(): Promise<void> {
 
 onMounted(() => {
   syncNarrowScreen();
+  syncBrowserFullscreen();
   narrowScreenQuery.addEventListener('change', syncNarrowScreen);
+  document.addEventListener('fullscreenchange', syncBrowserFullscreen);
 });
 
 onBeforeUnmount(() => {
   narrowScreenQuery.removeEventListener('change', syncNarrowScreen);
+  document.removeEventListener('fullscreenchange', syncBrowserFullscreen);
 });
 </script>
 
@@ -522,6 +577,35 @@ onBeforeUnmount(() => {
   gap: 12px;
   flex-shrink: 0;
   min-width: 0;
+}
+
+.header-action {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--admin-text);
+  cursor: pointer;
+}
+
+.header-action-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.header-admin-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--admin-text);
 }
 
 .header-avatar {

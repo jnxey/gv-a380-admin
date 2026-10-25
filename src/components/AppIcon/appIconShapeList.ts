@@ -164,6 +164,18 @@ export const menuIconShapeListByName: Record<string, MenuIconShape[]> = {
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M20 12a8 8 0 1 1-2.2-5.6' },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M20 4.2V9h-4.8' },
   ],
+  [MenuIconName.FULLSCREEN]: [
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M4 9V4h5' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M15 4h5v5' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M20 15v5h-5' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M9 20H4v-5' },
+  ],
+  [MenuIconName.FULLSCREEN_EXIT]: [
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M9 4v5H4' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M15 4v5h5' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M20 15h-5v5' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M4 15h5v5' },
+  ],
   [MenuIconName.DELETE]: [
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M5 8h14' },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M9.5 8V6.5A1.5 1.5 0 0 1 11 5h2a1.5 1.5 0 0 1 1.5 1.5V8' },
