@@ -3,8 +3,6 @@
     <div v-if="isEmpty(deductedAmount)" class="deduct-panel">
       <div class="deduct-amount-label">付款金额</div>
       <el-input ref="amountInput" v-model="amount" class="deduct-amount" placeholder="请输入金额" @input="onAmountInput" @keydown="onDeductEnter" />
-      <div class="deduct-remark-label">备注</div>
-      <el-input v-model="remark" class="deduct-remark" placeholder="选填" @keydown="onDeductEnter" />
       <el-button type="primary" class="deduct-submit" :disabled="isEmpty(amount) || deducting" @click="submitDeduct">扫码付款</el-button>
     </div>
     <div v-else class="deduct-panel deduct-result">
@@ -35,7 +33,6 @@ const emit = defineEmits<{
 
 const amountInput = ref<{ focus: () => void } | null>(null);
 const amount = ref('');
-const remark = ref('');
 const deducting = ref(false);
 const deductedAmount = ref('');
 
@@ -104,7 +101,7 @@ async function submitDeduct(): Promise<void> {
     await http.post(HotelApi.DEDUCT, {
       memberId: memberRow.memberId,
       amount: paidAmount,
-      remark: remark.value,
+      remark: '',
     });
     deductedAmount.value = paidAmount;
   } catch {
@@ -142,23 +139,11 @@ async function submitDeduct(): Promise<void> {
   border-radius: 12px;
 }
 
-.deduct-remark :deep(.el-input__wrapper) {
-  border-radius: 999px;
-}
-
 .deduct-amount :deep(.el-input__inner) {
   height: 56px;
   font-size: 28px;
   font-weight: 600;
   color: #1c2434;
-}
-
-.deduct-remark-label {
-  margin-top: 16px;
-  margin-bottom: 8px;
-  font-size: 13px;
-  line-height: 20px;
-  color: #667085;
 }
 
 .deduct-result-mark {

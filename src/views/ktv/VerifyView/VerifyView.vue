@@ -36,7 +36,7 @@
             type="danger"
             @click="cancelOrder(orderRow.bookingOrderId, true)"
           >
-            取消退款
+            取消
           </el-button>
         </template>
       </RecordCard>

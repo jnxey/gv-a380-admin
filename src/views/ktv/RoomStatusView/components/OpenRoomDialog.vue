@@ -276,9 +276,12 @@ onBeforeUnmount(() => {
 
 .room-status-verify-input {
   flex: 1;
+  min-width: 0;
 }
 
 .room-status-verify-scan {
+  flex: 1;
+  width: 0;
   height: 40px;
   margin: 0;
   border-radius: 8px;
