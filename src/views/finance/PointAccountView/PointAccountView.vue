@@ -4,11 +4,19 @@
       <el-form-item>
         <el-input v-model="keyword" v-place class="query-keyword" placeholder="账号/手机号/邮箱" clearable />
       </el-form-item>
+      <template #append>
+        <el-form-item v-if="canRecharge === true">
+          <ScanButton type="warning" @scanned="onPayQrScanned">扫充值码</ScanButton>
+        </el-form-item>
+      </template>
     </QueryBar>
-    <section v-if="searched === true" class="point-summary">
-      <span>账号 {{ displayText(username) }}</span>
-      <span>积分账号 {{ isEmpty(pointsAccount) ? '未绑定' : pointsAccount }}</span>
-      <span>积分余额 {{ balance }}</span>
+    <section v-if="searched === true" class="point-user-card">
+      <div class="point-user-title">用户信息</div>
+      <div class="point-user-fields">
+        <RecordField label="账号">{{ displayText(username) }}</RecordField>
+        <RecordField label="积分账号">{{ isEmpty(pointsAccount) ? '未绑定' : pointsAccount }}</RecordField>
+        <RecordField label="积分余额">{{ balance }}</RecordField>
+      </div>
     </section>
     <div v-if="searched !== true" class="record-empty">请输入账号/手机号/邮箱</div>
     <div v-else-if="isEmpty(billList)" class="record-empty">暂无数据</div>
@@ -37,12 +45,16 @@
 </template>
 
 <script setup lang="ts">
+import { MemberApi } from '../../../api/member';
 import { PointApi } from '../../../api/point';
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
-import { FinanceDirection, PageSetting, statusLabel } from '../../../utils/constants';
+import RecordField from '../../../components/RecordField/RecordField.vue';
+import ScanButton from '../../../components/ScanButton/ScanButton.vue';
+import { useSessionStore } from '../../../stores/session';
+import { FinanceDirection, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
@@ -64,6 +76,8 @@ interface PointBillPage {
   total: number;
 }
 
+const sessionStore = useSessionStore();
+const canRecharge = sessionStore.hasPermission(PermissionCode.MEMBER_RECHARGE);
 const keyword = ref('');
 const searched = ref(false);
 const username = ref('');
@@ -108,6 +122,25 @@ async function loadPointBills(): Promise<void> {
 }
 
 /**
+ * 扫充值码后按解出的账号查询积分。解密失败时清空本次结果。
+ */
+async function onPayQrScanned(cipherText: string): Promise<void> {
+  try {
+    const payQr = (await http.post(MemberApi.PAY_QR, { cipherText })) as { username: string };
+    keyword.value = payQr.username;
+    page.value = PageSetting.DEFAULT_PAGE;
+    await loadPointBills();
+  } catch {
+    searched.value = false;
+    username.value = '';
+    pointsAccount.value = '';
+    balance.value = '0';
+    billList.value = [];
+    total.value = 0;
+  }
+}
+
+/**
  * 从第一页查询。没有关键字时只提示，不查全部账号。
  */
 function searchPointBills(): void {
@@ -144,13 +177,26 @@ function onPageChange(nextPage: number): void {
 </script>
 
 <style scoped>
-.point-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
+.point-user-card {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #f7f8fa;
+  border: 1px solid #e6e8ec;
+  border-radius: 8px;
+}
+
+.point-user-title {
   margin-bottom: 12px;
   font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
   color: #1c2434;
+}
+
+.point-user-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px 24px;
 }
 
 .point-list {
