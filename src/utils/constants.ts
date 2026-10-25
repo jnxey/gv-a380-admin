@@ -1,6 +1,4 @@
-﻿import { isEmpty } from './tools';
-
-/**
+﻿/**
  * 与后端保持一致的常量。
  */
 export const ResponseCode = {
@@ -305,29 +303,6 @@ export const StorageKey = {
   ACCESS_TOKEN: 'gv_a380_admin_access_token',
   CURRENT_SHOP_ID: 'gv_a380_admin_current_shop_id',
 } as const;
-
-/**
- * 当前是否已在登录页。只看 hash，不动 # 前面的前缀/后缀路径。
- */
-export function isOnLoginPage(): boolean {
-  const hashText = window.location.hash;
-  if (isEmpty(hashText)) {
-    return false;
-  }
-  const hashBody = hashText.startsWith('#') ? hashText.slice(1) : hashText;
-  const hashPath = hashBody.split('?')[0];
-  return hashPath === '/login';
-}
-
-/**
- * 会话失效时只改 hash 到登录页，保留 # 前面的访问路径。
- */
-export function goLoginPageByHash(): void {
-  if (isOnLoginPage()) {
-    return;
-  }
-  window.location.hash = '#/login';
-}
 
 /** 后台令牌剩余不超过 30 分钟时再换一张。 */
 export const AccessTokenLifetime = {

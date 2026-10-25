@@ -8,13 +8,19 @@ import './styles/record-list.css';
 import App from './App.vue';
 import placeDirective from './directives/place';
 import router from './router';
+import { useSessionStore } from './stores/session';
 import { enterMiniProgramApp } from './utils/gv-sdk';
+import { registerSessionExpiredHandler } from './utils/session-expire';
 
 const app = createApp(App);
-app.use(createPinia());
+const pinia = createPinia();
+app.use(pinia);
 app.use(router);
 app.use(ElementPlus, { locale: zhCn });
 app.directive('place', placeDirective);
+registerSessionExpiredHandler(() => {
+  return useSessionStore(pinia).expireToLogin(router);
+});
 app.mount('#app');
 router.isReady().finally(() => {
   enterMiniProgramApp();

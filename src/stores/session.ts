@@ -170,5 +170,16 @@ export const useSessionStore = defineStore('session', {
         }
       });
     },
+    /**
+     * 令牌失效：先跳登录页，再清动态路由，避免当前页路由被卸掉后白屏。
+     */
+    async expireToLogin(router: Router): Promise<void> {
+      this.accessToken = '';
+      window.localStorage.removeItem(StorageKey.ACCESS_TOKEN);
+      if (router.currentRoute.value.path !== '/login') {
+        await router.replace('/login');
+      }
+      this.clearSession(router);
+    },
   },
 });

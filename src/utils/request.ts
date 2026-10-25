@@ -3,7 +3,8 @@ import { ElMessage } from 'element-plus';
 import { AuthApi } from '../api/auth';
 import { API_PREFIX } from '../api/prefix';
 import { ensureAccessToken } from './access-token';
-import { goLoginPageByHash, HttpStatusCode, ResponseCode, StorageKey } from './constants';
+import { HttpStatusCode, ResponseCode, StorageKey } from './constants';
+import { handleSessionExpired } from './session-expire';
 import { isEmpty } from './tools';
 
 const http = axios.create({
@@ -55,9 +56,8 @@ http.interceptors.response.use(
     const requestUrl = error?.config?.url;
     // 登录接口的 401：账号密码错误，只 Toast，不改地址、不刷新
     if (statusCode === HttpStatusCode.UNAUTHORIZED && requestUrl !== AuthApi.LOGIN) {
-      // 其它接口 401：清令牌，只改 hash 到 #/login，保留 # 前路径
-      window.localStorage.removeItem(StorageKey.ACCESS_TOKEN);
-      goLoginPageByHash();
+      // 其它接口 401：清登录态并走路由进登录页
+      handleSessionExpired();
     }
     ElMessage.error(isEmpty(failMessage) ? '请求失败' : failMessage);
     return Promise.reject(error);
