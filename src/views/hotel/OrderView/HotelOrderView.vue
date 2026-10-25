@@ -29,25 +29,27 @@
       </RecordCard>
     </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
-    <el-dialog v-model="extendVisible" title="续住" width="420px">
-      <el-date-picker v-model="extendDate" type="date" value-format="YYYY-MM-DD" placeholder="新的离店日期" />
-      <template #footer>
-        <el-button size="large" @click="extendVisible = false">取消</el-button>
-        <el-button size="large" type="primary" @click="submitExtend">确认续住</el-button>
-      </template>
-    </el-dialog>
+    <ExtendStayDialog
+      v-model="extendVisible"
+      v-model:extend-date="extendDate"
+      :room="extendingRoom"
+      :room-meta="extendRoomMeta"
+      :booking-order-id="extendingBookingOrderId"
+      @saved="onExtendSaved"
+    />
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { HotelApi } from '../../../api/hotel';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
-import { HotelOrderStatus, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
+import ExtendStayDialog, { type ExtendStayRoomRow } from '../RoomStatusView/components/ExtendStayDialog.vue';
+import { HotelOrderStatus, HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
 import { isEmpty, formatLocalDateTime } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -76,8 +78,50 @@ const total = ref(0);
 const page = ref<number>(PageSetting.DEFAULT_PAGE);
 const pageSize = ref<number>(PageSetting.DEFAULT_PAGE_SIZE);
 const extendVisible = ref(false);
-const activeOrderId = ref('');
+const extendingOrder = ref<OrderRow | null>(null);
 const extendDate = ref('');
+
+/**
+ * 续住弹窗对应的订单主键。
+ */
+const extendingBookingOrderId = computed(() => {
+  if (isEmpty(extendingOrder.value)) {
+    return '';
+  }
+  return extendingOrder.value.bookingOrderId;
+});
+
+/**
+ * 续住弹窗顶部房间信息。在住订单按在住房态展示。
+ */
+const extendingRoom = computed((): ExtendStayRoomRow | null => {
+  if (isEmpty(extendingOrder.value)) {
+    return null;
+  }
+  return {
+    id: extendingOrder.value.bookingOrderId,
+    roomNo: isEmpty(extendingOrder.value.roomNo) ? '—' : extendingOrder.value.roomNo,
+    roomStatus: HotelRoomStatus.OCCUPIED,
+  };
+});
+
+/**
+ * 续住弹窗里的客人和离店日。
+ */
+const extendRoomMeta = computed(() => {
+  if (isEmpty(extendingOrder.value)) {
+    return '';
+  }
+  const guestName = isEmpty(extendingOrder.value.guestName) ? orderGuestText(extendingOrder.value) : extendingOrder.value.guestName;
+  const checkOutText = isEmpty(extendingOrder.value.checkOutDate) ? '' : `${formatLocalDateTime(extendingOrder.value.checkOutDate)} 离店`;
+  if (isEmpty(guestName)) {
+    return checkOutText;
+  }
+  if (isEmpty(checkOutText)) {
+    return guestName;
+  }
+  return `${guestName} · ${checkOutText}`;
+});
 
 /**
  * 订单上的客人。有会员账号用账号，现场入住没有会员时用联系方式。
@@ -104,7 +148,7 @@ async function loadOrders(): Promise<void> {
  * 打开续住弹窗，并默认选中当前离店日。
  */
 function openExtend(orderRow: OrderRow): void {
-  activeOrderId.value = orderRow.bookingOrderId;
+  extendingOrder.value = orderRow;
   if (isEmpty(orderRow.checkOutDate)) {
     extendDate.value = '';
   } else {
@@ -114,16 +158,10 @@ function openExtend(orderRow: OrderRow): void {
 }
 
 /**
- * 确认续住。新的离店日必须晚于当前离店日，此时不扣款。
+ * 续住成功后刷新列表。
  */
-async function submitExtend(): Promise<void> {
-  if (isEmpty(extendDate.value)) {
-    ElMessage.warning('请选择新的离店日期');
-    return;
-  }
-  await http.post(HotelApi.bookingOrderExtend(activeOrderId.value), { checkOutDate: extendDate.value });
-  ElMessage.success('已续住');
-  extendVisible.value = false;
+async function onExtendSaved(): Promise<void> {
+  extendingOrder.value = null;
   await loadOrders();
 }
 
