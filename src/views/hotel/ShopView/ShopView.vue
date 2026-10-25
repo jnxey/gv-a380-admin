@@ -22,7 +22,7 @@
           <div v-if="!isEmpty(shopBusinessHoursText(shopRow))" class="shop-address">{{ shopBusinessHoursText(shopRow) }}</div>
           <div class="shop-foot">
             <el-tag :type="shopRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
-              {{ statusLabel(shopRow.status) }}
+              {{ shopRow.status === RecordStatus.ENABLED ? '启用' : '休息' }}
             </el-tag>
             <div class="shop-actions">
               <el-button link type="primary" @click="openPayQr(shopRow)">收款码</el-button>
@@ -58,7 +58,7 @@ import { ElMessage } from 'element-plus';
 import QRCode from 'qrcode';
 import ShopSearchBar from '../../../components/ShopSearchBar/ShopSearchBar.vue';
 import { useShopKeywordFilter } from '../../../hooks/shop-keyword-filter';
-import { PermissionCode, RecordStatus, ShopPayQr, statusLabel, timeZoneLabel } from '../../../utils/constants';
+import { PermissionCode, RecordStatus, ShopPayQr, timeZoneLabel } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';

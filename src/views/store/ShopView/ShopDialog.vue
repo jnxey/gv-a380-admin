@@ -49,7 +49,7 @@
           <el-form-item label="状态">
             <el-select v-model="shopForm.status">
               <el-option label="启用" :value="RecordStatus.ENABLED" />
-              <el-option label="停用" :value="RecordStatus.DISABLED" />
+              <el-option label="休息" :value="RecordStatus.DISABLED" />
             </el-select>
           </el-form-item>
         </el-col>
