@@ -6,7 +6,7 @@
       <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
         <RecordField label="订单号">{{ orderRow.orderNo }}</RecordField>
         <RecordField label="账号">{{ orderGuestText(orderRow) }}</RecordField>
-        <RecordField label="预定人">{{ orderRow.guestName }}</RecordField>
+        <RecordField label="预订人">{{ orderRow.guestName }}</RecordField>
         <RecordField label="联系方式">{{ orderRow.contact }}</RecordField>
         <RecordField label="房型">{{ orderRow.typeName }}</RecordField>
         <RecordField label="房间">{{ orderRow.roomNo }}</RecordField>

@@ -61,7 +61,7 @@ const emit = defineEmits<{
 }>();
 
 /**
- * 订单上要显示的客人。先用预定人，没有时用账号，再没有用联系方式。
+ * 订单上要显示的客人。先用预订人，没有时用账号，再没有用联系方式。
  */
 function guestText(orderRow: BookedOrderItem): string {
   if (isEmpty(orderRow.guestName) !== true) {

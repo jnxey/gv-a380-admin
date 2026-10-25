@@ -22,7 +22,7 @@
         <div class="room-status-rooms">
           <template v-if="canCheckIn && checkInSearched">
             <h3 class="room-status-pick-title">{{ checkInPickTitle }}</h3>
-            <div v-if="todayBookingList.length > 0 && isEmpty(selectedTodayOrder)" class="room-status-empty">请先选择今天的预定</div>
+            <div v-if="todayBookingList.length > 0 && isEmpty(selectedTodayOrder)" class="room-status-empty">请先选择今天的预订</div>
             <div v-else-if="checkInRoomList.length === 0" class="room-status-empty">没有可入住房间</div>
             <div v-else class="room-status-grid">
               <RoomStatusPickCard
@@ -253,7 +253,7 @@ const todayBookingList = computed(() => {
 });
 
 /**
- * 办理入住当前选中的今天预定。没选中时为空。
+ * 办理入住当前选中的今天预订。没选中时为空。
  */
 const selectedTodayOrder = computed(() => {
   if (isEmpty(selectedOrderId.value)) {
@@ -267,7 +267,7 @@ const selectedTodayOrder = computed(() => {
 });
 
 /**
- * 对上预定后只列同房型空闲房。没有预定时列出全部空闲房。
+ * 对上预订后只列同房型空闲房。没有预订时列出全部空闲房。
  */
 const checkInRoomList = computed(() => {
   const idleRoomList = roomList.value.filter((roomRow) => roomRow.roomStatus === HotelRoomStatus.IDLE);
@@ -282,14 +282,14 @@ const checkInRoomList = computed(() => {
 });
 
 /**
- * 查询后房间区的标题。还没选定预定时先提示选择。
+ * 查询后房间区的标题。还没选定预订时先提示选择。
  */
 const checkInPickTitle = computed(() => {
   if (isEmpty(selectedTodayOrder.value) !== true) {
     return `可选房间 · ${selectedTodayOrder.value.typeName}`;
   }
   if (todayBookingList.value.length > 0) {
-    return '请选择今天的预定';
+    return '请选择今天的预订';
   }
   return '可选空闲房间';
 });
@@ -362,7 +362,7 @@ function occupiedOrder(roomRow: RoomRow): OrderRow | null {
 }
 
 /**
- * 订单上要显示的客人。先用预定人，没有时用账号，再没有用联系方式。
+ * 订单上要显示的客人。先用预订人，没有时用账号，再没有用联系方式。
  */
 function bookedOrderGuestText(orderRow: OrderRow): string {
   if (isEmpty(orderRow.guestName) !== true) {
@@ -375,7 +375,7 @@ function bookedOrderGuestText(orderRow: OrderRow): string {
 }
 
 /**
- * 在住客人。先用预定人，没有时用账号，现场入住再用联系方式。
+ * 在住客人。先用预订人，没有时用账号，现场入住再用联系方式。
  */
 function roomGuestName(roomRow: RoomRow): string {
   const stayOrder = occupiedOrder(roomRow);
@@ -564,11 +564,11 @@ function selectCheckInRoom(roomRow: RoomRow): void {
  */
 function openCheckInConfirm(roomRow: RoomRow | null): void {
   if (checkInSearched.value !== true) {
-    ElMessage.warning('请先按联系方式查询今天的预定');
+    ElMessage.warning('请先按联系方式查询今天的预订');
     return;
   }
   if (todayBookingList.value.length > 0 && isEmpty(selectedTodayOrder.value)) {
-    ElMessage.warning('请选择今天的预定');
+    ElMessage.warning('请选择今天的预订');
     return;
   }
   if (todayBookingList.value.length === 0 && resolveWalkInNightCount() === null) {
@@ -613,7 +613,7 @@ async function onExtendSaved(): Promise<void> {
 }
 
 /**
- * 换一单预定时清掉已经选过的房间。
+ * 换一单预订时清掉已经选过的房间。
  */
 watch(selectedOrderId, () => {
   selectedCheckInRoomId.value = '';
@@ -677,7 +677,7 @@ function reloadPage(): void {
 }
 
 /**
- * 刷新后核对正在办理的预定。订单已不在已预订里就退出这次查询；房间不再可选就取消选中。
+ * 刷新后核对正在办理的预订。订单已不在已预订里就退出这次查询；房间不再可选就取消选中。
  */
 function syncCheckInSelection(): void {
   if (checkInSearched.value !== true) {

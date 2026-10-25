@@ -7,7 +7,7 @@
     </div>
     <div v-if="searched" class="room-status-check-in-detail">
       <template v-if="todayBookingList.length > 0">
-        <el-select v-if="todayBookingList.length > 1" v-model="selectedOrderId" class="room-status-check-in-order" placeholder="选择今天的预定">
+        <el-select v-if="todayBookingList.length > 1" v-model="selectedOrderId" class="room-status-check-in-order" placeholder="选择今天的预订">
           <el-option
             v-for="orderRow in todayBookingList"
             :key="orderRow.bookingOrderId"
@@ -16,7 +16,7 @@
           />
         </el-select>
         <div v-if="isEmpty(selectedTodayOrder) !== true" class="room-status-check-in-result">
-          <span>预定人 <strong>{{ selectedTodayOrder.guestName }}</strong></span>
+          <span>预订人 <strong>{{ selectedTodayOrder.guestName }}</strong></span>
           <span>联系方式 <strong>{{ selectedTodayOrder.contact }}</strong></span>
           <span>
             入住
@@ -29,7 +29,7 @@
         </div>
       </template>
       <div v-else class="room-status-check-in-result">
-        <span>没有今天的预定</span>
+        <span>没有今天的预订</span>
         <span>入住时间 <strong>{{ walkInCheckInDateText }}</strong></span>
         <span class="room-status-check-in-hint">早上 {{ HotelBusinessDay.START_HOUR }} 点前仍算前一天</span>
         <el-radio-group v-model="walkInNightChoice" class="room-status-night-choice">
@@ -85,7 +85,7 @@ const emit = defineEmits<{
 }>();
 
 /**
- * 今天的预定在下拉里的文字。
+ * 今天的预订在下拉里的文字。
  */
 function bookedOrderLabel(orderRow: CheckInBarOrder): string {
   const guestName = isEmpty(orderRow.guestName) !== true

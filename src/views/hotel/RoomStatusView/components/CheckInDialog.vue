@@ -9,7 +9,7 @@
       </div>
     </div>
     <template v-if="isEmpty(todayOrder) !== true">
-      <div class="room-status-check-in-line">预定人 {{ todayOrder.guestName }}</div>
+      <div class="room-status-check-in-line">预订人 {{ todayOrder.guestName }}</div>
       <div class="room-status-check-in-line">联系方式 {{ todayOrder.contact }}</div>
       <div class="room-status-check-in-line">
         {{ formatLocalDateTime(todayOrder.checkInDate) }} 至 {{ formatLocalDateTime(todayOrder.checkOutDate) }}
@@ -89,7 +89,7 @@ function roomStatusCardClass(roomStatus: string): string {
 }
 
 /**
- * 确认入住。对上今天的预定就办理该订单；没有订单时按今天为这位客人入住。
+ * 确认入住。对上今天的预订就办理该订单；没有订单时按今天为这位客人入住。
  */
 async function submitCheckIn(): Promise<void> {
   if (isEmpty(props.room)) {

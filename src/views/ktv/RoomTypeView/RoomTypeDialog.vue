@@ -17,7 +17,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="预定简述">
+          <el-form-item label="预订简述">
             <el-input
               v-model="roomTypeForm.description.bookingSummary"
               :rows="3"
