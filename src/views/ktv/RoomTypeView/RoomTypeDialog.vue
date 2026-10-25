@@ -1,73 +1,88 @@
 <template>
   <el-dialog v-model="visible" :title="isEmpty(roomType) ? '新建类型' : '编辑类型'" width="720px">
     <el-form label-position="top">
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="每小时价格"><el-input v-model="roomTypeForm.hourlyPrice" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="积分可抵扣金额">
-            <el-input v-model="roomTypeForm.pointDeductAmount" placeholder="不能大于每小时价格" />
-            <p v-if="showPointDeductZeroHint(roomTypeForm.pointDeductAmount)" class="field-hint">为 0 时不可抵扣</p>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="抵扣积分数量">
-            <el-input v-model="roomTypeForm.pointDeductPoints" placeholder="0 表示不可抵扣" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="状态">
-            <el-radio-group v-model="roomTypeForm.status">
-              <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
-              <el-radio :value="RecordStatus.DISABLED">停用</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="预订简述">
-            <el-input
-              v-model="roomTypeForm.description.bookingSummary"
-              :rows="3"
-              :maxlength="DetailDescriptionLimit.MAX_LENGTH"
-              show-word-limit
-              placeholder="选填"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="退订规则">
-            <el-input
-              v-model="roomTypeForm.description.cancelRule"
-              type="textarea"
-              :rows="3"
-              :maxlength="DetailDescriptionLimit.MAX_LENGTH"
-              show-word-limit
-              placeholder="选填"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="预订须知">
-            <el-input
-              v-model="roomTypeForm.description.bookingNotice"
-              type="textarea"
-              :rows="3"
-              :maxlength="DetailDescriptionLimit.MAX_LENGTH"
-              show-word-limit
-              placeholder="选填"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="图片">
-            <ImageGalleryUpload ref="imageGalleryRef" :owner-id="editingId" :adapter="roomTypeImageAdapter" exceed-label="包厢类型图片" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <div class="dialog-section">
+        <div class="dialog-section-title">基本信息</div>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="每小时价格"><el-input v-model="roomTypeForm.hourlyPrice" /></el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="状态">
+              <el-radio-group v-model="roomTypeForm.status">
+                <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
+                <el-radio :value="RecordStatus.DISABLED">停用</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </div>
+      <div class="dialog-section">
+        <div class="dialog-section-title">积分抵扣</div>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="积分可抵扣金额">
+              <el-input v-model="roomTypeForm.pointDeductAmount" placeholder="不能大于每小时价格" />
+              <p v-if="showPointDeductZeroHint(roomTypeForm.pointDeductAmount)" class="field-hint">为 0 时不可抵扣</p>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="抵扣积分数量">
+              <el-input v-model="roomTypeForm.pointDeductPoints" placeholder="0 表示不可抵扣" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </div>
+      <div class="dialog-section">
+        <div class="dialog-section-title">预订说明</div>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="预订简述">
+              <el-input
+                v-model="roomTypeForm.description.bookingSummary"
+                type="textarea"
+                :rows="3"
+                :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+                show-word-limit
+                placeholder="选填"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="退订规则">
+              <el-input
+                v-model="roomTypeForm.description.cancelRule"
+                type="textarea"
+                :rows="3"
+                :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+                show-word-limit
+                placeholder="选填"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="预订须知">
+              <el-input
+                v-model="roomTypeForm.description.bookingNotice"
+                type="textarea"
+                :rows="3"
+                :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+                show-word-limit
+                placeholder="选填"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </div>
+      <div class="dialog-section">
+        <div class="dialog-section-title">图片</div>
+        <el-form-item>
+          <ImageGalleryUpload ref="imageGalleryRef" :owner-id="editingId" :adapter="roomTypeImageAdapter" exceed-label="包厢类型图片" />
+        </el-form-item>
+      </div>
     </el-form>
     <template #footer>
       <el-button size="large" :disabled="saving" @click="visible = false">取消</el-button>
@@ -271,6 +286,34 @@ async function saveRoomType(): Promise<void> {
 </script>
 
 <style scoped>
+.dialog-section {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid #e6e8ec;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.dialog-section:last-child {
+  margin-bottom: 0;
+}
+
+.dialog-section-title {
+  margin-bottom: 12px;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.dialog-section :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+.dialog-section :deep(.el-row) {
+  row-gap: 12px;
+}
+
 .field-hint {
   margin: 4px 0 0;
   color: #909399;

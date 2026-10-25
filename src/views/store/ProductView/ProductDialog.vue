@@ -1,88 +1,98 @@
 <template>
   <el-dialog v-model="visible" :title="isEmpty(product) ? '新建商品' : '编辑商品'" width="720px">
     <el-form label-position="top">
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="分类" required>
-            <el-select v-model="productForm.categoryId" placeholder="请选择分类" style="width: 100%">
-              <el-option
-                v-for="categoryRow in selectableCategoryList"
-                :key="categoryRow.categoryId"
-                :label="categoryRow.categoryName"
-                :value="categoryRow.categoryId"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="名称"><el-input v-model="productForm.productName" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="条码" required>
-            <div class="barcode-row">
-              <el-input v-model="productForm.barcode" placeholder="必填，同门店唯一" />
-              <ScanButton @scanned="onBarcodeScanned" />
-            </div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="售价"><el-input v-model="productForm.salePrice" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="积分可抵扣金额">
-            <el-input v-model="productForm.pointDeductAmount" placeholder="不能大于售价" />
-            <p v-if="showPointDeductZeroHint(productForm.pointDeductAmount)" class="field-hint">为 0 时不可抵扣</p>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="抵扣积分数量">
-            <el-input v-model="productForm.pointDeductPoints" placeholder="0 表示不可抵扣" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="进价"><el-input v-model="productForm.costPrice" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="快捷商品">
-            <el-radio-group v-model="productForm.quickProduct">
-              <el-radio :value="true">是</el-radio>
-              <el-radio :value="false">否</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="状态">
-            <el-radio-group v-model="productForm.status">
-              <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
-              <el-radio :value="RecordStatus.DISABLED">停用</el-radio>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="详细描述">
-            <el-input
-              v-model="productForm.description.content"
-              type="textarea"
-              :rows="3"
-              :maxlength="DetailDescriptionLimit.MAX_LENGTH"
-              show-word-limit
-              placeholder="选填"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="图片">
-            <ImageGalleryUpload
-              ref="imageGalleryRef"
-              :owner-id="editingProductId"
-              :adapter="productImageAdapter"
-              :enable-cover="false"
-              :tip="false"
-              exceed-label="商品图片"
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <div class="dialog-section">
+        <div class="dialog-section-title">基本信息</div>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="分类" required>
+              <el-select v-model="productForm.categoryId" placeholder="请选择分类" style="width: 100%">
+                <el-option
+                  v-for="categoryRow in selectableCategoryList"
+                  :key="categoryRow.categoryId"
+                  :label="categoryRow.categoryName"
+                  :value="categoryRow.categoryId"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="名称"><el-input v-model="productForm.productName" /></el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="条码" required>
+              <div class="barcode-row">
+                <el-input v-model="productForm.barcode" placeholder="必填，同门店唯一" />
+                <ScanButton @scanned="onBarcodeScanned" />
+              </div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="售价"><el-input v-model="productForm.salePrice" /></el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="进价"><el-input v-model="productForm.costPrice" /></el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="快捷商品">
+              <el-radio-group v-model="productForm.quickProduct">
+                <el-radio :value="true">是</el-radio>
+                <el-radio :value="false">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="状态">
+              <el-radio-group v-model="productForm.status">
+                <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
+                <el-radio :value="RecordStatus.DISABLED">停用</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </div>
+      <div class="dialog-section">
+        <div class="dialog-section-title">积分抵扣</div>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="积分可抵扣金额">
+              <el-input v-model="productForm.pointDeductAmount" placeholder="不能大于售价" />
+              <p v-if="showPointDeductZeroHint(productForm.pointDeductAmount)" class="field-hint">为 0 时不可抵扣</p>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="抵扣积分数量">
+              <el-input v-model="productForm.pointDeductPoints" placeholder="0 表示不可抵扣" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </div>
+      <div class="dialog-section">
+        <div class="dialog-section-title">详细描述</div>
+        <el-form-item>
+          <el-input
+            v-model="productForm.description.content"
+            type="textarea"
+            :rows="3"
+            :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+            show-word-limit
+            placeholder="选填"
+          />
+        </el-form-item>
+      </div>
+      <div class="dialog-section">
+        <div class="dialog-section-title">图片</div>
+        <el-form-item>
+          <ImageGalleryUpload
+            ref="imageGalleryRef"
+            :owner-id="editingProductId"
+            :adapter="productImageAdapter"
+            :enable-cover="false"
+            :tip="false"
+            exceed-label="商品图片"
+          />
+        </el-form-item>
+      </div>
     </el-form>
     <template #footer>
       <el-button size="large" :disabled="saving" @click="visible = false">取消</el-button>
@@ -343,6 +353,34 @@ async function saveProduct(): Promise<void> {
   flex: 1 1 0;
   min-width: 0;
   width: 100%;
+}
+
+.dialog-section {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid #e6e8ec;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.dialog-section:last-child {
+  margin-bottom: 0;
+}
+
+.dialog-section-title {
+  margin-bottom: 12px;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.dialog-section :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+.dialog-section :deep(.el-row) {
+  row-gap: 12px;
 }
 
 .field-hint {
