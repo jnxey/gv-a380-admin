@@ -45,8 +45,8 @@
           <template v-else>{{ displayText('') }}</template>
         </RecordField>
         <RecordField label="条码">{{ displayText(productRow.barcode) }}</RecordField>
-        <RecordField label="售价">{{ productRow.salePrice }}</RecordField>
-        <RecordField label="进价">{{ productRow.costPrice }}</RecordField>
+        <RecordField label="售价">{{ formatMoney(productRow.salePrice) }}</RecordField>
+        <RecordField label="进价">{{ formatMoney(productRow.costPrice) }}</RecordField>
         <RecordField label="库存">{{ productRow.stockQuantity }}</RecordField>
         <RecordField label="状态">
           <el-tag :type="productRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
@@ -79,7 +79,7 @@ import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { useDragSort } from '../../../hooks/drag-sort';
 import { PageSetting, PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 import ProductDialog, { type ProductCategoryOption, type ProductRow } from './ProductDialog.vue';

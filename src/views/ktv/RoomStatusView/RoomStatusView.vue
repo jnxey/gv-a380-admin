@@ -91,7 +91,7 @@ import {
   buildRoomTypeWarningList,
   roomTypeWarningText,
 } from './utils/ktv-room-type-warning';
-import { isEmpty } from '../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -312,7 +312,7 @@ function roomHourlyPrice(roomTypeId: string): string {
   if (isEmpty(roomType) || isEmpty(roomType.hourlyPrice)) {
     return '';
   }
-  return String(roomType.hourlyPrice);
+  return formatMoney(roomType.hourlyPrice);
 }
 
 /**

@@ -36,7 +36,7 @@
         <RecordField label="入住日">{{ formatLocalDateTime(orderRow.checkInDate) }}</RecordField>
         <RecordField label="离店日">{{ formatLocalDateTime(orderRow.checkOutDate) }}</RecordField>
         <RecordField label="房费">{{ readPaidAmount(orderRow) }}</RecordField>
-        <RecordField v-if="hasPointDeduct(orderRow)" label="积分抵扣">{{ orderRow.pointDeductAmount }} 元</RecordField>
+        <RecordField v-if="hasPointDeduct(orderRow)" label="积分抵扣">{{ formatMoney(orderRow.pointDeductAmount) }} 元</RecordField>
         <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
         <template #actions>
           <el-button
@@ -75,7 +75,7 @@ import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
 import ExtendStayDialog, { type ExtendStayRoomRow } from '../RoomStatusView/components/ExtendStayDialog.vue';
 import { HotelOrderStatus, HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
-import { isEmpty, formatLocalDateTime } from '../../../utils/tools';
+import { formatMoney, isEmpty, formatLocalDateTime } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -167,7 +167,7 @@ function readPaidAmount(orderRow: OrderRow): string {
     return orderRow.amount;
   }
   const paidAmount = goodsAmount - (Number.isFinite(deductAmount) === true ? deductAmount : 0);
-  return paidAmount.toFixed(2);
+  return formatMoney(paidAmount);
 }
 
 /**

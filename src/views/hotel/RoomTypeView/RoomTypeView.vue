@@ -26,7 +26,7 @@
             </button>
             <span>{{ roomTypeRow.typeName }}</span>
           </div>
-          <div class="room-type-meta">{{ roomTypeRow.price }} · {{ roomTypeRow.roomCount }} 间房</div>
+          <div class="room-type-meta">{{ formatMoney(roomTypeRow.price) }} · {{ roomTypeRow.roomCount }} 间房</div>
           <div class="room-type-foot">
             <el-tag :type="roomTypeRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
               {{ statusLabel(roomTypeRow.status) }}
@@ -45,7 +45,7 @@ import { HotelApi } from '../../../api/hotel';
 import { onMounted, ref } from 'vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 import { useDragSort } from '../../../hooks/drag-sort';

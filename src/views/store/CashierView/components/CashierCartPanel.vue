@@ -7,9 +7,9 @@
         <div class="cart-line-main">
           <div class="cart-line-name">{{ cartLine.productName }}</div>
           <div class="cart-line-meta">
-            <span>单价 {{ cartLine.salePrice }}</span>
+            <span>单价 {{ formatMoney(cartLine.salePrice) }}</span>
             <span class="cart-line-dot">·</span>
-            <span>小计 {{ (Number(cartLine.salePrice) * cartLine.quantity).toFixed(2) }}</span>
+            <span>小计 {{ formatMoney(Number(cartLine.salePrice) * cartLine.quantity) }}</span>
           </div>
         </div>
         <div class="cart-actions">
@@ -62,7 +62,7 @@
 <script setup lang="ts">
 import AppIcon from '../../../../components/AppIcon/AppIcon.vue';
 import { MenuIconName } from '../../../../utils/constants';
-import { isEmpty } from '../../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../../utils/tools';
 
 interface CartLine {
   productId: string;

@@ -10,7 +10,7 @@
         <span class="deduct-result-mark"></span>
         <span>付款成功</span>
       </div>
-      <div class="deduct-result-amount">-{{ deductedAmount }}</div>
+      <div class="deduct-result-amount">-{{ formatMoney(deductedAmount) }}</div>
       <el-button class="deduct-close" type="primary" @click="emit('close')">关闭</el-button>
     </div>
   </div>
@@ -20,7 +20,7 @@
 import { HotelApi } from '../../../api/hotel';
 import { ref } from 'vue';
 import { readScanText } from '../../../components/ScanGunPrompt/read-scan-text';
-import { isEmpty } from '../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 interface MemberRow {

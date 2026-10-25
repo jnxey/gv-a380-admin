@@ -11,7 +11,7 @@
         <div v-if="isEmpty(saleRow.receiverName) !== true" class="pending-meta">收货人 {{ saleRow.receiverName }}</div>
         <div v-if="isEmpty(saleRow.contact) !== true" class="pending-meta">联系方式 {{ saleRow.contact }}</div>
         <div v-if="isEmpty(saleRow.deliveryAddress) !== true" class="pending-meta">收货地址 {{ saleRow.deliveryAddress }}</div>
-        <div class="pending-amount">{{ saleRow.amount }}</div>
+        <div class="pending-amount">{{ formatMoney(saleRow.amount) }}</div>
         <div class="pending-actions">
           <el-button type="primary" @click="openDeliveryDialog(saleRow)">送货</el-button>
           <el-button @click="cancelPendingSale(saleRow)">取消</el-button>
@@ -89,7 +89,7 @@ import { StoreApi } from '../../../../api/store';
 import AppIcon from '../../../../components/AppIcon/AppIcon.vue';
 import { readScanText } from '../../../../components/ScanGunPrompt/read-scan-text';
 import { MenuIconName, statusLabel, StorageKey, StoreDeliveryField, StoreSaleStatus } from '../../../../utils/constants';
-import { isEmpty } from '../../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../../utils/tools';
 import http from '../../../../utils/request';
 import { useSessionStore } from '../../../../stores/session';
 import { useCashierPendingRefresh } from '../utils/cashier-pending-refresh';

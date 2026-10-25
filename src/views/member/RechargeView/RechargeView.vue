@@ -6,8 +6,8 @@
           <span class="recharge-result-mark"></span>
           <span>充值成功</span>
         </div>
-        <div class="recharge-result-amount">{{ rechargedAmount }}</div>
-        <div v-if="isEmpty(rechargedBalance) !== true" class="recharge-result-balance">当前余额 {{ rechargedBalance }}</div>
+        <div class="recharge-result-amount">{{ formatMoney(rechargedAmount) }}</div>
+        <div v-if="isEmpty(rechargedBalance) !== true" class="recharge-result-balance">当前余额 {{ formatMoney(rechargedBalance) }}</div>
         <el-button class="recharge-result-back" type="primary" @click="backToSearch">返回</el-button>
       </div>
       <template v-else-if="isEmpty(selectedMember)">
@@ -54,7 +54,7 @@
           </div>
           <div class="member-summary-balance">
             <div class="member-balance-label">余额</div>
-            <div class="member-balance-value">{{ selectedMember.balance }}</div>
+            <div class="member-balance-value">{{ formatMoney(selectedMember.balance) }}</div>
           </div>
         </div>
         <div class="recharge-amount-label">充值金额</div>
@@ -97,7 +97,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import AppIcon from '../../../components/AppIcon/AppIcon.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import { MenuIconName, PageSetting, RecordStatus, ShopType, statusLabel } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 interface MemberRow {

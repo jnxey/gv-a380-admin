@@ -114,7 +114,7 @@ import { usePaymentNotice } from '../../../hooks/payment-notice';
 import { HotelBusinessDay, HotelOrderStatus, HotelRoomStatus, HotelWalkInNight, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
 import { hotelBusinessDateText } from './utils/hotel-business-date';
 import { buildHotelRoomTypeWarningList } from './utils/hotel-room-type-warning';
-import { formatLocalDateTime, isEmpty } from '../../../utils/tools';
+import { formatLocalDateTime, formatMoney, isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -345,7 +345,7 @@ function roomNightPrice(roomTypeId: string): string {
   if (isEmpty(roomType) || isEmpty(roomType.price)) {
     return '';
   }
-  return String(roomType.price);
+  return formatMoney(roomType.price);
 }
 
 /**

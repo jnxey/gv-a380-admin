@@ -99,7 +99,7 @@ import ImageGalleryUpload, { type GalleryImageView, type ImageGalleryAdapter } f
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import { useSaving } from '../../../hooks/saving';
 import { DetailDescriptionLimit, RecordStatus } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 export interface ProductImageView {
@@ -236,10 +236,10 @@ async function fillProductForm(productRow: ProductRow | null): Promise<void> {
     ? ''
     : productRow.description.content;
   productForm.barcode = productRow.barcode;
-  productForm.salePrice = productRow.salePrice;
-  productForm.pointDeductAmount = isEmpty(productRow.pointDeductAmount) ? '0' : productRow.pointDeductAmount;
+  productForm.salePrice = formatMoney(productRow.salePrice);
+  productForm.pointDeductAmount = isEmpty(productRow.pointDeductAmount) ? '0' : formatMoney(productRow.pointDeductAmount);
   productForm.pointDeductPoints = isEmpty(productRow.pointDeductPoints) ? '0' : String(productRow.pointDeductPoints);
-  productForm.costPrice = productRow.costPrice;
+  productForm.costPrice = formatMoney(productRow.costPrice);
   productForm.quickProduct = productRow.quickProduct === true;
   productForm.status = productRow.status;
   await nextTick();

@@ -35,7 +35,7 @@
         <RecordField label="账号">{{ memberRow.username }}</RecordField>
         <RecordField label="昵称">{{ memberRow.nickname }}</RecordField>
         <RecordField label="联系方式">{{ memberRow.contact }}</RecordField>
-        <RecordField label="余额">{{ memberRow.balance }}</RecordField>
+        <RecordField label="余额">{{ formatMoney(memberRow.balance) }}</RecordField>
         <RecordField label="状态">
           <el-tag :type="memberRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
             {{ statusLabel(memberRow.status) }}
@@ -72,7 +72,7 @@ import RecordField from '../../../components/RecordField/RecordField.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import { useSessionStore } from '../../../stores/session';
 import { PageSetting, PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 interface MemberRow {

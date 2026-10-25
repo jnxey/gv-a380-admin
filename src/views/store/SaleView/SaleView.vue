@@ -39,11 +39,11 @@
           </div>
           <div class="sale-amount-block">
             <div class="sale-amount">{{ readPaidAmount(saleRow) }}</div>
-            <div v-if="hasPointDeduct(saleRow)" class="sale-meta">积分抵扣 {{ saleRow.pointDeductAmount }} 元</div>
+            <div v-if="hasPointDeduct(saleRow)" class="sale-meta">积分抵扣 {{ formatMoney(saleRow.pointDeductAmount) }} 元</div>
           </div>
         </div>
         <div v-for="itemRow in saleRow.itemList" :key="`${saleRow.saleId}-${itemRow.productId}`" class="sale-item">
-          {{ itemRow.productName }} × {{ itemRow.quantity }} · {{ itemRow.salePrice }} · {{ itemRow.lineAmount }}
+          {{ itemRow.productName }} × {{ itemRow.quantity }} · {{ formatMoney(itemRow.salePrice) }} · {{ formatMoney(itemRow.lineAmount) }}
         </div>
         <div v-if="isEmpty(saleRow.contact) !== true" class="sale-meta">联系方式 {{ saleRow.contact }}</div>
       </article>
@@ -60,10 +60,10 @@
         </div>
         <div class="sale-amount">{{ readPaidAmount(selectedSale) }}</div>
         <div v-if="selectedSale.pointDeductPoints > 0" class="sale-meta">
-          积分抵扣 {{ selectedSale.pointDeductAmount }} 元，消耗 {{ selectedSale.pointDeductPoints }} 积分
+          积分抵扣 {{ formatMoney(selectedSale.pointDeductAmount) }} 元，消耗 {{ selectedSale.pointDeductPoints }} 积分
         </div>
         <div v-for="itemRow in selectedSale.itemList" :key="`${selectedSale.saleId}-${itemRow.productId}`" class="sale-item">
-          {{ itemRow.productName }} × {{ itemRow.quantity }} · {{ itemRow.salePrice }} · {{ itemRow.lineAmount }}
+          {{ itemRow.productName }} × {{ itemRow.quantity }} · {{ formatMoney(itemRow.salePrice) }} · {{ formatMoney(itemRow.lineAmount) }}
         </div>
         <div v-if="isEmpty(selectedSale.receiverName) !== true" class="sale-meta">收货人 {{ selectedSale.receiverName }}</div>
         <div v-if="isEmpty(selectedSale.contact) !== true" class="sale-meta">联系方式 {{ selectedSale.contact }}</div>
@@ -85,7 +85,7 @@ import ListPager from '../../../components/ListPager/ListPager.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import { PageSetting, statusLabel } from '../../../utils/constants';
-import { formatLocalDateTime, isEmpty } from '../../../utils/tools';
+import { formatLocalDateTime, formatMoney, isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 interface SaleItemRow {
@@ -141,7 +141,7 @@ function readPaidAmount(saleRow: SaleRow | null): string {
     return saleRow.amount;
   }
   const paidAmount = goodsAmount - (Number.isFinite(deductAmount) === true ? deductAmount : 0);
-  return paidAmount.toFixed(2);
+  return formatMoney(paidAmount);
 }
 
 /**

@@ -53,7 +53,7 @@
             <span>{{ formatLocalDateTime(billRow.createdAt) }}</span>
             <span>账单号 {{ displayText(billRow.billNo) }}</span>
             <span>业务单号 {{ displayText(billRow.bizOrderNo) }}</span>
-            <span>变动 {{ billRow.balanceBefore }} → {{ billRow.balanceAfter }}</span>
+            <span>变动 {{ formatMoney(billRow.balanceBefore) }} → {{ formatMoney(billRow.balanceAfter) }}</span>
             <span v-if="isEmpty(billRow.operatorName) !== true">操作人 {{ billRow.operatorName }}</span>
             <span v-if="isEmpty(billRow.remark) !== true">备注 {{ billRow.remark }}</span>
           </div>
@@ -79,7 +79,7 @@ import { ElMessage } from 'element-plus';
 import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import { FinanceBizType, FinanceDirection, PageSetting, statusLabel } from '../../../utils/constants';
-import { isEmpty, formatLocalDateTime, copyTextToClipboard } from '../../../utils/tools';
+import { formatMoney, isEmpty, formatLocalDateTime, copyTextToClipboard } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 interface BillRow {
@@ -149,12 +149,12 @@ function billAmountTagType(direction: string): 'success' | 'danger' | 'info' {
  */
 function formatBillAmount(billRow: BillRow): string {
   if (billRow.direction === FinanceDirection.IN) {
-    return `+${billRow.amount}`;
+    return `+${formatMoney(billRow.amount)}`;
   }
   if (billRow.direction === FinanceDirection.OUT) {
-    return `-${billRow.amount}`;
+    return `-${formatMoney(billRow.amount)}`;
   }
-  return billRow.amount;
+  return formatMoney(billRow.amount);
 }
 
 /**
@@ -276,8 +276,8 @@ async function exportBills(): Promise<void> {
           statusLabel(billRow.bizType),
           statusLabel(billRow.direction),
           formatBillAmount(billRow),
-          billRow.balanceBefore,
-          billRow.balanceAfter,
+          formatMoney(billRow.balanceBefore),
+          formatMoney(billRow.balanceAfter),
           billRow.bizOrderNo,
           isEmpty(billRow.operatorName) ? '' : billRow.operatorName,
           isEmpty(billRow.remark) ? '' : billRow.remark,

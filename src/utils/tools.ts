@@ -15,6 +15,27 @@ export function isEmpty(value: unknown): value is null | undefined | '' {
 }
 
 /**
+ * 展示金额。先按两位小数四舍五入，再去掉末尾多余的 0。
+ */
+export function formatMoney(value: unknown): string {
+  if (isEmpty(value)) {
+    return '';
+  }
+  const amountNumber = Number(value);
+  if (Number.isFinite(amountNumber) !== true) {
+    return String(value);
+  }
+  const fixedText = amountNumber.toFixed(2);
+  if (fixedText.endsWith('.00')) {
+    return fixedText.slice(0, -3);
+  }
+  if (fixedText.endsWith('0')) {
+    return fixedText.slice(0, -1);
+  }
+  return fixedText;
+}
+
+/**
  * 用临时输入框把文本写进剪贴板。非 HTTPS 时 Clipboard API 常不可用。
  */
 function writeClipboardTextByInput(text: string): boolean {

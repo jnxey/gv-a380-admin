@@ -34,7 +34,7 @@
         >
           <div class="product-card-body">
             <div class="product-name">{{ productRow.productName }}</div>
-            <div class="product-price">{{ productRow.salePrice }}</div>
+            <div class="product-price">{{ formatMoney(productRow.salePrice) }}</div>
           </div>
           <div class="product-meta">
             <template v-if="productRow.stockQuantity < 1 || productRow.status !== RecordStatus.ENABLED">售罄</template>
@@ -53,7 +53,7 @@ import { cancelScanGun } from '../../../../components/ScanGunPrompt/scan-gun';
 import { readScanText } from '../../../../components/ScanGunPrompt/read-scan-text';
 import { MenuIconName, PayRechargeQrText, RecordStatus, StoreProductBarcode } from '../../../../utils/constants';
 import { readScanCode } from '../../../../utils/gv-sdk';
-import { isEmpty } from '../../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../../utils/tools';
 
 interface ProductRow {
   productId: string;

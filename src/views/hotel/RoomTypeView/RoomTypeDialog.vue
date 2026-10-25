@@ -91,7 +91,7 @@ import { ElMessage } from 'element-plus';
 import ImageGalleryUpload, { type GalleryImageView, type ImageGalleryAdapter } from '../../../components/ImageGalleryUpload/ImageGalleryUpload.vue';
 import { useSaving } from '../../../hooks/saving';
 import { DetailDescriptionLimit, RecordStatus } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 export type RoomTypeImageView = GalleryImageView;
@@ -217,8 +217,8 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
     freeParking: readDescriptionText(roomTypeRow.description, 'freeParking'),
     bookingNotice: readDescriptionText(roomTypeRow.description, 'bookingNotice')
   };
-  roomTypeForm.price = roomTypeRow.price;
-  roomTypeForm.pointDeductAmount = isEmpty(roomTypeRow.pointDeductAmount) ? '0' : roomTypeRow.pointDeductAmount;
+  roomTypeForm.price = formatMoney(roomTypeRow.price);
+  roomTypeForm.pointDeductAmount = isEmpty(roomTypeRow.pointDeductAmount) ? '0' : formatMoney(roomTypeRow.pointDeductAmount);
   roomTypeForm.pointDeductPoints = isEmpty(roomTypeRow.pointDeductPoints) ? '0' : String(roomTypeRow.pointDeductPoints);
   roomTypeForm.status = roomTypeRow.status;
   imageGalleryRef.value?.setImages(isEmpty(roomTypeRow.imageList) ? [] : roomTypeRow.imageList);

@@ -41,7 +41,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { FinanceBizType, PageSetting, PermissionCode, QuickProductQuery, statusLabel, StorePayMethod } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { formatMoney, isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import { usePaymentNotice } from '../../../hooks/payment-notice';
 import http from '../../../utils/request';
@@ -108,7 +108,7 @@ const cartAmountText = computed(() => {
   for (const cartLine of cartLineList.value) {
     totalAmount += Number(cartLine.salePrice) * cartLine.quantity;
   }
-  return totalAmount.toFixed(2);
+  return formatMoney(totalAmount);
 });
 
 const usePointDeduct = ref(false);
@@ -130,7 +130,7 @@ const pointDeductPlan = computed(() => {
   if (deductPoints <= 0) {
     return { visible: false, amountText: '0.00', hint: '' };
   }
-  const amountText = deductAmount.toFixed(2);
+  const amountText = formatMoney(deductAmount);
   return {
     visible: true,
     amountText,
@@ -146,7 +146,7 @@ function readMemberPayableAmountText(): string {
     return cartAmountText.value;
   }
   const payableAmount = Number(cartAmountText.value) - Number(pointDeductPlan.value.amountText);
-  return payableAmount.toFixed(2);
+  return formatMoney(payableAmount);
 }
 
 watch(pointDeductPlan, (plan) => {

@@ -37,7 +37,7 @@
         <RecordField label="小时">{{ orderRow.durationHours }}</RecordField>
         <RecordField label="结束">{{ formatBookingEnd(orderRow) }}</RecordField>
         <RecordField label="包厢费">{{ readPaidAmount(orderRow) }}</RecordField>
-        <RecordField v-if="hasPointDeduct(orderRow)" label="积分抵扣">{{ orderRow.pointDeductAmount }} 元</RecordField>
+        <RecordField v-if="hasPointDeduct(orderRow)" label="积分抵扣">{{ formatMoney(orderRow.pointDeductAmount) }} 元</RecordField>
         <RecordField label="核销码">{{ VerifyCodeMask }}</RecordField>
         <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
         <template #actions>
@@ -89,7 +89,7 @@ import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
 import { KtvOrderStatus, PageSetting, PermissionCode, VerifyCodeMask, statusLabel } from '../../../utils/constants';
-import { isEmpty, formatLocalDateTime } from '../../../utils/tools';
+import { formatMoney, isEmpty, formatLocalDateTime } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -145,7 +145,7 @@ function readPaidAmount(orderRow: OrderRow): string {
     return orderRow.amount;
   }
   const paidAmount = goodsAmount - (Number.isFinite(deductAmount) === true ? deductAmount : 0);
-  return paidAmount.toFixed(2);
+  return formatMoney(paidAmount);
 }
 
 /**

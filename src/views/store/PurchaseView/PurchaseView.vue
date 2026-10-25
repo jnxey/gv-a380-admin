@@ -12,10 +12,10 @@
             <div class="purchase-no">{{ purchaseRow.purchaseNo }}</div>
             <div class="purchase-meta">{{ formatLocalDateTime(purchaseRow.createdAt) }}</div>
           </div>
-          <div class="purchase-amount">{{ purchaseRow.amount }}</div>
+          <div class="purchase-amount">{{ formatMoney(purchaseRow.amount) }}</div>
         </div>
         <div v-for="itemRow in purchaseRow.itemList" :key="`${purchaseRow.purchaseId}-${itemRow.productId}`" class="purchase-item">
-          {{ itemRow.productName }} × {{ itemRow.quantity }} · 进价 {{ itemRow.costPrice }} · {{ itemRow.lineAmount }}
+          {{ itemRow.productName }} × {{ itemRow.quantity }} · 进价 {{ formatMoney(itemRow.costPrice) }} · {{ formatMoney(itemRow.lineAmount) }}
         </div>
         <div v-if="isEmpty(purchaseRow.remark) !== true" class="purchase-meta">备注 {{ purchaseRow.remark }}</div>
       </article>
@@ -104,7 +104,7 @@ import ListPager from '../../../components/ListPager/ListPager.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { MenuIconName, PageSetting, PermissionCode } from '../../../utils/constants';
-import { formatLocalDateTime, isEmpty } from '../../../utils/tools';
+import { formatLocalDateTime, formatMoney, isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -164,7 +164,7 @@ const draftTotalText = computed(() => {
     }
     totalAmount += costPrice * quantity;
   }
-  return totalAmount.toFixed(2);
+  return formatMoney(totalAmount);
 });
 
 /**
@@ -231,7 +231,7 @@ function onPurchaseLineProductChange(lineIndex: number, productId: string): void
   if (isEmpty(matchedProduct)) {
     return;
   }
-  draftLine.costPrice = matchedProduct.costPrice;
+  draftLine.costPrice = formatMoney(matchedProduct.costPrice);
 }
 
 /**
@@ -250,7 +250,7 @@ function onPurchaseLineScanned(lineIndex: number, scanText: string): void {
     return;
   }
   draftLine.productId = matchedProduct.productId;
-  draftLine.costPrice = matchedProduct.costPrice;
+  draftLine.costPrice = formatMoney(matchedProduct.costPrice);
 }
 
 /**

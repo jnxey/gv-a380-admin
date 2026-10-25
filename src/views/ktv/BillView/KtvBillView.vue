@@ -37,16 +37,16 @@
     <div v-if="isEmpty(summaryList) !== true" class="bill-summary-line">
       <div class="bill-total is-in">
         <span class="bill-total-label">收入</span>
-        <span class="bill-total-amount">{{ summaryOutAmount }}</span>
+        <span class="bill-total-amount">{{ formatMoney(summaryOutAmount) }}</span>
       </div>
       <div class="bill-total is-out">
         <span class="bill-total-label">支出</span>
-        <span class="bill-total-amount">{{ summaryInAmount }}</span>
+        <span class="bill-total-amount">{{ formatMoney(summaryInAmount) }}</span>
       </div>
       <div v-for="summaryRow in summaryList" :key="summaryRow.shopId" class="bill-shop-chip">
         <span class="bill-shop-name">{{ displayText(summaryRow.shopName) }}</span>
-        <span class="bill-shop-amount is-in">收入 {{ summaryRow.outAmount }}</span>
-        <span class="bill-shop-amount is-out">支出 {{ summaryRow.inAmount }}</span>
+        <span class="bill-shop-amount is-in">收入 {{ formatMoney(summaryRow.outAmount) }}</span>
+        <span class="bill-shop-amount is-out">支出 {{ formatMoney(summaryRow.inAmount) }}</span>
       </div>
     </div>
     <section class="bill-section">
@@ -69,7 +69,7 @@
             <span>{{ formatLocalDateTime(billRow.createdAt) }}</span>
             <span>账单号 {{ displayText(billRow.billNo) }}</span>
             <span>业务单号 {{ displayText(billRow.bizOrderNo) }}</span>
-            <span>变动 {{ billRow.balanceBefore }} → {{ billRow.balanceAfter }}</span>
+            <span>变动 {{ formatMoney(billRow.balanceBefore) }} → {{ formatMoney(billRow.balanceAfter) }}</span>
             <span v-if="isEmpty(billRow.operatorName) !== true">操作人 {{ billRow.operatorName }}</span>
             <span v-if="isEmpty(billRow.remark) !== true">备注 {{ billRow.remark }}</span>
           </div>
@@ -95,7 +95,7 @@ import ListPager from '../../../components/ListPager/ListPager.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { FinanceBizType, FinanceDirection, PageSetting, statusLabel } from '../../../utils/constants';
-import { isEmpty, formatLocalDateTime, copyTextToClipboard } from '../../../utils/tools';
+import { formatMoney, isEmpty, formatLocalDateTime, copyTextToClipboard } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 interface BillRow {
@@ -188,12 +188,12 @@ function billAmountTagType(direction: string): 'success' | 'danger' | 'info' {
 function formatBillAmount(billRow: BillRow): string {
   const direction = shopDirection(billRow.direction);
   if (direction === FinanceDirection.IN) {
-    return `+${billRow.amount}`;
+    return `+${formatMoney(billRow.amount)}`;
   }
   if (direction === FinanceDirection.OUT) {
-    return `-${billRow.amount}`;
+    return `-${formatMoney(billRow.amount)}`;
   }
-  return billRow.amount;
+  return formatMoney(billRow.amount);
 }
 
 /**
@@ -316,8 +316,8 @@ async function exportBills(): Promise<void> {
           statusLabel(billRow.bizType),
           statusLabel(direction),
           formatBillAmount(billRow),
-          billRow.balanceBefore,
-          billRow.balanceAfter,
+          formatMoney(billRow.balanceBefore),
+          formatMoney(billRow.balanceAfter),
           billRow.bizOrderNo,
           isEmpty(billRow.operatorName) ? '' : billRow.operatorName,
           isEmpty(billRow.remark) ? '' : billRow.remark,

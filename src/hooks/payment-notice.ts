@@ -1,6 +1,6 @@
 import { ElNotification } from 'element-plus';
 import { statusLabel } from '../utils/constants';
-import { isEmpty } from '../utils/tools';
+import { formatMoney, isEmpty } from '../utils/tools';
 import http from '../utils/request';
 
 interface PaymentNoticeRow {
@@ -140,9 +140,10 @@ export function usePaymentNotice(noticeApiPath: string): {
         return 0;
       });
       for (const noticeRow of freshNoticeList) {
-        playPaymentNoticeSound(noticeRow.amount);
+        const amountText = formatMoney(noticeRow.amount);
+        playPaymentNoticeSound(amountText);
         const remarkText = isEmpty(noticeRow.remark) ? '' : noticeRow.remark.trim();
-        const noticeMessage = isEmpty(remarkText) ? noticeRow.amount : `${noticeRow.amount} ${remarkText}`;
+        const noticeMessage = isEmpty(remarkText) ? amountText : `${amountText} ${remarkText}`;
         ElNotification({ title: statusLabel(noticeRow.bizType), message: noticeMessage, type: 'success' });
       }
     } finally {
