@@ -84,11 +84,11 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
 import { StoreApi } from '../../../../api/store';
 import AppIcon from '../../../../components/AppIcon/AppIcon.vue';
 import { readScanText } from '../../../../components/ScanGunPrompt/read-scan-text';
-import { MenuIconName, StorageKey, StoreDeliveryField } from '../../../../utils/constants';
+import { MenuIconName, statusLabel, StorageKey, StoreDeliveryField, StoreSaleStatus } from '../../../../utils/constants';
 import { isEmpty } from '../../../../utils/tools';
 import http from '../../../../utils/request';
 import { useSessionStore } from '../../../../stores/session';
@@ -134,6 +134,7 @@ const PendingDeliverySpeech = {
 const props = defineProps<{
   pauseProductScan: () => boolean;
   resumeProductScan: () => void;
+  loadPaymentNotices: () => Promise<void>;
 }>();
 
 const emit = defineEmits<{
@@ -187,15 +188,23 @@ function preparePendingDeliveryAudio(): void {
 }
 
 /**
- * 播报新到的待发货订单。多笔合成一句。
+ * 新到的待发货订单出声，并弹出同样的文案。多笔合成一句。
  */
 function playPendingDeliverySound(freshOrderCount: number): void {
-  if (freshOrderCount < 1 || isEmpty(window.speechSynthesis)) {
+  if (freshOrderCount < 1) {
     return;
   }
   const speechText = freshOrderCount === 1
     ? PendingDeliverySpeech.SINGLE
     : `${PendingDeliverySpeech.COUNT_PREFIX}${freshOrderCount}${PendingDeliverySpeech.COUNT_SUFFIX}`;
+  ElNotification({
+    title: statusLabel(StoreSaleStatus.PENDING_DELIVERY),
+    message: speechText,
+    type: 'success',
+  });
+  if (isEmpty(window.speechSynthesis)) {
+    return;
+  }
   const utterance = new SpeechSynthesisUtterance(speechText);
   utterance.lang = PendingDeliverySpeech.LANGUAGE;
   const chineseVoice = findChineseVoice();
@@ -226,7 +235,7 @@ function readPendingSaleId(saleRow: PendingSaleRow): string {
 }
 
 /**
- * 读取当前门店的待发货销售单。第一次只记住已有订单，之后出现新单再出声。
+ * 读取当前门店的待发货销售单。第一次只记住已有订单，之后出现新单再出声并弹出通知。
  */
 async function loadPendingDeliverySales(): Promise<void> {
   let nextPendingDeliveryList: PendingSaleRow[] = [];
@@ -263,6 +272,7 @@ async function loadPendingDeliverySales(): Promise<void> {
 
 const { startPendingDeliveryRefresh, stopPendingDeliveryRefresh } = useCashierPendingRefresh({
   loadPendingDeliverySales,
+  loadPaymentNotices: () => props.loadPaymentNotices(),
 });
 
 /**
@@ -473,6 +483,7 @@ async function cancelPendingSale(saleRow: PendingSaleRow): Promise<void> {
 onMounted(() => {
   window.addEventListener('pointerdown', preparePendingDeliveryAudio);
   void loadPendingDeliverySales();
+  void props.loadPaymentNotices();
   startPendingDeliveryRefresh();
 });
 

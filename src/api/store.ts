@@ -18,6 +18,7 @@ export const StoreApi = {
   PURCHASES: '/store/purchases',
   SALES: '/store/sales',
   SALES_PENDING_DELIVERY: '/store/sales/pending-delivery',
+  PAYMENT_NOTICES: '/store/payment-notices',
   saleDeliver: (saleId: string) => `/store/sales/${saleId}/deliver`,
   saleCancel: (saleId: string) => `/store/sales/${saleId}/cancel`,
   PAY_QR: '/store/pay-qr',

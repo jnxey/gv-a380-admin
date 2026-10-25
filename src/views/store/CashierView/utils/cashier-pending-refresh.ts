@@ -3,10 +3,11 @@ const CashierPendingRefreshInterval = {
 };
 
 /**
- * 收银台待发货轮询。定时拉列表，上一轮还没回来时跳过。
+ * 收银台待发货轮询。定时拉列表和扫码付款到账，上一轮还没回来时跳过。
  */
 export function useCashierPendingRefresh(options: {
   loadPendingDeliverySales: () => Promise<void>;
+  loadPaymentNotices: () => Promise<void>;
   intervalMs?: number;
 }): {
   startPendingDeliveryRefresh: () => void;
@@ -17,7 +18,7 @@ export function useCashierPendingRefresh(options: {
   let pendingDeliveryRefreshing = false;
 
   /**
-   * 上一轮还没回来时跳过，避免请求叠在一起。
+   * 上一轮还没回来时跳过，避免请求叠在一起。先刷新待发货，再检查扫码付款。
    */
   async function refreshPendingDeliverySales(): Promise<void> {
     if (pendingDeliveryRefreshing === true) {
@@ -26,6 +27,7 @@ export function useCashierPendingRefresh(options: {
     pendingDeliveryRefreshing = true;
     try {
       await options.loadPendingDeliverySales();
+      await options.loadPaymentNotices();
     } finally {
       pendingDeliveryRefreshing = false;
     }

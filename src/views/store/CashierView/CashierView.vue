@@ -23,6 +23,7 @@
       <CashierPendingPanel
         :pause-product-scan="pauseProductScan"
         :resume-product-scan="resumeProductScan"
+        :load-payment-notices="loadPaymentNotices"
         @stock-changed="loadProducts"
       />
     </div>
@@ -31,12 +32,13 @@
 
 <script setup lang="ts">
 import { StoreApi } from '../../../api/store';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { FinanceBizType, PageSetting, PermissionCode, statusLabel, StorePayMethod } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
+import { usePaymentNotice } from '../../../hooks/payment-notice';
 import http from '../../../utils/request';
 import CashierCartPanel from './components/CashierCartPanel.vue';
 import CashierPendingPanel from './components/CashierPendingPanel.vue';
@@ -72,6 +74,7 @@ interface CashierProductPanelExpose {
 }
 
 const sessionStore = useSessionStore();
+const { preparePaymentAudio, loadPaymentNotices, stopPaymentAudio } = usePaymentNotice(StoreApi.PAYMENT_NOTICES);
 const canCash = sessionStore.hasPermission(PermissionCode.STORE_SALE_CASH);
 const canMember = sessionStore.hasPermission(PermissionCode.STORE_SALE_MEMBER);
 const keyword = ref('');
@@ -319,7 +322,13 @@ async function onPayQrScanned(cipherText: string): Promise<void> {
 }
 
 onMounted(() => {
+  window.addEventListener('pointerdown', preparePaymentAudio);
   void loadProducts();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pointerdown', preparePaymentAudio);
+  stopPaymentAudio();
 });
 </script>
 
