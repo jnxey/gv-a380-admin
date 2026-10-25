@@ -13,10 +13,10 @@
           <el-option label="停用" :value="RecordStatus.DISABLED" />
         </el-select>
       </el-form-item>
-      <template #append>
-        <el-button v-if="canSave" type="primary" @click="openCreate">新建包厢</el-button>
-      </template>
     </QueryBar>
+    <div v-if="canSave" class="room-toolbar">
+      <el-button type="primary" @click="openCreate">新建包厢</el-button>
+    </div>
     <div ref="sortListRef" class="record-list record-list--wide-table">
       <RecordTableHead />
       <div v-if="isEmpty(displayRoomList)" class="record-empty">暂无数据</div>
@@ -191,6 +191,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.room-toolbar {
+  margin-bottom: 12px;
+}
+
 .record-list {
   margin-top: 16px;
 }

@@ -15,10 +15,10 @@
           <el-option label="维修" :value="HotelRoomStatus.MAINTENANCE" />
         </el-select>
       </el-form-item>
-      <template #append>
-        <el-button v-if="canSave" type="primary" @click="openCreate">新建房间</el-button>
-      </template>
     </QueryBar>
+    <div v-if="canSave" class="room-toolbar">
+      <el-button type="primary" @click="openCreate">新建房间</el-button>
+    </div>
     <div ref="sortListRef" class="record-list record-list--wide-table">
       <RecordTableHead />
       <div v-if="isEmpty(roomList)" class="record-empty">暂无数据</div>
@@ -197,6 +197,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.room-toolbar {
+  margin-bottom: 12px;
+}
+
 .record-list {
   margin-top: 16px;
 }
