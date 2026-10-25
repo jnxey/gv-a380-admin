@@ -21,4 +21,5 @@ export const StoreApi = {
   BILLS: '/store/bills',
   BILLS_SUMMARY: '/store/bills/summary',
   BILLS_EXPORT: '/store/bills/export',
+  REVIEWS: '/store/reviews',
 } as const;

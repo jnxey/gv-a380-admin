@@ -30,4 +30,5 @@ export const HotelApi = {
   BILLS_SUMMARY: '/hotel/bills/summary',
   BILLS_EXPORT: '/hotel/bills/export',
   PAYMENT_NOTICES: '/hotel/payment-notices',
+  REVIEWS: '/hotel/reviews',
 } as const;
