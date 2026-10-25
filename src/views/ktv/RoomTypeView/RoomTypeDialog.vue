@@ -1,32 +1,62 @@
 ﻿<template>
-  <el-dialog v-model="visible" :title="isEmpty(roomType) ? '新建类型' : '编辑类型'" width="480px">
+  <el-dialog v-model="visible" :title="isEmpty(roomType) ? '新建类型' : '编辑类型'" width="720px">
     <el-form label-position="top">
-      <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
-      <el-form-item label="每小时价格"><el-input v-model="roomTypeForm.hourlyPrice" /></el-form-item>
-      <el-form-item label="状态">
-        <el-select v-model="roomTypeForm.status">
-          <el-option label="启用" :value="RecordStatus.ENABLED" />
-          <el-option label="停用" :value="RecordStatus.DISABLED" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="详细描述">
-        <el-input
-          v-model="roomTypeForm.description.content"
-          type="textarea"
-          :rows="3"
-          :maxlength="DetailDescriptionLimit.MAX_LENGTH"
-          show-word-limit
-          placeholder="选填"
-        />
-      </el-form-item>
-      <el-form-item label="图片">
-        <ImageGalleryUpload
-          ref="imageGalleryRef"
-          :owner-id="editingId"
-          :adapter="roomTypeImageAdapter"
-          exceed-label="包厢类型图片"
-        />
-      </el-form-item>
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="每小时价格"><el-input v-model="roomTypeForm.hourlyPrice" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="状态">
+            <el-select v-model="roomTypeForm.status" class="field-full">
+              <el-option label="启用" :value="RecordStatus.ENABLED" />
+              <el-option label="停用" :value="RecordStatus.DISABLED" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="预定简述">
+            <el-input
+              v-model="roomTypeForm.description.bookingSummary"
+              :rows="3"
+              :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+              show-word-limit
+              placeholder="选填"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="退订规则">
+            <el-input
+              v-model="roomTypeForm.description.cancelRule"
+              type="textarea"
+              :rows="3"
+              :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+              show-word-limit
+              placeholder="选填"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="预订须知">
+            <el-input
+              v-model="roomTypeForm.description.bookingNotice"
+              type="textarea"
+              :rows="3"
+              :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+              show-word-limit
+              placeholder="选填"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="图片">
+            <ImageGalleryUpload ref="imageGalleryRef" :owner-id="editingId" :adapter="roomTypeImageAdapter" exceed-label="包厢类型图片" />
+          </el-form-item>
+        </el-col>
+      </el-row>
     </el-form>
     <template #footer>
       <el-button size="large" :disabled="saving" @click="visible = false">取消</el-button>
@@ -47,10 +77,16 @@ import http from '../../../utils/request';
 
 export type RoomTypeImageView = GalleryImageView;
 
+export interface RoomTypeDescription {
+  bookingSummary: string;
+  cancelRule: string;
+  bookingNotice: string;
+}
+
 export interface RoomTypeRow {
   id: string;
   typeName: string;
-  description: { content: string };
+  description: RoomTypeDescription;
   hourlyPrice: string;
   status: string;
   roomCount: number;
@@ -70,10 +106,31 @@ const imageGalleryRef = ref<InstanceType<typeof ImageGalleryUpload> | null>(null
 const { saving, runSaving } = useSaving();
 const roomTypeForm = reactive({
   typeName: '',
-  description: { content: '' },
+  description: emptyRoomTypeDescription(),
   hourlyPrice: '',
-  status: RecordStatus.ENABLED as string,
+  status: RecordStatus.ENABLED as string
 });
+
+/**
+ * 空的包厢描述。
+ */
+function emptyRoomTypeDescription(): RoomTypeDescription {
+  return {
+    bookingSummary: '',
+    cancelRule: '',
+    bookingNotice: ''
+  };
+}
+
+/**
+ * 读描述里的一段文字。没有时为空串。
+ */
+function readDescriptionText(description: RoomTypeDescription | null | undefined, fieldName: keyof RoomTypeDescription): string {
+  if (isEmpty(description) || isEmpty(description[fieldName])) {
+    return '';
+  }
+  return description[fieldName];
+}
 
 /**
  * 包厢类型图片的上传、删除和排序。
@@ -89,7 +146,7 @@ const roomTypeImageAdapter: ImageGalleryAdapter = {
   },
   async sort(ownerId, imageIdList) {
     await http.post(KtvApi.roomTypeImagesSort(ownerId), { idList: imageIdList });
-  },
+  }
 };
 
 /**
@@ -110,7 +167,7 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
   if (isEmpty(roomTypeRow)) {
     editingId.value = '';
     roomTypeForm.typeName = '';
-    roomTypeForm.description.content = '';
+    roomTypeForm.description = emptyRoomTypeDescription();
     roomTypeForm.hourlyPrice = '';
     roomTypeForm.status = RecordStatus.ENABLED;
     imageGalleryRef.value?.clearImages();
@@ -118,9 +175,11 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
   }
   editingId.value = roomTypeRow.id;
   roomTypeForm.typeName = roomTypeRow.typeName;
-  roomTypeForm.description.content = isEmpty(roomTypeRow.description) || isEmpty(roomTypeRow.description.content)
-    ? ''
-    : roomTypeRow.description.content;
+  roomTypeForm.description = {
+    bookingSummary: readDescriptionText(roomTypeRow.description, 'bookingSummary'),
+    cancelRule: readDescriptionText(roomTypeRow.description, 'cancelRule'),
+    bookingNotice: readDescriptionText(roomTypeRow.description, 'bookingNotice')
+  };
   roomTypeForm.hourlyPrice = roomTypeRow.hourlyPrice;
   roomTypeForm.status = roomTypeRow.status;
   imageGalleryRef.value?.setImages(isEmpty(roomTypeRow.imageList) ? [] : roomTypeRow.imageList);
@@ -153,3 +212,9 @@ async function saveRoomType(): Promise<void> {
   });
 }
 </script>
+
+<style scoped>
+.field-full {
+  width: 100%;
+}
+</style>

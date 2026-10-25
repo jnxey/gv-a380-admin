@@ -1,32 +1,70 @@
 ﻿<template>
-  <el-dialog v-model="visible" :title="isEmpty(roomType) ? '新建房型' : '编辑房型'" width="480px">
+  <el-dialog v-model="visible" :title="isEmpty(roomType) ? '新建房型' : '编辑房型'" width="720px">
     <el-form label-position="top">
-      <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
-      <el-form-item label="每晚价格"><el-input v-model="roomTypeForm.price" /></el-form-item>
-      <el-form-item label="状态">
-        <el-select v-model="roomTypeForm.status">
-          <el-option label="启用" :value="RecordStatus.ENABLED" />
-          <el-option label="停用" :value="RecordStatus.DISABLED" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="详细描述">
-        <el-input
-          v-model="roomTypeForm.description.content"
-          type="textarea"
-          :rows="3"
-          :maxlength="DetailDescriptionLimit.MAX_LENGTH"
-          show-word-limit
-          placeholder="选填"
-        />
-      </el-form-item>
-      <el-form-item label="图片">
-        <ImageGalleryUpload
-          ref="imageGalleryRef"
-          :owner-id="editingId"
-          :adapter="roomTypeImageAdapter"
-          exceed-label="房型图片"
-        />
-      </el-form-item>
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="每晚价格"><el-input v-model="roomTypeForm.price" /></el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="状态">
+            <el-select v-model="roomTypeForm.status" class="field-full">
+              <el-option label="启用" :value="RecordStatus.ENABLED" />
+              <el-option label="停用" :value="RecordStatus.DISABLED" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="床型">
+            <el-input v-model="roomTypeForm.description.bedType" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="大小">
+            <el-input v-model="roomTypeForm.description.roomSize" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="楼层">
+            <el-input v-model="roomTypeForm.description.floorText" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="人数">
+            <el-input v-model="roomTypeForm.description.guestCount" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="早餐">
+            <el-input v-model="roomTypeForm.description.breakfast" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="免费停车">
+            <el-input v-model="roomTypeForm.description.freeParking" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="24" />
+        <el-col :span="12">
+          <el-form-item label="预订须知">
+            <el-input
+              v-model="roomTypeForm.description.bookingNotice"
+              type="textarea"
+              :rows="4"
+              :maxlength="DetailDescriptionLimit.MAX_LENGTH"
+              show-word-limit
+              placeholder="选填"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="图片">
+            <ImageGalleryUpload ref="imageGalleryRef" :owner-id="editingId" :adapter="roomTypeImageAdapter" exceed-label="房型图片" />
+          </el-form-item>
+        </el-col>
+      </el-row>
     </el-form>
     <template #footer>
       <el-button size="large" :disabled="saving" @click="visible = false">取消</el-button>
@@ -47,10 +85,20 @@ import http from '../../../utils/request';
 
 export type RoomTypeImageView = GalleryImageView;
 
+export interface RoomTypeDescription {
+  bedType: string;
+  roomSize: string;
+  floorText: string;
+  guestCount: string;
+  breakfast: string;
+  freeParking: string;
+  bookingNotice: string;
+}
+
 export interface RoomTypeRow {
   id: string;
   typeName: string;
-  description: { content: string };
+  description: RoomTypeDescription;
   price: string;
   status: string;
   roomCount: number;
@@ -70,10 +118,35 @@ const imageGalleryRef = ref<InstanceType<typeof ImageGalleryUpload> | null>(null
 const { saving, runSaving } = useSaving();
 const roomTypeForm = reactive({
   typeName: '',
-  description: { content: '' },
+  description: emptyRoomTypeDescription(),
   price: '',
-  status: RecordStatus.ENABLED as string,
+  status: RecordStatus.ENABLED as string
 });
+
+/**
+ * 空的房型描述。
+ */
+function emptyRoomTypeDescription(): RoomTypeDescription {
+  return {
+    bedType: '',
+    roomSize: '',
+    floorText: '',
+    guestCount: '',
+    breakfast: '',
+    freeParking: '',
+    bookingNotice: ''
+  };
+}
+
+/**
+ * 读描述里的一段文字。没有时为空串。
+ */
+function readDescriptionText(description: RoomTypeDescription | null | undefined, fieldName: keyof RoomTypeDescription): string {
+  if (isEmpty(description) || isEmpty(description[fieldName])) {
+    return '';
+  }
+  return description[fieldName];
+}
 
 /**
  * 房型图片的上传、删除和排序。
@@ -89,7 +162,7 @@ const roomTypeImageAdapter: ImageGalleryAdapter = {
   },
   async sort(ownerId, imageIdList) {
     await http.post(HotelApi.roomTypeImagesSort(ownerId), { idList: imageIdList });
-  },
+  }
 };
 
 /**
@@ -110,7 +183,7 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
   if (isEmpty(roomTypeRow)) {
     editingId.value = '';
     roomTypeForm.typeName = '';
-    roomTypeForm.description.content = '';
+    roomTypeForm.description = emptyRoomTypeDescription();
     roomTypeForm.price = '';
     roomTypeForm.status = RecordStatus.ENABLED;
     imageGalleryRef.value?.clearImages();
@@ -118,9 +191,15 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
   }
   editingId.value = roomTypeRow.id;
   roomTypeForm.typeName = roomTypeRow.typeName;
-  roomTypeForm.description.content = isEmpty(roomTypeRow.description) || isEmpty(roomTypeRow.description.content)
-    ? ''
-    : roomTypeRow.description.content;
+  roomTypeForm.description = {
+    bedType: readDescriptionText(roomTypeRow.description, 'bedType'),
+    roomSize: readDescriptionText(roomTypeRow.description, 'roomSize'),
+    floorText: readDescriptionText(roomTypeRow.description, 'floorText'),
+    guestCount: readDescriptionText(roomTypeRow.description, 'guestCount'),
+    breakfast: readDescriptionText(roomTypeRow.description, 'breakfast'),
+    freeParking: readDescriptionText(roomTypeRow.description, 'freeParking'),
+    bookingNotice: readDescriptionText(roomTypeRow.description, 'bookingNotice')
+  };
   roomTypeForm.price = roomTypeRow.price;
   roomTypeForm.status = roomTypeRow.status;
   imageGalleryRef.value?.setImages(isEmpty(roomTypeRow.imageList) ? [] : roomTypeRow.imageList);
@@ -153,3 +232,9 @@ async function saveRoomType(): Promise<void> {
   });
 }
 </script>
+
+<style scoped>
+.field-full {
+  width: 100%;
+}
+</style>
