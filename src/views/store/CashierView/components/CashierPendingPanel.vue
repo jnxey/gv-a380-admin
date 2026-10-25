@@ -21,15 +21,39 @@
   </section>
   <el-dialog v-model="deliveryDialogVisible" title="送货" width="480px">
     <el-form label-position="top">
+      <div v-if="isEmpty(recentCourierList) !== true" class="recent-courier-list">
+        <button
+          v-for="recentCourier in recentCourierList"
+          :key="`${recentCourier.courierName}-${recentCourier.courierContact}`"
+          type="button"
+          class="recent-courier-button"
+          :disabled="deliverySubmitting"
+          @click="applyRecentCourier(recentCourier)"
+        >
+          {{ recentCourier.courierName }} {{ recentCourier.courierContact }}
+        </button>
+      </div>
       <el-form-item label="送货人">
-        <el-input v-model="deliveryForm.courierName" :maxlength="StoreDeliveryField.COURIER_NAME_MAX_LENGTH" />
+        <el-input
+          v-model="deliveryForm.courierName"
+          :maxlength="StoreDeliveryField.COURIER_NAME_MAX_LENGTH"
+          :placeholder="courierFieldPlaceholder"
+        />
       </el-form-item>
       <el-form-item label="联系方式">
-        <el-input v-model="deliveryForm.courierContact" :maxlength="StoreDeliveryField.COURIER_CONTACT_MAX_LENGTH" />
+        <el-input
+          v-model="deliveryForm.courierContact"
+          :maxlength="StoreDeliveryField.COURIER_CONTACT_MAX_LENGTH"
+          :placeholder="courierFieldPlaceholder"
+        />
       </el-form-item>
       <el-form-item label="送货号">
         <div class="delivery-no-row">
-          <el-input v-model="deliveryForm.deliveryNo" :maxlength="StoreDeliveryField.DELIVERY_NO_MAX_LENGTH" />
+          <el-input
+            v-model="deliveryForm.deliveryNo"
+            :maxlength="StoreDeliveryField.DELIVERY_NO_MAX_LENGTH"
+            :placeholder="DeliveryFieldPlaceholder.OPTIONAL"
+          />
           <el-button
             type="warning"
             size="large"
@@ -44,7 +68,11 @@
         </div>
       </el-form-item>
       <el-form-item label="备注">
-        <el-input v-model="deliveryForm.deliveryRemark" :maxlength="StoreDeliveryField.REMARK_MAX_LENGTH" />
+        <el-input
+          v-model="deliveryForm.deliveryRemark"
+          :maxlength="StoreDeliveryField.REMARK_MAX_LENGTH"
+          :placeholder="DeliveryFieldPlaceholder.OPTIONAL"
+        />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -55,14 +83,15 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { StoreApi } from '../../../../api/store';
 import AppIcon from '../../../../components/AppIcon/AppIcon.vue';
 import { readScanText } from '../../../../components/ScanGunPrompt/read-scan-text';
-import { MenuIconName, StoreDeliveryField } from '../../../../utils/constants';
+import { MenuIconName, StorageKey, StoreDeliveryField } from '../../../../utils/constants';
 import { isEmpty } from '../../../../utils/tools';
 import http from '../../../../utils/request';
+import { useSessionStore } from '../../../../stores/session';
 import { useCashierPendingRefresh } from '../utils/cashier-pending-refresh';
 
 interface PendingSaleItemRow {
@@ -81,6 +110,20 @@ interface PendingSaleRow {
   itemList: PendingSaleItemRow[];
 }
 
+interface RecentCourier {
+  courierName: string;
+  courierContact: string;
+}
+
+const RecentCourierCache = {
+  MAX_COUNT: 5,
+};
+
+const DeliveryFieldPlaceholder = {
+  REQUIRED: '必填',
+  OPTIONAL: '非必填',
+};
+
 const props = defineProps<{
   pauseProductScan: () => boolean;
   resumeProductScan: () => void;
@@ -90,7 +133,9 @@ const emit = defineEmits<{
   'stock-changed': [];
 }>();
 
+const sessionStore = useSessionStore();
 const pendingDeliveryList = ref<PendingSaleRow[]>([]);
+const recentCourierList = ref<RecentCourier[]>([]);
 const deliveryDialogVisible = ref(false);
 const deliverySubmitting = ref(false);
 const deliverySaleId = ref('');
@@ -115,6 +160,108 @@ async function loadPendingDeliverySales(): Promise<void> {
 const { startPendingDeliveryRefresh, stopPendingDeliveryRefresh } = useCashierPendingRefresh({
   loadPendingDeliverySales,
 });
+
+/**
+ * 当前门店没标必带房间号时，送货人和联系方式必填。
+ */
+const deliveryInfoRequired = computed(() => {
+  const currentShop = sessionStore.shopList.find((shop) => shop.shopId === sessionStore.currentShopId);
+  if (isEmpty(currentShop) || currentShop.requireRoomNo !== true) {
+    return true;
+  }
+  return false;
+});
+
+/**
+ * 送货人和联系方式的占位文案。
+ */
+const courierFieldPlaceholder = computed(() => {
+  if (deliveryInfoRequired.value === true) {
+    return DeliveryFieldPlaceholder.REQUIRED;
+  }
+  return DeliveryFieldPlaceholder.OPTIONAL;
+});
+
+/**
+ * 当前门店最近送货人的本地缓存键。
+ */
+function recentCourierStorageKey(shopId: string): string {
+  return `${StorageKey.CASHIER_RECENT_COURIERS}_${shopId}`;
+}
+
+/**
+ * 读出当前门店最近用过的送货人。坏数据当成没有。
+ */
+function readRecentCourierList(): RecentCourier[] {
+  if (isEmpty(sessionStore.currentShopId)) {
+    return [];
+  }
+  const storageText = window.localStorage.getItem(recentCourierStorageKey(sessionStore.currentShopId));
+  if (isEmpty(storageText)) {
+    return [];
+  }
+  let parsedCourierList: unknown;
+  try {
+    parsedCourierList = JSON.parse(storageText);
+  } catch {
+    return [];
+  }
+  if (Array.isArray(parsedCourierList) !== true) {
+    return [];
+  }
+  const storedCourierList: RecentCourier[] = [];
+  for (const courierRecord of parsedCourierList) {
+    if (isEmpty(courierRecord) || Array.isArray(courierRecord) === true) {
+      continue;
+    }
+    const courierName = (courierRecord as RecentCourier).courierName;
+    const courierContact = (courierRecord as RecentCourier).courierContact;
+    if (isEmpty(courierName) || isEmpty(courierContact)) {
+      continue;
+    }
+    storedCourierList.push({
+      courierName,
+      courierContact,
+    });
+    if (storedCourierList.length >= RecentCourierCache.MAX_COUNT) {
+      break;
+    }
+  }
+  return storedCourierList;
+}
+
+/**
+ * 送货成功后记住这一对送货人。相同的旧记录删掉，最新的放最前，最多 5 条。
+ */
+function rememberRecentCourier(courierName: string, courierContact: string): void {
+  if (isEmpty(courierName) || isEmpty(courierContact) || isEmpty(sessionStore.currentShopId)) {
+    return;
+  }
+  const keptCourierList = readRecentCourierList().filter((recentCourier) => {
+    return recentCourier.courierName !== courierName || recentCourier.courierContact !== courierContact;
+  });
+  keptCourierList.unshift({
+    courierName,
+    courierContact,
+  });
+  const recentCourierListToSave = keptCourierList.slice(0, RecentCourierCache.MAX_COUNT);
+  window.localStorage.setItem(
+    recentCourierStorageKey(sessionStore.currentShopId),
+    JSON.stringify(recentCourierListToSave),
+  );
+  recentCourierList.value = recentCourierListToSave;
+}
+
+/**
+ * 点最近送货人时，同时填上姓名和联系方式。
+ */
+function applyRecentCourier(recentCourier: RecentCourier): void {
+  if (deliverySubmitting.value === true) {
+    return;
+  }
+  deliveryForm.courierName = recentCourier.courierName;
+  deliveryForm.courierContact = recentCourier.courierContact;
+}
 
 /**
  * 扫一次送货号。先停商品听枪，取消或扫完后再按需要恢复。
@@ -146,6 +293,7 @@ function openDeliveryDialog(saleRow: PendingSaleRow): void {
   deliveryForm.courierContact = '';
   deliveryForm.deliveryNo = '';
   deliveryForm.deliveryRemark = '';
+  recentCourierList.value = readRecentCourierList();
   deliveryDialogVisible.value = true;
 }
 
@@ -160,11 +308,11 @@ async function submitDelivery(): Promise<void> {
   const courierContact = deliveryForm.courierContact.trim();
   const deliveryNo = deliveryForm.deliveryNo.trim();
   const deliveryRemark = deliveryForm.deliveryRemark.trim();
-  if (isEmpty(courierName)) {
+  if (deliveryInfoRequired.value === true && isEmpty(courierName)) {
     ElMessage.warning('请填写送货人');
     return;
   }
-  if (isEmpty(courierContact)) {
+  if (deliveryInfoRequired.value === true && isEmpty(courierContact)) {
     ElMessage.warning('请填写联系方式');
     return;
   }
@@ -190,6 +338,7 @@ async function submitDelivery(): Promise<void> {
     });
     deliveryDialogVisible.value = false;
     ElMessage.success('已开始送货');
+    rememberRecentCourier(courierName, courierContact);
     await loadPendingDeliverySales();
   } catch {
     return;
@@ -247,6 +396,31 @@ onBeforeUnmount(() => {
   text-align: center;
   color: #98a2b3;
   font-size: 13px;
+}
+
+.recent-courier-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.recent-courier-button {
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #e6e8ec;
+  border-radius: 8px;
+  background: #fff;
+  color: #1c2434;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.recent-courier-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .delivery-no-row {

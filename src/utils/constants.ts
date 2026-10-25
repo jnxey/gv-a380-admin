@@ -325,6 +325,7 @@ export const BeijingLocation = {
 export const StorageKey = {
   ACCESS_TOKEN: 'gv_a380_admin_access_token',
   CURRENT_SHOP_ID: 'gv_a380_admin_current_shop_id',
+  CASHIER_RECENT_COURIERS: 'gv_a380_admin_cashier_recent_couriers',
 } as const;
 
 /** 后台令牌剩余不超过 30 分钟时再换一张。 */

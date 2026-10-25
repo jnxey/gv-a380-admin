@@ -15,6 +15,7 @@ export interface ShopOption {
   shopName: string;
   shopType: string;
   timeZone: string;
+  requireRoomNo: boolean;
 }
 
 /**
