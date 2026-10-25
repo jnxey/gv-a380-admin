@@ -41,7 +41,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { FinanceBizType, PageSetting, PermissionCode, QuickProductQuery, statusLabel, StorePayMethod } from '../../../utils/constants';
-import { formatMoney, isEmpty } from '../../../utils/tools';
+import { formatMoneyCents, isEmpty, multiplyMoneyCents, subtractMoney } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import { usePaymentNotice } from '../../../hooks/payment-notice';
 import http from '../../../utils/request';
@@ -104,11 +104,15 @@ const MemberPaySpeech = {
  * 购物车合计金额。
  */
 const cartAmountText = computed(() => {
-  let totalAmount = 0;
+  let totalCents = 0;
   for (const cartLine of cartLineList.value) {
-    totalAmount += Number(cartLine.salePrice) * cartLine.quantity;
+    const lineCents = multiplyMoneyCents(cartLine.salePrice, cartLine.quantity);
+    if (lineCents === null) {
+      continue;
+    }
+    totalCents += lineCents;
   }
-  return formatMoney(totalAmount);
+  return formatMoneyCents(totalCents);
 });
 
 const usePointDeduct = ref(false);
@@ -117,20 +121,23 @@ const usePointDeduct = ref(false);
  * 购物车里可抵扣商品的合计。没有可抵扣商品时不显示开关。
  */
 const pointDeductPlan = computed(() => {
-  let deductAmount = 0;
+  let deductCents = 0;
   let deductPoints = 0;
   for (const cartLine of cartLineList.value) {
-    const unitAmount = Number(cartLine.pointDeductAmount);
+    const unitCents = multiplyMoneyCents(cartLine.pointDeductAmount, 1);
     const unitPoints = Number(cartLine.pointDeductPoints);
-    if (Number.isFinite(unitAmount) === true && unitAmount > 0 && Number.isInteger(unitPoints) === true && unitPoints > 0) {
-      deductAmount += unitAmount * cartLine.quantity;
+    if (unitCents !== null && unitCents > 0 && Number.isInteger(unitPoints) === true && unitPoints > 0) {
+      const lineCents = multiplyMoneyCents(cartLine.pointDeductAmount, cartLine.quantity);
+      if (lineCents !== null) {
+        deductCents += lineCents;
+      }
       deductPoints += unitPoints * cartLine.quantity;
     }
   }
   if (deductPoints <= 0) {
     return { visible: false, amountText: '0.00', hint: '' };
   }
-  const amountText = formatMoney(deductAmount);
+  const amountText = formatMoneyCents(deductCents);
   return {
     visible: true,
     amountText,
@@ -145,8 +152,7 @@ function readMemberPayableAmountText(): string {
   if (usePointDeduct.value !== true || pointDeductPlan.value.visible !== true) {
     return cartAmountText.value;
   }
-  const payableAmount = Number(cartAmountText.value) - Number(pointDeductPlan.value.amountText);
-  return formatMoney(payableAmount);
+  return subtractMoney(cartAmountText.value, pointDeductPlan.value.amountText);
 }
 
 watch(pointDeductPlan, (plan) => {

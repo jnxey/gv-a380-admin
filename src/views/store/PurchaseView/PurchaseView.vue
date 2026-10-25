@@ -104,7 +104,7 @@ import ListPager from '../../../components/ListPager/ListPager.vue';
 import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { MenuIconName, PageSetting, PermissionCode } from '../../../utils/constants';
-import { formatLocalDateTime, formatMoney, isEmpty } from '../../../utils/tools';
+import { formatLocalDateTime, formatMoney, formatMoneyCents, isEmpty, multiplyMoneyCents } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -155,16 +155,15 @@ const draftLineList = ref<DraftLine[]>([{ productId: '', costPrice: '', quantity
  * 弹窗里按进价×数量汇总，无效行按 0。
  */
 const draftTotalText = computed(() => {
-  let totalAmount = 0;
+  let totalCents = 0;
   for (const lineRow of draftLineList.value) {
-    const costPrice = Number(lineRow.costPrice);
-    const quantity = Number(lineRow.quantityText);
-    if (Number.isFinite(costPrice) !== true || Number.isFinite(quantity) !== true) {
+    const lineCents = multiplyMoneyCents(lineRow.costPrice, lineRow.quantityText);
+    if (lineCents === null) {
       continue;
     }
-    totalAmount += costPrice * quantity;
+    totalCents += lineCents;
   }
-  return formatMoney(totalAmount);
+  return formatMoneyCents(totalCents);
 });
 
 /**

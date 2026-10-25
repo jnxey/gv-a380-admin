@@ -85,7 +85,7 @@ import ListPager from '../../../components/ListPager/ListPager.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import { PageSetting, statusLabel } from '../../../utils/constants';
-import { formatLocalDateTime, formatMoney, isEmpty } from '../../../utils/tools';
+import { formatLocalDateTime, formatMoney, isEmpty, subtractMoney } from '../../../utils/tools';
 import http from '../../../utils/request';
 
 interface SaleItemRow {
@@ -135,13 +135,12 @@ function readPaidAmount(saleRow: SaleRow | null): string {
   if (isEmpty(saleRow) || isEmpty(saleRow.amount)) {
     return '';
   }
-  const goodsAmount = Number(saleRow.amount);
-  const deductAmount = isEmpty(saleRow.pointDeductAmount) ? 0 : Number(saleRow.pointDeductAmount);
-  if (Number.isFinite(goodsAmount) !== true) {
-    return saleRow.amount;
+  const deductText = isEmpty(saleRow.pointDeductAmount) ? 0 : saleRow.pointDeductAmount;
+  const paidText = subtractMoney(saleRow.amount, deductText);
+  if (isEmpty(paidText)) {
+    return formatMoney(saleRow.amount);
   }
-  const paidAmount = goodsAmount - (Number.isFinite(deductAmount) === true ? deductAmount : 0);
-  return formatMoney(paidAmount);
+  return paidText;
 }
 
 /**

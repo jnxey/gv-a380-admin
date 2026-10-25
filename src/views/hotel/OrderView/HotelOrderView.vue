@@ -75,7 +75,7 @@ import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
 import ExtendStayDialog, { type ExtendStayRoomRow } from '../RoomStatusView/components/ExtendStayDialog.vue';
 import { HotelOrderStatus, HotelRoomStatus, PageSetting, PermissionCode, statusLabel } from '../../../utils/constants';
-import { formatMoney, isEmpty, formatLocalDateTime } from '../../../utils/tools';
+import { formatMoney, isEmpty, formatLocalDateTime, subtractMoney } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 
@@ -161,13 +161,12 @@ function readPaidAmount(orderRow: OrderRow): string {
   if (isEmpty(orderRow) || isEmpty(orderRow.amount)) {
     return '';
   }
-  const goodsAmount = Number(orderRow.amount);
-  const deductAmount = isEmpty(orderRow.pointDeductAmount) ? 0 : Number(orderRow.pointDeductAmount);
-  if (Number.isFinite(goodsAmount) !== true) {
-    return orderRow.amount;
+  const deductText = isEmpty(orderRow.pointDeductAmount) ? 0 : orderRow.pointDeductAmount;
+  const paidText = subtractMoney(orderRow.amount, deductText);
+  if (isEmpty(paidText)) {
+    return formatMoney(orderRow.amount);
   }
-  const paidAmount = goodsAmount - (Number.isFinite(deductAmount) === true ? deductAmount : 0);
-  return formatMoney(paidAmount);
+  return paidText;
 }
 
 /**

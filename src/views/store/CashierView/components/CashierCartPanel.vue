@@ -9,7 +9,7 @@
           <div class="cart-line-meta">
             <span>单价 {{ formatMoney(cartLine.salePrice) }}</span>
             <span class="cart-line-dot">·</span>
-            <span>小计 {{ formatMoney(Number(cartLine.salePrice) * cartLine.quantity) }}</span>
+            <span>小计 {{ multiplyMoney(cartLine.salePrice, cartLine.quantity) }}</span>
           </div>
         </div>
         <div class="cart-actions">
@@ -62,7 +62,7 @@
 <script setup lang="ts">
 import AppIcon from '../../../../components/AppIcon/AppIcon.vue';
 import { MenuIconName } from '../../../../utils/constants';
-import { formatMoney, isEmpty } from '../../../../utils/tools';
+import { formatMoney, isEmpty, multiplyMoney } from '../../../../utils/tools';
 
 interface CartLine {
   productId: string;
