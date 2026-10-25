@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-dialog v-model="visible" :title="isEmpty(user) ? '新建账号' : '编辑账号'" width="520px">
     <el-form label-position="top">
       <el-form-item label="登录名">
@@ -10,10 +10,10 @@
       <el-form-item label="姓名"><el-input v-model="userForm.realName" /></el-form-item>
       <el-form-item label="手机"><el-input v-model="userForm.mobile" /></el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="userForm.status">
-          <el-option label="启用" :value="RecordStatus.ENABLED" />
-          <el-option label="停用" :value="RecordStatus.DISABLED" />
-        </el-select>
+        <el-radio-group v-model="userForm.status">
+          <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
+          <el-radio :value="RecordStatus.DISABLED">停用</el-radio>
+        </el-radio-group>
       </el-form-item>
       <el-form-item label="角色">
         <el-select v-model="userForm.roleId">

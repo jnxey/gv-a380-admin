@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-dialog v-model="visible" :title="isEmpty(shop) ? '新建门店' : '编辑门店'" width="720px">
     <el-form class="shop-form" label-position="top">
       <el-row :gutter="16">
@@ -47,10 +47,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="状态">
-            <el-select v-model="shopForm.status">
-              <el-option label="启用" :value="RecordStatus.ENABLED" />
-              <el-option label="休息" :value="RecordStatus.DISABLED" />
-            </el-select>
+            <el-radio-group v-model="shopForm.status">
+              <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
+              <el-radio :value="RecordStatus.DISABLED">休息</el-radio>
+            </el-radio-group>
           </el-form-item>
         </el-col>
         <el-col :span="24">

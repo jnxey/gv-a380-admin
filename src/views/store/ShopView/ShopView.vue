@@ -20,6 +20,7 @@
           <div class="shop-address">{{ shopRow.address }}</div>
           <div v-if="!isEmpty(shopRow.timeZone)" class="shop-address">{{ timeZoneLabel(shopRow.timeZone) }}</div>
           <div v-if="!isEmpty(shopBusinessHoursText(shopRow))" class="shop-address">{{ shopBusinessHoursText(shopRow) }}</div>
+          <div class="shop-address">必带房间号：{{ shopRow.requireRoomNo === true ? '是' : '否' }}</div>
           <div class="shop-foot">
             <el-tag :type="shopRow.status === RecordStatus.ENABLED ? 'success' : 'info'" effect="plain">
               {{ shopRow.status === RecordStatus.ENABLED ? '启用' : '休息' }}

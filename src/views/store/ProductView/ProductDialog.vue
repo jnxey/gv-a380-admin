@@ -21,10 +21,10 @@
       <el-form-item label="售价"><el-input v-model="productForm.salePrice" /></el-form-item>
       <el-form-item label="进价"><el-input v-model="productForm.costPrice" /></el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="productForm.status">
-          <el-option label="启用" :value="RecordStatus.ENABLED" />
-          <el-option label="停用" :value="RecordStatus.DISABLED" />
-        </el-select>
+        <el-radio-group v-model="productForm.status">
+          <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
+          <el-radio :value="RecordStatus.DISABLED">停用</el-radio>
+        </el-radio-group>
       </el-form-item>
       <el-form-item label="详细描述">
         <el-input

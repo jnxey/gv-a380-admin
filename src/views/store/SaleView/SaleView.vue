@@ -22,6 +22,10 @@
         <div v-if="isEmpty(saleRow.receiverName) !== true" class="sale-meta">收货人 {{ saleRow.receiverName }}</div>
         <div v-if="isEmpty(saleRow.contact) !== true" class="sale-meta">联系方式 {{ saleRow.contact }}</div>
         <div v-if="isEmpty(saleRow.deliveryAddress) !== true" class="sale-meta">收货地址 {{ saleRow.deliveryAddress }}</div>
+        <div v-if="isEmpty(saleRow.courierName) !== true" class="sale-meta">送货人 {{ saleRow.courierName }}</div>
+        <div v-if="isEmpty(saleRow.courierContact) !== true" class="sale-meta">送货联系方式 {{ saleRow.courierContact }}</div>
+        <div v-if="isEmpty(saleRow.deliveryNo) !== true" class="sale-meta">送货号 {{ saleRow.deliveryNo }}</div>
+        <div v-if="isEmpty(saleRow.deliveryRemark) !== true" class="sale-meta">送货备注 {{ saleRow.deliveryRemark }}</div>
         <div v-if="isEmpty(saleRow.remark) !== true" class="sale-meta">备注 {{ saleRow.remark }}</div>
       </article>
     </div>
@@ -57,6 +61,10 @@ interface SaleRow {
   receiverName: string;
   contact: string;
   deliveryAddress: string;
+  courierName: string;
+  courierContact: string;
+  deliveryNo: string;
+  deliveryRemark: string;
   createdAt: string;
   itemList: SaleItemRow[];
 }

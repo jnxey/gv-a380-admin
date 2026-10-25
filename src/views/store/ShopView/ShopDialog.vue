@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-dialog v-model="visible" :title="isEmpty(shop) ? '新建门店' : '编辑门店'" width="720px">
     <el-form class="shop-form" label-position="top">
       <el-row :gutter="16">
@@ -47,10 +47,18 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="状态">
-            <el-select v-model="shopForm.status">
-              <el-option label="启用" :value="RecordStatus.ENABLED" />
-              <el-option label="休息" :value="RecordStatus.DISABLED" />
-            </el-select>
+            <el-radio-group v-model="shopForm.status">
+              <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
+              <el-radio :value="RecordStatus.DISABLED">休息</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="必带房间号">
+            <el-radio-group v-model="shopForm.requireRoomNo">
+              <el-radio :value="true">是</el-radio>
+              <el-radio :value="false">否</el-radio>
+            </el-radio-group>
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -115,6 +123,7 @@ export interface ShopRow {
   businessHours: ShopBusinessHours | null;
   shopAddress: ShopAddressLocation | null;
   imageList: ShopImageView[];
+  requireRoomNo: boolean;
 }
 
 const visible = defineModel<boolean>({ required: true });
@@ -160,6 +169,7 @@ const shopForm = reactive({
   addressText: '',
   contactPhone: '',
   status: RecordStatus.ENABLED as string,
+  requireRoomNo: false,
 });
 
 const timeZoneOptionList = computed(() => {
@@ -269,6 +279,7 @@ function fillShopForm(shopRow: ShopRow | null): void {
     shopForm.addressText = '';
     shopForm.contactPhone = '';
     shopForm.status = RecordStatus.ENABLED;
+    shopForm.requireRoomNo = false;
     imageGalleryRef.value?.clearImages();
     return;
   }
@@ -283,6 +294,7 @@ function fillShopForm(shopRow: ShopRow | null): void {
   shopForm.addressText = addressDescription(shopRow);
   shopForm.contactPhone = shopRow.contactPhone;
   shopForm.status = shopRow.status;
+  shopForm.requireRoomNo = shopRow.requireRoomNo === true;
   imageGalleryRef.value?.setImages(isEmpty(shopRow.imageList) ? [] : shopRow.imageList);
 }
 
@@ -326,6 +338,7 @@ function shopSaveBody(): Record<string, unknown> {
     shopName: shopForm.shopName,
     contactPhone: shopForm.contactPhone,
     status: shopForm.status,
+    requireRoomNo: shopForm.requireRoomNo,
     timeZone: shopForm.timeZone,
     businessHours: {
       startTime: isEmpty(shopForm.startTime) ? '' : shopForm.startTime,

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-dialog v-model="visible" :title="isEmpty(room) ? '新建包厢' : '编辑包厢'" width="480px">
     <el-form label-position="top">
       <el-form-item label="编号"><el-input v-model="roomForm.roomNo" /></el-form-item>
@@ -10,10 +10,10 @@
       </el-form-item>
       <el-form-item label="人数"><el-input v-model.number="roomForm.capacity" /></el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="roomForm.status">
-          <el-option label="启用" :value="RecordStatus.ENABLED" />
-          <el-option label="停用" :value="RecordStatus.DISABLED" />
-        </el-select>
+        <el-radio-group v-model="roomForm.status">
+          <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
+          <el-radio :value="RecordStatus.DISABLED">停用</el-radio>
+        </el-radio-group>
       </el-form-item>
     </el-form>
     <template #footer>

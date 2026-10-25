@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-dialog v-model="visible" :title="isEmpty(room) ? '新建房间' : '编辑房间'" width="480px">
     <el-form label-position="top">
       <el-form-item label="房型">
@@ -9,12 +9,12 @@
       <el-form-item label="房号"><el-input v-model="roomForm.roomNo" /></el-form-item>
       <el-form-item label="楼层"><el-input v-model="roomForm.floorNo" /></el-form-item>
       <el-form-item label="房态">
-        <el-select v-model="roomForm.roomStatus" :disabled="roomStatusLocked">
-          <el-option v-if="roomStatusLocked" label="在住" :value="HotelRoomStatus.OCCUPIED" />
-          <el-option label="空闲" :value="HotelRoomStatus.IDLE" />
-          <el-option label="打扫中" :value="HotelRoomStatus.CLEANING" />
-          <el-option label="维修" :value="HotelRoomStatus.MAINTENANCE" />
-        </el-select>
+        <el-radio-group v-model="roomForm.roomStatus" :disabled="roomStatusLocked">
+          <el-radio v-if="roomStatusLocked" :value="HotelRoomStatus.OCCUPIED">在住</el-radio>
+          <el-radio :value="HotelRoomStatus.IDLE">空闲</el-radio>
+          <el-radio :value="HotelRoomStatus.CLEANING">打扫中</el-radio>
+          <el-radio :value="HotelRoomStatus.MAINTENANCE">维修</el-radio>
+        </el-radio-group>
       </el-form-item>
       <div v-if="roomStatusLocked" class="room-status-tip">在住房请在房态页退房后再改房态</div>
     </el-form>
