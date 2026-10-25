@@ -5,6 +5,24 @@
       <el-form-item>
         <el-input v-model="verifyCode" v-place class="query-keyword" placeholder="核销码" clearable />
       </el-form-item>
+      <el-form-item>
+        <el-button-group class="order-date-quick">
+          <el-button @click="applyQuickDate('today')">今天</el-button>
+          <el-button @click="applyQuickDate('last7')">近7天</el-button>
+          <el-button @click="applyQuickDate('month')">本月</el-button>
+        </el-button-group>
+      </el-form-item>
+      <el-form-item>
+        <el-date-picker
+          v-model="orderDateRange"
+          class="order-date-range"
+          type="daterange"
+          value-format="YYYY-MM-DD"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          single-panel
+        />
+      </el-form-item>
     </QueryBar>
     <div class="record-list record-list--wide-table">
       <div v-if="isEmpty(orderList)" class="record-empty">暂无数据</div>
@@ -97,6 +115,9 @@ const sessionStore = useSessionStore();
 const canVerify = sessionStore.hasPermission(PermissionCode.KTV_ORDER_VERIFY);
 const canCancel = sessionStore.hasPermission(PermissionCode.KTV_ORDER_CANCEL);
 const verifyCode = ref('');
+const orderDateRange = ref<[string, string] | null>(null);
+const appliedStartDate = ref('');
+const appliedEndDate = ref('');
 const orderList = ref<OrderRow[]>([]);
 const total = ref(0);
 const page = ref<number>(PageSetting.DEFAULT_PAGE);
@@ -118,11 +139,89 @@ function formatBookingEnd(orderRow: OrderRow): string {
 }
 
 /**
+ * 日期数字补成两位。
+ */
+function padDatePart(datePart: number): string {
+  return String(datePart).padStart(2, '0');
+}
+
+/**
+ * 把本地日期格式化成 YYYY-MM-DD。
+ */
+function formatLocalDateText(dateValue: Date): string {
+  const yearText = String(dateValue.getFullYear());
+  const monthText = padDatePart(dateValue.getMonth() + 1);
+  const dayText = padDatePart(dateValue.getDate());
+  return `${yearText}-${monthText}-${dayText}`;
+}
+
+/**
+ * 今天到今天。
+ */
+function todayDateRange(): [string, string] {
+  const todayText = formatLocalDateText(new Date());
+  return [todayText, todayText];
+}
+
+/**
+ * 近 7 天（含今天）到今天。
+ */
+function last7DaysDateRange(): [string, string] {
+  const today = new Date();
+  const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
+  return [formatLocalDateText(startDate), formatLocalDateText(today)];
+}
+
+/**
+ * 本月 1 日到今天。
+ */
+function currentMonthDateRange(): [string, string] {
+  const today = new Date();
+  const yearText = String(today.getFullYear());
+  const monthText = padDatePart(today.getMonth() + 1);
+  const dayText = padDatePart(today.getDate());
+  return [`${yearText}-${monthText}-01`, `${yearText}-${monthText}-${dayText}`];
+}
+
+/**
+ * 取出查询栏里的开始和结束日期。没选时两端都为空。
+ */
+function readOrderDateQuery(): { startDate: string; endDate: string } {
+  if (isEmpty(orderDateRange.value)) {
+    return { startDate: '', endDate: '' };
+  }
+  return {
+    startDate: orderDateRange.value[0],
+    endDate: orderDateRange.value[1],
+  };
+}
+
+/**
+ * 点快捷日期后立刻按新范围查询。
+ */
+function applyQuickDate(quickDateKind: 'today' | 'last7' | 'month'): void {
+  if (quickDateKind === 'today') {
+    orderDateRange.value = todayDateRange();
+  } else if (quickDateKind === 'last7') {
+    orderDateRange.value = last7DaysDateRange();
+  } else {
+    orderDateRange.value = currentMonthDateRange();
+  }
+  searchOrders();
+}
+
+/**
  * 查询当前门店预订订单。
  */
 async function loadOrders(): Promise<void> {
   const pageResult = (await http.get(KtvApi.BOOKING_ORDERS, {
-    params: { verifyCode: verifyCode.value, page: page.value, pageSize: pageSize.value },
+    params: {
+      verifyCode: verifyCode.value,
+      page: page.value,
+      pageSize: pageSize.value,
+      startDate: appliedStartDate.value,
+      endDate: appliedEndDate.value,
+    },
   })) as { list: OrderRow[]; total: number };
   orderList.value = pageResult.list;
   total.value = pageResult.total;
@@ -171,15 +270,21 @@ async function cancelOrder(bookingOrderId: string, needRefund: boolean): Promise
  * 从第一页重新查询。
  */
 function searchOrders(): void {
+  const orderDateQuery = readOrderDateQuery();
+  appliedStartDate.value = orderDateQuery.startDate;
+  appliedEndDate.value = orderDateQuery.endDate;
   page.value = PageSetting.DEFAULT_PAGE;
   void loadOrders();
 }
 
 /**
- * 清空核销码并回到第一页。
+ * 清空核销码和时间筛选，并回到第一页。
  */
 function resetQuery(): void {
   verifyCode.value = '';
+  orderDateRange.value = null;
+  appliedStartDate.value = '';
+  appliedEndDate.value = '';
   page.value = PageSetting.DEFAULT_PAGE;
   void loadOrders();
 }
@@ -198,6 +303,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.order-date-range {
+  --el-date-editor-daterange-width: 260px;
+}
+
 @media (min-width: 1200px) {
   .record-list--wide-table :deep(.record-actions) {
     width: 188px;
