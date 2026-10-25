@@ -1,5 +1,5 @@
-import { HotelRoomStatus } from './constants';
-import { isEmpty } from './tools';
+import { HotelRoomStatus } from '../../../../utils/constants';
+import { isEmpty } from '../../../../utils/tools';
 
 export interface HotelRoomTypeForWarning {
   id: string;

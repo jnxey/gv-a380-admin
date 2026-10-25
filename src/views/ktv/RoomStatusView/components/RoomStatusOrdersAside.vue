@@ -36,8 +36,8 @@
 </template>
 
 <script setup lang="ts">
-import { VerifyCodeMask } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { VerifyCodeMask } from '../../../../utils/constants';
+import { isEmpty } from '../../../../utils/tools';
 
 export interface OccupyRemindRoomItem {
   roomId: string;

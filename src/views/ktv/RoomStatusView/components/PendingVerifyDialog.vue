@@ -27,12 +27,12 @@
 </template>
 
 <script setup lang="ts">
-import { KtvApi } from '../../../api/ktv';
+import { KtvApi } from '../../../../api/ktv';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { useSaving } from '../../../hooks/saving';
-import { isEmpty } from '../../../utils/tools';
-import http from '../../../utils/request';
+import { useSaving } from '../../../../hooks/saving';
+import { isEmpty } from '../../../../utils/tools';
+import http from '../../../../utils/request';
 
 export interface PendingVerifyOrder {
   bookingOrderId: string;

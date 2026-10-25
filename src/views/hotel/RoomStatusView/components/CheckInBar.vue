@@ -52,8 +52,8 @@
 </template>
 
 <script setup lang="ts">
-import { HotelBusinessDay, HotelWalkInNight } from '../../../utils/constants';
-import { formatLocalDateTime, isEmpty } from '../../../utils/tools';
+import { HotelBusinessDay, HotelWalkInNight } from '../../../../utils/constants';
+import { formatLocalDateTime, isEmpty } from '../../../../utils/tools';
 
 export interface CheckInBarOrder {
   bookingOrderId: string;

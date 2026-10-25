@@ -1,5 +1,5 @@
-import { HotelBusinessDay } from './constants';
-import { isEmpty } from './tools';
+import { HotelBusinessDay } from '../../../../utils/constants';
+import { isEmpty } from '../../../../utils/tools';
 
 /**
  * 把门店时区偏移换成分钟。没有偏移或写错时用东八区。

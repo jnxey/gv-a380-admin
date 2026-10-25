@@ -20,8 +20,8 @@
 </template>
 
 <script setup lang="ts">
-import AppIcon from '../../../components/AppIcon/AppIcon.vue';
-import { HotelRoomStatus, MenuIconName } from '../../../utils/constants';
+import AppIcon from '../../../../components/AppIcon/AppIcon.vue';
+import { HotelRoomStatus, MenuIconName } from '../../../../utils/constants';
 
 export interface RoomStatusCountItem {
   value: string;

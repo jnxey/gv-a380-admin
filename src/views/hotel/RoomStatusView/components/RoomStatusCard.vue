@@ -2,29 +2,11 @@
   <article class="room-status-card" :class="roomStatusCardClass(room.roomStatus)">
     <div class="room-status-actions">
       <button
-        v-if="room.roomStatus === KtvRoomStatus.IDLE && (canVerify || canSave)"
-        type="button"
-        class="room-status-flow"
-        title="开包厢"
-        @click="emit('open')"
-      >
-        <AppIcon class="room-status-flow-icon" :icon-name="MenuIconName.KTV_ROOM_OPEN" />
-      </button>
-      <button
-        v-else-if="room.roomStatus === KtvRoomStatus.IN_USE && canSave"
-        type="button"
-        class="room-status-flow"
-        title="打扫中"
-        @click="emit('change-status', KtvRoomStatus.CLEANING)"
-      >
-        <AppIcon class="room-status-flow-icon" :icon-name="MenuIconName.KTV_ROOM_CLEAN" />
-      </button>
-      <button
-        v-else-if="room.roomStatus === KtvRoomStatus.CLEANING && canSave"
+        v-if="room.roomStatus === HotelRoomStatus.CLEANING && canCheckOut"
         type="button"
         class="room-status-flow"
         title="空闲"
-        @click="emit('change-status', KtvRoomStatus.IDLE)"
+        @click="emit('finish-cleaning')"
       >
         <AppIcon class="room-status-flow-icon" :icon-name="MenuIconName.KTV_ROOM_IDLE" />
       </button>
@@ -35,7 +17,7 @@
             :key="roomStatusOption.value"
             type="button"
             class="room-status-more-item"
-            @click="emit('more-status', roomStatusOption.value)"
+            @click="emit('change-status', roomStatusOption.value)"
           >
             <span class="room-status-more-dot" :class="roomStatusCardClass(roomStatusOption.value)" />
             {{ roomStatusOption.label }}
@@ -50,39 +32,45 @@
     </div>
     <div class="room-status-no">{{ room.roomNo }}</div>
     <div class="room-status-name">
-      {{ room.roomName }}
-      <template v-if="isEmpty(hourlyPrice) !== true"> {{ hourlyPrice }}/小时</template>
+      {{ typeName }}
+      <template v-if="isEmpty(nightPrice) !== true"> · {{ nightPrice }}/晚</template>
     </div>
-    <div class="room-status-text">{{ roomStatusLabel(room.roomStatus) }}</div>
+    <div class="room-status-text">{{ statusLabel(room.roomStatus) }}</div>
+    <div v-if="isEmpty(guestName) !== true" class="room-status-name">{{ guestName }}</div>
     <div
-      v-if="isEmpty(occupyEndText) !== true || isEmpty(extendHourText) !== true || (room.roomStatus === KtvRoomStatus.IN_USE && canVerify)"
+      v-if="isEmpty(checkOutText) !== true || (room.roomStatus === HotelRoomStatus.OCCUPIED && (canExtend || canCheckOut))"
       class="room-status-occupy-line"
     >
-      <span v-if="isEmpty(occupyEndText) !== true" class="room-status-occupy">{{ occupyEndText }}</span>
-      <span v-if="isEmpty(extendHourText) !== true" class="room-status-occupy">{{ extendHourText }}</span>
+      <span v-if="isEmpty(checkOutText) !== true" class="room-status-occupy">{{ checkOutText }}</span>
       <button
-        v-if="room.roomStatus === KtvRoomStatus.IN_USE && canVerify"
+        v-if="room.roomStatus === HotelRoomStatus.OCCUPIED && canExtend"
         type="button"
         class="room-status-extend"
         @click="emit('extend')"
       >
-        延长
+        续住
+      </button>
+      <button
+        v-if="room.roomStatus === HotelRoomStatus.OCCUPIED && canCheckOut"
+        type="button"
+        class="room-status-extend"
+        @click="emit('check-out')"
+      >
+        退房
       </button>
     </div>
-    <div v-if="isEmpty(occupyRemindText) !== true" class="room-status-occupy">{{ occupyRemindText }}</div>
   </article>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import AppIcon from '../../../components/AppIcon/AppIcon.vue';
-import { KtvRoomStatus, MenuIconName } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import AppIcon from '../../../../components/AppIcon/AppIcon.vue';
+import { HotelRoomStatus, MenuIconName, statusLabel } from '../../../../utils/constants';
+import { isEmpty } from '../../../../utils/tools';
 
-export interface RoomStatusCardRow {
+export interface HotelRoomStatusCardRow {
   id: string;
   roomNo: string;
-  roomName: string;
   roomTypeId: string;
   roomStatus: string;
 }
@@ -93,74 +81,54 @@ interface RoomStatusOption {
 }
 
 const props = defineProps<{
-  room: RoomStatusCardRow;
-  hourlyPrice: string;
-  occupyEndText: string;
-  extendHourText: string;
-  occupyRemindText: string;
+  room: HotelRoomStatusCardRow;
+  typeName: string;
+  nightPrice: string;
+  guestName: string;
+  checkOutText: string;
   canSave: boolean;
-  canVerify: boolean;
+  canExtend: boolean;
+  canCheckOut: boolean;
 }>();
 
 const emit = defineEmits<{
-  open: [];
+  'finish-cleaning': [];
   extend: [];
+  'check-out': [];
   'change-status': [roomStatus: string];
-  'more-status': [roomStatus: string];
 }>();
 
-const roomStatusOptionList: RoomStatusOption[] = [
-  { value: KtvRoomStatus.IDLE, label: '空闲' },
-  { value: KtvRoomStatus.IN_USE, label: '使用中' },
-  { value: KtvRoomStatus.CLEANING, label: '打扫中' },
-  { value: KtvRoomStatus.MAINTENANCE, label: '维修中' },
-  { value: KtvRoomStatus.CLOSED, label: '临时关闭' },
+const manualStatusOptionList: RoomStatusOption[] = [
+  { value: HotelRoomStatus.IDLE, label: statusLabel(HotelRoomStatus.IDLE) },
+  { value: HotelRoomStatus.CLEANING, label: statusLabel(HotelRoomStatus.CLEANING) },
+  { value: HotelRoomStatus.MAINTENANCE, label: statusLabel(HotelRoomStatus.MAINTENANCE) },
 ];
 
 /**
- * 更多操作列出除当前状态以外的可选状态。使用中仅空闲可开；没有保存权限时不出现其余状态。
+ * 更多操作可在空闲、打扫中和维修之间切换。在住必须先退房，没有保存权限时不出现。
  */
 const moreStatusOptionList = computed(() => {
-  return roomStatusOptionList.filter((roomStatusOption) => {
-    if (roomStatusOption.value === props.room.roomStatus) {
-      return false;
-    }
-    if (roomStatusOption.value === KtvRoomStatus.IN_USE) {
-      return props.room.roomStatus === KtvRoomStatus.IDLE && (props.canVerify || props.canSave);
-    }
-    return props.canSave;
-  });
+  if (props.canSave !== true || props.room.roomStatus === HotelRoomStatus.OCCUPIED) {
+    return [];
+  }
+  return manualStatusOptionList.filter((roomStatusOption) => roomStatusOption.value !== props.room.roomStatus);
 });
 
 /**
- * 包厢运营状态的中文。
- */
-function roomStatusLabel(roomStatus: string): string {
-  const roomStatusOption = roomStatusOptionList.find((item) => item.value === roomStatus);
-  if (isEmpty(roomStatusOption)) {
-    return roomStatus;
-  }
-  return roomStatusOption.label;
-}
-
-/**
- * 包厢运营状态对应的卡片底色。
+ * 房态卡片底色。
  */
 function roomStatusCardClass(roomStatus: string): string {
-  if (roomStatus === KtvRoomStatus.IDLE) {
+  if (roomStatus === HotelRoomStatus.IDLE) {
     return 'is-idle';
   }
-  if (roomStatus === KtvRoomStatus.IN_USE) {
-    return 'is-in-use';
+  if (roomStatus === HotelRoomStatus.OCCUPIED) {
+    return 'is-occupied';
   }
-  if (roomStatus === KtvRoomStatus.CLEANING) {
+  if (roomStatus === HotelRoomStatus.CLEANING) {
     return 'is-cleaning';
   }
-  if (roomStatus === KtvRoomStatus.MAINTENANCE) {
+  if (roomStatus === HotelRoomStatus.MAINTENANCE) {
     return 'is-maintenance';
-  }
-  if (roomStatus === KtvRoomStatus.CLOSED) {
-    return 'is-closed';
   }
   return '';
 }
@@ -177,7 +145,7 @@ function roomStatusCardClass(roomStatus: string): string {
   background: #248a4a;
 }
 
-.room-status-card.is-in-use {
+.room-status-card.is-occupied {
   background: #b56a08;
 }
 
@@ -187,10 +155,6 @@ function roomStatusCardClass(roomStatus: string): string {
 
 .room-status-card.is-maintenance {
   background: #b84545;
-}
-
-.room-status-card.is-closed {
-  background: #5e6772;
 }
 
 .room-status-actions {
@@ -327,7 +291,7 @@ function roomStatusCardClass(roomStatus: string): string {
   background: #248a4a;
 }
 
-.room-status-more-dot.is-in-use {
+.room-status-more-dot.is-occupied {
   background: #b56a08;
 }
 
@@ -337,10 +301,6 @@ function roomStatusCardClass(roomStatus: string): string {
 
 .room-status-more-dot.is-maintenance {
   background: #b84545;
-}
-
-.room-status-more-dot.is-closed {
-  background: #5e6772;
 }
 
 .room-status-more-item:hover {

@@ -30,14 +30,14 @@
 </template>
 
 <script setup lang="ts">
-import { KtvApi } from '../../../api/ktv';
+import { KtvApi } from '../../../../api/ktv';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import ScanButton from '../../../components/ScanButton/ScanButton.vue';
-import { useSaving } from '../../../hooks/saving';
-import { KtvOccupyDuration, KtvOrderStatus, KtvRoomStatus, PageSetting } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
-import http from '../../../utils/request';
+import ScanButton from '../../../../components/ScanButton/ScanButton.vue';
+import { useSaving } from '../../../../hooks/saving';
+import { KtvOccupyDuration, KtvOrderStatus, KtvRoomStatus, PageSetting } from '../../../../utils/constants';
+import { isEmpty } from '../../../../utils/tools';
+import http from '../../../../utils/request';
 
 export interface OpenRoomRow {
   id: string;

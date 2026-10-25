@@ -67,13 +67,13 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import DeductView from '../DeductView/DeductView.vue';
-import OpenRoomDialog from './OpenRoomDialog.vue';
-import ExtendRoomDialog from './ExtendRoomDialog.vue';
-import PendingVerifyDialog from './PendingVerifyDialog.vue';
-import RoomStatusCard from './RoomStatusCard.vue';
-import RoomStatusOrdersAside from './RoomStatusOrdersAside.vue';
-import RoomStatusSummary from './RoomStatusSummary.vue';
-import { useKtvRoomStatusRefresh } from '../../../hooks/ktv-room-status-refresh';
+import OpenRoomDialog from './components/OpenRoomDialog.vue';
+import ExtendRoomDialog from './components/ExtendRoomDialog.vue';
+import PendingVerifyDialog from './components/PendingVerifyDialog.vue';
+import RoomStatusCard from './components/RoomStatusCard.vue';
+import RoomStatusOrdersAside from './components/RoomStatusOrdersAside.vue';
+import RoomStatusSummary from './components/RoomStatusSummary.vue';
+import { useKtvRoomStatusRefresh } from './utils/ktv-room-status-refresh';
 import { usePaymentNotice } from '../../../hooks/payment-notice';
 import { useSaving } from '../../../hooks/saving';
 import {
@@ -85,12 +85,12 @@ import {
   PermissionCode,
   RecordStatus,
 } from '../../../utils/constants';
-import { occupyEndMs, occupyRemindText, roomExtendHourText, roomOccupyEndText, roomOccupyRemindText } from '../../../utils/ktv-occupy';
+import { occupyEndMs, occupyRemindText, roomExtendHourText, roomOccupyEndText, roomOccupyRemindText } from './utils/ktv-occupy';
 import {
   buildPendingTypeCountList,
   buildRoomTypeWarningList,
   roomTypeWarningText,
-} from '../../../utils/ktv-room-type-warning';
+} from './utils/ktv-room-type-warning';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';

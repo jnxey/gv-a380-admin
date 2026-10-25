@@ -16,13 +16,13 @@
 </template>
 
 <script setup lang="ts">
-import { HotelApi } from '../../../api/hotel';
+import { HotelApi } from '../../../../api/hotel';
 import { computed } from 'vue';
 import { ElMessage } from 'element-plus';
-import { useSaving } from '../../../hooks/saving';
-import { HotelRoomStatus } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
-import http from '../../../utils/request';
+import { useSaving } from '../../../../hooks/saving';
+import { HotelRoomStatus } from '../../../../utils/constants';
+import { isEmpty } from '../../../../utils/tools';
+import http from '../../../../utils/request';
 
 export interface ExtendStayRoomRow {
   id: string;

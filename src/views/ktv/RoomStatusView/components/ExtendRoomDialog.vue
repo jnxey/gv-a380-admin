@@ -23,14 +23,14 @@
 </template>
 
 <script setup lang="ts">
-import { KtvApi } from '../../../api/ktv';
+import { KtvApi } from '../../../../api/ktv';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { useSaving } from '../../../hooks/saving';
-import { KtvOccupyDuration, KtvRoomStatus } from '../../../utils/constants';
-import { extendAfterOccupyEndText } from '../../../utils/ktv-occupy';
-import { isEmpty } from '../../../utils/tools';
-import http from '../../../utils/request';
+import { useSaving } from '../../../../hooks/saving';
+import { KtvOccupyDuration, KtvRoomStatus } from '../../../../utils/constants';
+import { extendAfterOccupyEndText } from '../utils/ktv-occupy';
+import { isEmpty } from '../../../../utils/tools';
+import http from '../../../../utils/request';
 
 export interface ExtendRoomRow {
   id: string;

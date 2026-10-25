@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatLocalDateTime, isEmpty } from '../../../utils/tools';
+import { formatLocalDateTime, isEmpty } from '../../../../utils/tools';
 
 export interface BookedOrderItem {
   bookingOrderId: string;

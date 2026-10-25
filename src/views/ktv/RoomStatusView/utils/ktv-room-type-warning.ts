@@ -1,5 +1,5 @@
-import { KtvRoomStatus } from './constants';
-import { isEmpty } from './tools';
+import { KtvRoomStatus } from '../../../../utils/constants';
+import { isEmpty } from '../../../../utils/tools';
 
 export interface PendingBookingForWarning {
   roomTypeId: string;

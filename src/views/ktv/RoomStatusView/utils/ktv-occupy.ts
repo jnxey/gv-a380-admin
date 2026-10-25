@@ -1,5 +1,5 @@
-import { KtvOccupyRemind, KtvRoomStatus } from './constants';
-import { isEmpty } from './tools';
+import { KtvOccupyRemind, KtvRoomStatus } from '../../../../utils/constants';
+import { isEmpty } from '../../../../utils/tools';
 
 export interface KtvOccupyRoomLike {
   roomStatus: string;

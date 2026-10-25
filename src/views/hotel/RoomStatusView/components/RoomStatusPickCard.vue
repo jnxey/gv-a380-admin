@@ -14,8 +14,8 @@
 </template>
 
 <script setup lang="ts">
-import { statusLabel } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { statusLabel } from '../../../../utils/constants';
+import { isEmpty } from '../../../../utils/tools';
 
 export interface PickRoomRow {
   id: string;
