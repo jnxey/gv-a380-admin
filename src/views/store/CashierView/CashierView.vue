@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <ShopSwitcher />
   <el-card>
     <div class="cashier-layout">
