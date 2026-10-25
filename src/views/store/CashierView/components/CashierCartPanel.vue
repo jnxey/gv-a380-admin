@@ -35,6 +35,14 @@
       <span class="cart-total-label">合计</span>
       <span class="cart-total-amount">{{ cartAmountText }}</span>
     </div>
+    <el-checkbox
+      v-if="pointDeductVisible === true"
+      class="point-deduct"
+      :model-value="usePointDeduct"
+      @change="emit('update:usePointDeduct', $event === true)"
+    >
+      {{ pointDeductHint }}
+    </el-checkbox>
     <div class="checkout-actions">
       <el-button
         v-if="canCash"
@@ -67,6 +75,9 @@ interface CartLine {
 defineProps<{
   cartLineList: CartLine[];
   cartAmountText: string;
+  pointDeductVisible: boolean;
+  usePointDeduct: boolean;
+  pointDeductHint: string;
   canCash: boolean;
   checkoutDisabled: boolean;
   submitting: boolean;
@@ -76,6 +87,7 @@ const emit = defineEmits<{
   remove: [productId: string];
   'change-quantity': [productId: string, quantity: number];
   cash: [];
+  'update:usePointDeduct': [usePointDeduct: boolean];
 }>();
 
 /**
@@ -180,6 +192,12 @@ function changeCartLineQuantity(productId: string, quantity: number | null | und
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.point-deduct {
+  margin: 0 2px 14px;
+  white-space: normal;
+  height: auto;
 }
 
 .cart-total {

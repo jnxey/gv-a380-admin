@@ -9,6 +9,17 @@
           <el-form-item label="每小时价格"><el-input v-model="roomTypeForm.hourlyPrice" /></el-form-item>
         </el-col>
         <el-col :span="12">
+          <el-form-item label="积分可抵扣金额">
+            <el-input v-model="roomTypeForm.pointDeductAmount" placeholder="不能大于每小时价格" />
+            <p v-if="showPointDeductZeroHint(roomTypeForm.pointDeductAmount)" class="field-hint">为 0 时不可抵扣</p>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="抵扣积分数量">
+            <el-input v-model="roomTypeForm.pointDeductPoints" placeholder="0 表示不可抵扣" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
           <el-form-item label="状态">
             <el-radio-group v-model="roomTypeForm.status">
               <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
@@ -88,6 +99,8 @@ export interface RoomTypeRow {
   typeName: string;
   description: RoomTypeDescription;
   hourlyPrice: string;
+  pointDeductAmount: string;
+  pointDeductPoints: number;
   status: string;
   roomCount: number;
   imageList: RoomTypeImageView[];
@@ -108,6 +121,8 @@ const roomTypeForm = reactive({
   typeName: '',
   description: emptyRoomTypeDescription(),
   hourlyPrice: '',
+  pointDeductAmount: '0',
+  pointDeductPoints: '0',
   status: RecordStatus.ENABLED as string
 });
 
@@ -169,6 +184,8 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
     roomTypeForm.typeName = '';
     roomTypeForm.description = emptyRoomTypeDescription();
     roomTypeForm.hourlyPrice = '';
+    roomTypeForm.pointDeductAmount = '0';
+    roomTypeForm.pointDeductPoints = '0';
     roomTypeForm.status = RecordStatus.ENABLED;
     imageGalleryRef.value?.clearImages();
     return;
@@ -181,8 +198,45 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
     bookingNotice: readDescriptionText(roomTypeRow.description, 'bookingNotice')
   };
   roomTypeForm.hourlyPrice = roomTypeRow.hourlyPrice;
+  roomTypeForm.pointDeductAmount = isEmpty(roomTypeRow.pointDeductAmount) ? '0' : roomTypeRow.pointDeductAmount;
+  roomTypeForm.pointDeductPoints = isEmpty(roomTypeRow.pointDeductPoints) ? '0' : String(roomTypeRow.pointDeductPoints);
   roomTypeForm.status = roomTypeRow.status;
   imageGalleryRef.value?.setImages(isEmpty(roomTypeRow.imageList) ? [] : roomTypeRow.imageList);
+}
+
+/**
+ * 金额为空或 0 时，提示当前不能用积分抵扣。
+ */
+function showPointDeductZeroHint(amountText: string): boolean {
+  if (isEmpty(amountText)) {
+    return true;
+  }
+  const amountNumber = Number(amountText);
+  return Number.isFinite(amountNumber) === true && amountNumber === 0;
+}
+
+/**
+ * 积分可抵扣金额和积分数量同时为 0，或同时有效，且金额不超过单位价格。
+ */
+function acceptPointDeduct(unitPriceText: string, amountText: string, pointsText: string, priceLabel: string): boolean {
+  const amountNumber = isEmpty(amountText) ? 0 : Number(amountText);
+  const pointsNumber = isEmpty(pointsText) ? 0 : Number(pointsText);
+  const unitPriceNumber = Number(unitPriceText);
+  if (Number.isFinite(amountNumber) !== true || amountNumber < 0 || Number.isInteger(pointsNumber) !== true || pointsNumber < 0) {
+    ElMessage.warning('积分抵扣不正确');
+    return false;
+  }
+  const amountIsZero = amountNumber === 0;
+  const pointsIsZero = pointsNumber === 0;
+  if (amountIsZero !== pointsIsZero) {
+    ElMessage.warning('积分可抵扣金额和抵扣积分数量需要同时填写');
+    return false;
+  }
+  if (amountIsZero !== true && (Number.isFinite(unitPriceNumber) !== true || amountNumber > unitPriceNumber)) {
+    ElMessage.warning(`积分可抵扣金额不能大于${priceLabel}`);
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -196,6 +250,9 @@ async function saveRoomType(): Promise<void> {
   const hourlyPriceNumber = Number(roomTypeForm.hourlyPrice);
   if (Number.isFinite(hourlyPriceNumber) !== true || hourlyPriceNumber <= 0) {
     ElMessage.warning('每小时价格必须大于0');
+    return;
+  }
+  if (acceptPointDeduct(roomTypeForm.hourlyPrice, roomTypeForm.pointDeductAmount, roomTypeForm.pointDeductPoints, '每小时价格') !== true) {
     return;
   }
   await runSaving(async () => {
@@ -212,3 +269,12 @@ async function saveRoomType(): Promise<void> {
   });
 }
 </script>
+
+<style scoped>
+.field-hint {
+  margin: 4px 0 0;
+  color: #909399;
+  font-size: 12px;
+  line-height: 1.4;
+}
+</style>

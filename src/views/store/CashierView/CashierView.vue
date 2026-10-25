@@ -14,12 +14,16 @@
       <CashierCartPanel
         :cart-line-list="cartLineList"
         :cart-amount-text="cartAmountText"
+        :point-deduct-visible="pointDeductPlan.visible"
+        :use-point-deduct="usePointDeduct"
+        :point-deduct-hint="pointDeductPlan.hint"
         :can-cash="canCash"
         :checkout-disabled="checkoutDisabled"
         :submitting="submitting"
         @remove="removeCartLine"
         @change-quantity="changeCartLineQuantity"
         @cash="submitCashSale"
+        @update:use-point-deduct="usePointDeduct = $event"
       />
       <CashierPendingPanel
         :pause-product-scan="pauseProductScan"
@@ -33,7 +37,7 @@
 
 <script setup lang="ts">
 import { StoreApi } from '../../../api/store';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { FinanceBizType, PageSetting, PermissionCode, QuickProductQuery, statusLabel, StorePayMethod } from '../../../utils/constants';
@@ -49,6 +53,8 @@ interface ProductRow {
   productId: string;
   productName: string;
   salePrice: string;
+  pointDeductAmount: string;
+  pointDeductPoints: number;
   stockQuantity: number;
   status: string;
 }
@@ -57,6 +63,8 @@ interface CartLine {
   productId: string;
   productName: string;
   salePrice: string;
+  pointDeductAmount: string;
+  pointDeductPoints: number;
   stockQuantity: number;
   quantity: number;
 }
@@ -101,6 +109,50 @@ const cartAmountText = computed(() => {
     totalAmount += Number(cartLine.salePrice) * cartLine.quantity;
   }
   return totalAmount.toFixed(2);
+});
+
+const usePointDeduct = ref(false);
+
+/**
+ * 购物车里可抵扣商品的合计。没有可抵扣商品时不显示开关。
+ */
+const pointDeductPlan = computed(() => {
+  let deductAmount = 0;
+  let deductPoints = 0;
+  for (const cartLine of cartLineList.value) {
+    const unitAmount = Number(cartLine.pointDeductAmount);
+    const unitPoints = Number(cartLine.pointDeductPoints);
+    if (Number.isFinite(unitAmount) === true && unitAmount > 0 && Number.isInteger(unitPoints) === true && unitPoints > 0) {
+      deductAmount += unitAmount * cartLine.quantity;
+      deductPoints += unitPoints * cartLine.quantity;
+    }
+  }
+  if (deductPoints <= 0) {
+    return { visible: false, amountText: '0.00', hint: '' };
+  }
+  const amountText = deductAmount.toFixed(2);
+  return {
+    visible: true,
+    amountText,
+    hint: `会员收款抵扣 ${amountText} 元，消耗 ${deductPoints} 积分`,
+  };
+});
+
+/**
+ * 会员收款实际从余额扣的金额。勾选抵扣时减去抵扣额。
+ */
+function readMemberPayableAmountText(): string {
+  if (usePointDeduct.value !== true || pointDeductPlan.value.visible !== true) {
+    return cartAmountText.value;
+  }
+  const payableAmount = Number(cartAmountText.value) - Number(pointDeductPlan.value.amountText);
+  return payableAmount.toFixed(2);
+}
+
+watch(pointDeductPlan, (plan) => {
+  if (plan.visible !== true) {
+    usePointDeduct.value = false;
+  }
 });
 
 /**
@@ -192,6 +244,8 @@ function addCartLine(productRow: ProductRow): void {
       productId: productRow.productId,
       productName: productRow.productName,
       salePrice: productRow.salePrice,
+      pointDeductAmount: isEmpty(productRow.pointDeductAmount) ? '0' : productRow.pointDeductAmount,
+      pointDeductPoints: isEmpty(productRow.pointDeductPoints) ? 0 : productRow.pointDeductPoints,
       stockQuantity: productRow.stockQuantity,
       quantity: 1,
     });
@@ -329,7 +383,7 @@ async function onPayQrScanned(cipherText: string): Promise<void> {
   if (submitting.value === true) {
     return;
   }
-  const amountText = cartAmountText.value;
+  const amountText = readMemberPayableAmountText();
   submitting.value = true;
   try {
     const memberRow = (await http.post(StoreApi.PAY_QR, { cipherText })) as MemberRow;
@@ -337,6 +391,7 @@ async function onPayQrScanned(cipherText: string): Promise<void> {
       payMethod: StorePayMethod.MEMBER,
       memberId: memberRow.memberId,
       remark: '',
+      usePointDeduct: usePointDeduct.value === true && pointDeductPlan.value.visible === true,
       itemList: cartLineList.value.map((cartLine) => ({
         productId: cartLine.productId,
         quantity: cartLine.quantity,

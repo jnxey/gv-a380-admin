@@ -56,6 +56,9 @@
           · {{ formatLocalDateTime(selectedSale.createdAt) }}
         </div>
         <div class="sale-amount">{{ selectedSale.amount }}</div>
+        <div v-if="selectedSale.pointDeductPoints > 0" class="sale-meta">
+          积分抵扣 {{ selectedSale.pointDeductAmount }} 元，消耗 {{ selectedSale.pointDeductPoints }} 积分
+        </div>
         <div v-for="itemRow in selectedSale.itemList" :key="`${selectedSale.saleId}-${itemRow.productId}`" class="sale-item">
           {{ itemRow.productName }} × {{ itemRow.quantity }} · {{ itemRow.salePrice }} · {{ itemRow.lineAmount }}
         </div>
@@ -97,6 +100,8 @@ interface SaleRow {
   payMethod: string;
   saleStatus: string;
   amount: string;
+  pointDeductAmount: string;
+  pointDeductPoints: number;
   remark: string;
   receiverName: string;
   contact: string;

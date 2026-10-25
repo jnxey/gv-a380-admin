@@ -29,6 +29,17 @@
           <el-form-item label="售价"><el-input v-model="productForm.salePrice" /></el-form-item>
         </el-col>
         <el-col :span="12">
+          <el-form-item label="积分可抵扣金额">
+            <el-input v-model="productForm.pointDeductAmount" placeholder="不能大于售价" />
+            <p v-if="showPointDeductZeroHint(productForm.pointDeductAmount)" class="field-hint">为 0 时不可抵扣</p>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="抵扣积分数量">
+            <el-input v-model="productForm.pointDeductPoints" placeholder="0 表示不可抵扣" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
           <el-form-item label="进价"><el-input v-model="productForm.costPrice" /></el-form-item>
         </el-col>
         <el-col :span="12">
@@ -110,6 +121,8 @@ export interface ProductRow {
   description: { content: string };
   barcode: string;
   salePrice: string;
+  pointDeductAmount: string;
+  pointDeductPoints: number;
   costPrice: string;
   stockQuantity: number;
   quickProduct: boolean;
@@ -136,6 +149,8 @@ const productForm = reactive({
   description: { content: '' },
   barcode: '',
   salePrice: '',
+  pointDeductAmount: '0',
+  pointDeductPoints: '0',
   costPrice: '',
   quickProduct: false,
   status: RecordStatus.ENABLED as string,
@@ -205,6 +220,8 @@ async function fillProductForm(productRow: ProductRow | null): Promise<void> {
     productForm.description.content = '';
     productForm.barcode = '';
     productForm.salePrice = '';
+    productForm.pointDeductAmount = '0';
+    productForm.pointDeductPoints = '0';
     productForm.costPrice = '';
     productForm.quickProduct = false;
     productForm.status = RecordStatus.ENABLED;
@@ -220,6 +237,8 @@ async function fillProductForm(productRow: ProductRow | null): Promise<void> {
     : productRow.description.content;
   productForm.barcode = productRow.barcode;
   productForm.salePrice = productRow.salePrice;
+  productForm.pointDeductAmount = isEmpty(productRow.pointDeductAmount) ? '0' : productRow.pointDeductAmount;
+  productForm.pointDeductPoints = isEmpty(productRow.pointDeductPoints) ? '0' : String(productRow.pointDeductPoints);
   productForm.costPrice = productRow.costPrice;
   productForm.quickProduct = productRow.quickProduct === true;
   productForm.status = productRow.status;
@@ -235,6 +254,41 @@ function onBarcodeScanned(scanText: string): void {
 }
 
 /**
+ * 金额为空或 0 时，提示当前不能用积分抵扣。
+ */
+function showPointDeductZeroHint(amountText: string): boolean {
+  if (isEmpty(amountText)) {
+    return true;
+  }
+  const amountNumber = Number(amountText);
+  return Number.isFinite(amountNumber) === true && amountNumber === 0;
+}
+
+/**
+ * 积分可抵扣金额和积分数量同时为 0，或同时有效，且金额不超过单位价格。
+ */
+function acceptPointDeduct(unitPriceText: string, amountText: string, pointsText: string, priceLabel: string): boolean {
+  const amountNumber = isEmpty(amountText) ? 0 : Number(amountText);
+  const pointsNumber = isEmpty(pointsText) ? 0 : Number(pointsText);
+  const unitPriceNumber = Number(unitPriceText);
+  if (Number.isFinite(amountNumber) !== true || amountNumber < 0 || Number.isInteger(pointsNumber) !== true || pointsNumber < 0) {
+    ElMessage.error('积分抵扣不正确');
+    return false;
+  }
+  const amountIsZero = amountNumber === 0;
+  const pointsIsZero = pointsNumber === 0;
+  if (amountIsZero !== pointsIsZero) {
+    ElMessage.error('积分可抵扣金额和抵扣积分数量需要同时填写');
+    return false;
+  }
+  if (amountIsZero !== true && (Number.isFinite(unitPriceNumber) !== true || amountNumber > unitPriceNumber)) {
+    ElMessage.error(`积分可抵扣金额不能大于${priceLabel}`);
+    return false;
+  }
+  return true;
+}
+
+/**
  * 保存商品。新建成功后再补传选中的图片。
  */
 async function saveProduct(): Promise<void> {
@@ -246,6 +300,9 @@ async function saveProduct(): Promise<void> {
     ElMessage.error('请填写条码');
     return;
   }
+  if (acceptPointDeduct(productForm.salePrice, productForm.pointDeductAmount, productForm.pointDeductPoints, '售价') !== true) {
+    return;
+  }
   await runSaving(async () => {
     const body = {
       categoryId: productForm.categoryId,
@@ -253,6 +310,8 @@ async function saveProduct(): Promise<void> {
       description: { content: productForm.description.content },
       barcode: productForm.barcode,
       salePrice: productForm.salePrice,
+      pointDeductAmount: productForm.pointDeductAmount,
+      pointDeductPoints: Number(isEmpty(productForm.pointDeductPoints) ? 0 : productForm.pointDeductPoints),
       costPrice: productForm.costPrice,
       quickProduct: productForm.quickProduct,
       status: productForm.status,
@@ -284,5 +343,12 @@ async function saveProduct(): Promise<void> {
   flex: 1 1 0;
   min-width: 0;
   width: 100%;
+}
+
+.field-hint {
+  margin: 4px 0 0;
+  color: #909399;
+  font-size: 12px;
+  line-height: 1.4;
 }
 </style>
