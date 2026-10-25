@@ -35,7 +35,8 @@
         <RecordField label="房间">{{ orderRow.roomNo }}</RecordField>
         <RecordField label="入住日">{{ formatLocalDateTime(orderRow.checkInDate) }}</RecordField>
         <RecordField label="离店日">{{ formatLocalDateTime(orderRow.checkOutDate) }}</RecordField>
-        <RecordField label="房费">{{ orderRow.amount }}</RecordField>
+        <RecordField label="房费">{{ readPaidAmount(orderRow) }}</RecordField>
+        <RecordField v-if="hasPointDeduct(orderRow)" label="积分抵扣">{{ orderRow.pointDeductAmount }} 元</RecordField>
         <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
         <template #actions>
           <el-button
@@ -90,6 +91,8 @@ interface OrderRow {
   checkInDate: string;
   checkOutDate: string;
   amount: string;
+  pointDeductAmount: string;
+  pointDeductPoints: number;
   orderStatus: string;
 }
 
@@ -150,6 +153,29 @@ const extendRoomMeta = computed(() => {
   }
   return `${guestName} · ${checkOutText}`;
 });
+
+/**
+ * 实付金额。原价减去本单记下的积分抵扣。
+ */
+function readPaidAmount(orderRow: OrderRow): string {
+  if (isEmpty(orderRow) || isEmpty(orderRow.amount)) {
+    return '';
+  }
+  const goodsAmount = Number(orderRow.amount);
+  const deductAmount = isEmpty(orderRow.pointDeductAmount) ? 0 : Number(orderRow.pointDeductAmount);
+  if (Number.isFinite(goodsAmount) !== true) {
+    return orderRow.amount;
+  }
+  const paidAmount = goodsAmount - (Number.isFinite(deductAmount) === true ? deductAmount : 0);
+  return paidAmount.toFixed(2);
+}
+
+/**
+ * 这笔订单是否用积分抵扣了一部分。
+ */
+function hasPointDeduct(orderRow: OrderRow): boolean {
+  return isEmpty(orderRow) !== true && isEmpty(orderRow.pointDeductPoints) !== true && orderRow.pointDeductPoints > 0;
+}
 
 /**
  * 订单上的客人。有会员账号用账号，现场入住没有会员时用联系方式。

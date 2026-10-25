@@ -36,7 +36,8 @@
         <RecordField label="开始">{{ formatLocalDateTime(orderRow.startTime) }}</RecordField>
         <RecordField label="小时">{{ orderRow.durationHours }}</RecordField>
         <RecordField label="结束">{{ formatBookingEnd(orderRow) }}</RecordField>
-        <RecordField label="包厢费">{{ orderRow.amount }}</RecordField>
+        <RecordField label="包厢费">{{ readPaidAmount(orderRow) }}</RecordField>
+        <RecordField v-if="hasPointDeduct(orderRow)" label="积分抵扣">{{ orderRow.pointDeductAmount }} 元</RecordField>
         <RecordField label="核销码">{{ VerifyCodeMask }}</RecordField>
         <RecordField label="状态">{{ statusLabel(orderRow.orderStatus) }}</RecordField>
         <template #actions>
@@ -109,6 +110,8 @@ interface OrderRow {
   endTime: string;
   durationHours: number;
   amount: string;
+  pointDeductAmount: string;
+  pointDeductPoints: number;
   verifyCode: string;
   orderStatus: string;
 }
@@ -128,6 +131,29 @@ const verifyVisible = ref(false);
 const verifyOrderId = ref('');
 const verifyRoomId = ref('');
 const freeRoomList = ref<FreeRoom[]>([]);
+
+/**
+ * 实付金额。原价减去本单记下的积分抵扣。
+ */
+function readPaidAmount(orderRow: OrderRow): string {
+  if (isEmpty(orderRow) || isEmpty(orderRow.amount)) {
+    return '';
+  }
+  const goodsAmount = Number(orderRow.amount);
+  const deductAmount = isEmpty(orderRow.pointDeductAmount) ? 0 : Number(orderRow.pointDeductAmount);
+  if (Number.isFinite(goodsAmount) !== true) {
+    return orderRow.amount;
+  }
+  const paidAmount = goodsAmount - (Number.isFinite(deductAmount) === true ? deductAmount : 0);
+  return paidAmount.toFixed(2);
+}
+
+/**
+ * 这笔订单是否用积分抵扣了一部分。
+ */
+function hasPointDeduct(orderRow: OrderRow): boolean {
+  return isEmpty(orderRow) !== true && isEmpty(orderRow.pointDeductPoints) !== true && orderRow.pointDeductPoints > 0;
+}
 
 /**
  * 结束钟点不晚于开唱钟点时，表示已经跨到第二天。

@@ -37,7 +37,10 @@
               · {{ formatLocalDateTime(saleRow.createdAt) }}
             </div>
           </div>
-          <div class="sale-amount">{{ saleRow.amount }}</div>
+          <div class="sale-amount-block">
+            <div class="sale-amount">{{ readPaidAmount(saleRow) }}</div>
+            <div v-if="hasPointDeduct(saleRow)" class="sale-meta">积分抵扣 {{ saleRow.pointDeductAmount }} 元</div>
+          </div>
         </div>
         <div v-for="itemRow in saleRow.itemList" :key="`${saleRow.saleId}-${itemRow.productId}`" class="sale-item">
           {{ itemRow.productName }} × {{ itemRow.quantity }} · {{ itemRow.salePrice }} · {{ itemRow.lineAmount }}
@@ -55,7 +58,7 @@
           <template v-if="isEmpty(selectedSale.username) !== true"> · {{ selectedSale.username }}</template>
           · {{ formatLocalDateTime(selectedSale.createdAt) }}
         </div>
-        <div class="sale-amount">{{ selectedSale.amount }}</div>
+        <div class="sale-amount">{{ readPaidAmount(selectedSale) }}</div>
         <div v-if="selectedSale.pointDeductPoints > 0" class="sale-meta">
           积分抵扣 {{ selectedSale.pointDeductAmount }} 元，消耗 {{ selectedSale.pointDeductPoints }} 积分
         </div>
@@ -124,6 +127,29 @@ const contactKeyword = ref('');
 const orderDateRange = ref<[string, string] | null>(null);
 const appliedStartDate = ref('');
 const appliedEndDate = ref('');
+
+/**
+ * 实付金额。原价减去本单记下的积分抵扣。
+ */
+function readPaidAmount(saleRow: SaleRow | null): string {
+  if (isEmpty(saleRow) || isEmpty(saleRow.amount)) {
+    return '';
+  }
+  const goodsAmount = Number(saleRow.amount);
+  const deductAmount = isEmpty(saleRow.pointDeductAmount) ? 0 : Number(saleRow.pointDeductAmount);
+  if (Number.isFinite(goodsAmount) !== true) {
+    return saleRow.amount;
+  }
+  const paidAmount = goodsAmount - (Number.isFinite(deductAmount) === true ? deductAmount : 0);
+  return paidAmount.toFixed(2);
+}
+
+/**
+ * 这笔订单是否用积分抵扣了一部分。
+ */
+function hasPointDeduct(saleRow: SaleRow | null): boolean {
+  return isEmpty(saleRow) !== true && isEmpty(saleRow.pointDeductPoints) !== true && saleRow.pointDeductPoints > 0;
+}
 
 /**
  * 日期数字补成两位。
@@ -293,9 +319,18 @@ onMounted(() => {
   color: #1c2434;
 }
 
+.sale-amount-block {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
 .sale-amount {
   font-size: 18px;
   font-weight: 600;
+}
+
+.sale-amount-block .sale-meta {
+  margin-top: 2px;
 }
 
 .sale-meta,
