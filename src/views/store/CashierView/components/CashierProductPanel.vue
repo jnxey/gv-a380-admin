@@ -51,7 +51,7 @@ import { onBeforeUnmount, ref } from 'vue';
 import AppIcon from '../../../../components/AppIcon/AppIcon.vue';
 import { cancelScanGun } from '../../../../components/ScanGunPrompt/scan-gun';
 import { readScanText } from '../../../../components/ScanGunPrompt/read-scan-text';
-import { MenuIconName, RecordStatus } from '../../../../utils/constants';
+import { MenuIconName, PayRechargeQrText, RecordStatus, StoreProductBarcode } from '../../../../utils/constants';
 import { readScanCode } from '../../../../utils/gv-sdk';
 import { isEmpty } from '../../../../utils/tools';
 
@@ -67,6 +67,7 @@ const props = defineProps<{
   keyword: string;
   productList: ProductRow[];
   searchProducts: () => Promise<ProductRow[]>;
+  payByMemberScan: (cipherText: string) => Promise<void>;
 }>();
 
 const emit = defineEmits<{
@@ -101,9 +102,23 @@ function willUseGvSdkCamera(): boolean {
 }
 
 /**
- * 扫码查商品；仅命中一件可卖时加入购物车。
+ * 超过商品条码上限且整段是 Base64 时，当成付款/充值二维码。短条码仍走商品搜索。
+ */
+function isPayRechargeQrText(scanText: string): boolean {
+  if (scanText.length <= StoreProductBarcode.MAX_LENGTH) {
+    return false;
+  }
+  return PayRechargeQrText.PATTERN.test(scanText);
+}
+
+/**
+ * 扫码查商品；仅命中一件可卖时加入购物车。扫到付款码时按会员余额收款，并等这次收款结束。
  */
 async function applyProductScan(scanText: string): Promise<void> {
+  if (isPayRechargeQrText(scanText) === true) {
+    await props.payByMemberScan(scanText);
+    return;
+  }
   emit('update:keyword', scanText);
   const productRows = await props.searchProducts();
   if (productRows.length !== 1) {

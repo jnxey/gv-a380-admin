@@ -49,6 +49,20 @@ export const StoreDeliveryField = {
 } as const;
 
 /**
+ * 商品条码最长长度，与库字段一致。听枪用它和付款码区分。
+ */
+export const StoreProductBarcode = {
+  MAX_LENGTH: 32,
+} as const;
+
+/**
+ * 付款/充值二维码是 AES-GCM 的 Base64，比商品条码长。听枪只认字符集，不在前端解密。
+ */
+export const PayRechargeQrText = {
+  PATTERN: /^[A-Za-z0-9+/]+=*$/,
+} as const;
+
+/**
  * 门店收款二维码。文案是前缀加门店编码，海报是紫底白码。
  */
 export const ShopPayQr = {

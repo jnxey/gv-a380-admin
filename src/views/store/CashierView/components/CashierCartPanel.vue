@@ -47,26 +47,12 @@
       >
         收款 {{ cartAmountText }}
       </el-button>
-      <div v-if="canMember" class="member-scan-wrap" @click.capture="emit('pause-product-scan')">
-        <ScanButton
-          type="warning"
-          size="large"
-          class="checkout-scan-button"
-          aria-label="扫码收款"
-          :disabled="checkoutDisabled"
-          @scanned="emit('pay-scanned', $event)"
-        >
-          <AppIcon :icon-name="MenuIconName.SCAN_QR" />
-          <span>扫码收款 {{ cartAmountText }}</span>
-        </ScanButton>
-      </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import AppIcon from '../../../../components/AppIcon/AppIcon.vue';
-import ScanButton from '../../../../components/ScanButton/ScanButton.vue';
 import { MenuIconName } from '../../../../utils/constants';
 import { isEmpty } from '../../../../utils/tools';
 
@@ -82,7 +68,6 @@ defineProps<{
   cartLineList: CartLine[];
   cartAmountText: string;
   canCash: boolean;
-  canMember: boolean;
   checkoutDisabled: boolean;
   submitting: boolean;
 }>();
@@ -91,8 +76,6 @@ const emit = defineEmits<{
   remove: [productId: string];
   'change-quantity': [productId: string, quantity: number];
   cash: [];
-  'pause-product-scan': [];
-  'pay-scanned': [cipherText: string];
 }>();
 
 /**
@@ -230,30 +213,12 @@ function changeCartLineQuantity(productId: string, quantity: number | null | und
   gap: 10px;
 }
 
-.checkout-button,
-.member-scan-wrap,
-.checkout-scan-button {
+.checkout-button {
   width: 100%;
-}
-
-.checkout-button,
-.checkout-scan-button {
   height: 48px;
   margin: 0;
   border-radius: 10px;
   font-size: 16px;
   font-weight: 700;
-}
-
-.checkout-scan-button svg {
-  width: 18px;
-  height: 18px;
-  margin-right: 6px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vertical-align: -3px;
 }
 </style>

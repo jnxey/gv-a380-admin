@@ -7,20 +7,18 @@
         v-model:keyword="keyword"
         :product-list="productList"
         :search-products="loadProducts"
+        :pay-by-member-scan="onPayQrScanned"
         @add="addCartLine"
       />
       <CashierCartPanel
         :cart-line-list="cartLineList"
         :cart-amount-text="cartAmountText"
         :can-cash="canCash"
-        :can-member="canMember"
         :checkout-disabled="checkoutDisabled"
         :submitting="submitting"
         @remove="removeCartLine"
         @change-quantity="changeCartLineQuantity"
         @cash="submitCashSale"
-        @pause-product-scan="pauseProductListenForMemberScan"
-        @pay-scanned="onPayQrScanned"
       />
       <CashierPendingPanel
         :pause-product-scan="pauseProductScan"
@@ -34,9 +32,9 @@
 <script setup lang="ts">
 import { StoreApi } from '../../../api/store';
 import { computed, onMounted, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElNotification } from 'element-plus';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
-import { PageSetting, PermissionCode, StorePayMethod } from '../../../utils/constants';
+import { FinanceBizType, PageSetting, PermissionCode, statusLabel, StorePayMethod } from '../../../utils/constants';
 import { isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
@@ -81,7 +79,13 @@ const productList = ref<ProductRow[]>([]);
 const cartLineList = ref<CartLine[]>([]);
 const submitting = ref(false);
 const productPanelRef = ref<CashierProductPanelExpose | null>(null);
-let resumeProductListenAfterMember = false;
+
+/** 会员扫码收款播报，和用户扫码付款同一句。 */
+const MemberPaySpeech = {
+  LANGUAGE: 'zh-CN',
+  PREFIX: '收款',
+  SUFFIX: '元',
+};
 
 /**
  * 购物车合计金额。
@@ -95,7 +99,7 @@ const cartAmountText = computed(() => {
 });
 
 /**
- * 购物车为空或正在提交时，收款和扫码收款都不能点。
+ * 购物车为空或正在提交时，现金收款不能点。
  */
 const checkoutDisabled = computed(() => {
   return isEmpty(cartLineList.value) || submitting.value;
@@ -189,20 +193,59 @@ function removeCartLine(productId: string): void {
 }
 
 /**
- * 扫会员付款码前先停商品听枪，并记住扫完是否恢复。
+ * 选出中文语音。还没有中文语音时返回空，交给浏览器默认语音。
  */
-function pauseProductListenForMemberScan(): void {
-  resumeProductListenAfterMember = pauseProductScan();
+function findChineseVoice(): SpeechSynthesisVoice | null {
+  if (isEmpty(window.speechSynthesis)) {
+    return null;
+  }
+  const voiceList = window.speechSynthesis.getVoices();
+  for (const voice of voiceList) {
+    if (voice.lang === MemberPaySpeech.LANGUAGE || voice.lang.startsWith('zh')) {
+      return voice;
+    }
+  }
+  return null;
 }
 
 /**
- * 收款成功后清空购物车并重新听商品码。
+ * 播报会员收款金额。和用户扫码付款同一句。
  */
-async function afterSaleSucceeded(): Promise<void> {
+function playMemberPaySound(amountText: string): void {
+  if (isEmpty(amountText) || isEmpty(window.speechSynthesis)) {
+    return;
+  }
+  const utterance = new SpeechSynthesisUtterance(`${MemberPaySpeech.PREFIX}${amountText}${MemberPaySpeech.SUFFIX}`);
+  utterance.lang = MemberPaySpeech.LANGUAGE;
+  const chineseVoice = findChineseVoice();
+  if (chineseVoice !== null) {
+    utterance.voice = chineseVoice;
+  }
+  window.speechSynthesis.speak(utterance);
+}
+
+/**
+ * 现金收款成功后清空购物车并重新听商品码。
+ */
+async function afterCashSaleSucceeded(): Promise<void> {
   ElMessage.success('收款成功');
   cartLineList.value = [];
   await loadProducts();
   resumeProductScan();
+}
+
+/**
+ * 会员扫码收款成功后播报金额、清空购物车并刷新商品。听枪还停在这次收款上，不用重新拉起。
+ */
+async function afterMemberSaleSucceeded(amountText: string): Promise<void> {
+  playMemberPaySound(amountText);
+  ElNotification({
+    title: statusLabel(FinanceBizType.STORE_SALE),
+    message: amountText,
+    type: 'success',
+  });
+  cartLineList.value = [];
+  await loadProducts();
 }
 
 /**
@@ -229,7 +272,7 @@ async function submitCashSale(): Promise<void> {
         quantity: cartLine.quantity,
       })),
     });
-    await afterSaleSucceeded();
+    await afterCashSaleSucceeded();
   } catch {
     if (wasListening === true) {
       resumeProductScan();
@@ -240,16 +283,21 @@ async function submitCashSale(): Promise<void> {
 }
 
 /**
- * 扫付款码后立刻按会员余额提交销售单。失败或取消时按需要恢复商品听枪。
+ * 听枪扫到付款码后按会员余额提交销售单。购物车为空或没有权限时只提示，不把密文拿去搜商品。
  */
 async function onPayQrScanned(cipherText: string): Promise<void> {
-  if (checkoutDisabled.value || canMember !== true) {
-    if (resumeProductListenAfterMember === true) {
-      resumeProductListenAfterMember = false;
-      resumeProductScan();
-    }
+  if (isEmpty(cartLineList.value)) {
+    ElMessage.warning('请先加入商品');
     return;
   }
+  if (canMember !== true) {
+    ElMessage.warning('没有会员收款权限');
+    return;
+  }
+  if (submitting.value === true) {
+    return;
+  }
+  const amountText = cartAmountText.value;
   submitting.value = true;
   try {
     const memberRow = (await http.post(StoreApi.PAY_QR, { cipherText })) as MemberRow;
@@ -262,13 +310,9 @@ async function onPayQrScanned(cipherText: string): Promise<void> {
         quantity: cartLine.quantity,
       })),
     });
-    resumeProductListenAfterMember = false;
-    await afterSaleSucceeded();
+    await afterMemberSaleSucceeded(amountText);
   } catch {
-    if (resumeProductListenAfterMember === true) {
-      resumeProductListenAfterMember = false;
-      resumeProductScan();
-    }
+    // 接口已提示失败原因，听枪继续等下一次。
   } finally {
     submitting.value = false;
   }
