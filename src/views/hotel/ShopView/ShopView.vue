@@ -285,7 +285,7 @@ onMounted(() => {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 240px;
+  min-height: 180px;
   padding: 0;
   font: inherit;
   font-size: 14px;
@@ -305,7 +305,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
   background: #f4f6f8;
 }
 
@@ -321,7 +321,7 @@ onMounted(() => {
 }
 
 .shop-body {
-  padding: 12px;
+  padding: 10px 12px;
 }
 
 .shop-name {
@@ -339,11 +339,18 @@ onMounted(() => {
   word-break: break-word;
 }
 
+.shop-address {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  word-break: normal;
+}
+
 .shop-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .shop-actions {
