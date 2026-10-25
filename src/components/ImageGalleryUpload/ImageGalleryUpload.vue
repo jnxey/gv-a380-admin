@@ -16,8 +16,15 @@
         <div class="image-gallery-card">
           <img class="image-gallery-thumb" :src="file.url" alt="" />
           <span v-if="isCoverImage(file)" class="image-gallery-cover">封面</span>
+          <button
+            v-else
+            type="button"
+            class="image-gallery-cover image-gallery-cover-set"
+            @click.stop="setCoverImage(file)"
+          >
+            设为封面
+          </button>
           <span class="image-gallery-actions">
-            <button v-if="!isCoverImage(file)" type="button" class="image-gallery-action" @click.stop="setCoverImage(file)">设为封面</button>
             <button type="button" class="image-gallery-action" @click.stop="previewImage(file)">预览</button>
             <button type="button" class="image-gallery-action is-danger" @click.stop="removeImageFile(file)">删除</button>
           </span>
@@ -291,12 +298,19 @@ async function syncImageSortOrder(): Promise<void> {
   position: absolute;
   top: 6px;
   left: 6px;
+  z-index: 1;
   padding: 0 6px;
+  font: inherit;
   font-size: 10px;
   line-height: 20px;
   color: #ffffff;
   background: rgba(28, 36, 52, 0.72);
+  border: none;
   border-radius: 4px;
+}
+
+.image-gallery-cover-set {
+  cursor: pointer;
 }
 
 .image-gallery-actions {
