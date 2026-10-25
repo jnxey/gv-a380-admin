@@ -28,7 +28,7 @@
       </el-form-item>
       <el-form-item label="详细描述">
         <el-input
-          v-model="productForm.description"
+          v-model="productForm.description.content"
           type="textarea"
           :rows="3"
           :maxlength="DetailDescriptionLimit.MAX_LENGTH"
@@ -81,7 +81,7 @@ export interface ProductRow {
   categoryId: string;
   categoryName: string;
   productName: string;
-  description: string;
+  description: { content: string };
   barcode: string;
   salePrice: string;
   costPrice: string;
@@ -106,7 +106,7 @@ const { saving, runSaving } = useSaving();
 const productForm = reactive({
   categoryId: '',
   productName: '',
-  description: '',
+  description: { content: '' },
   barcode: '',
   salePrice: '',
   costPrice: '',
@@ -174,7 +174,7 @@ async function fillProductForm(productRow: ProductRow | null): Promise<void> {
     editingProductId.value = '';
     productForm.categoryId = resolveCreateCategoryId();
     productForm.productName = '';
-    productForm.description = '';
+    productForm.description.content = '';
     productForm.barcode = '';
     productForm.salePrice = '';
     productForm.costPrice = '';
@@ -186,7 +186,9 @@ async function fillProductForm(productRow: ProductRow | null): Promise<void> {
   editingProductId.value = productRow.productId;
   productForm.categoryId = productRow.categoryId;
   productForm.productName = productRow.productName;
-  productForm.description = isEmpty(productRow.description) ? '' : productRow.description;
+  productForm.description.content = isEmpty(productRow.description) || isEmpty(productRow.description.content)
+    ? ''
+    : productRow.description.content;
   productForm.barcode = productRow.barcode;
   productForm.salePrice = productRow.salePrice;
   productForm.costPrice = productRow.costPrice;
@@ -218,7 +220,7 @@ async function saveProduct(): Promise<void> {
     const body = {
       categoryId: productForm.categoryId,
       productName: productForm.productName,
-      description: productForm.description,
+      description: { content: productForm.description.content },
       barcode: productForm.barcode,
       salePrice: productForm.salePrice,
       costPrice: productForm.costPrice,

@@ -11,7 +11,7 @@
       </el-form-item>
       <el-form-item label="详细描述">
         <el-input
-          v-model="roomTypeForm.description"
+          v-model="roomTypeForm.description.content"
           type="textarea"
           :rows="3"
           :maxlength="DetailDescriptionLimit.MAX_LENGTH"
@@ -50,7 +50,7 @@ export type RoomTypeImageView = GalleryImageView;
 export interface RoomTypeRow {
   id: string;
   typeName: string;
-  description: string;
+  description: { content: string };
   hourlyPrice: string;
   status: string;
   roomCount: number;
@@ -70,7 +70,7 @@ const imageGalleryRef = ref<InstanceType<typeof ImageGalleryUpload> | null>(null
 const { saving, runSaving } = useSaving();
 const roomTypeForm = reactive({
   typeName: '',
-  description: '',
+  description: { content: '' },
   hourlyPrice: '',
   status: RecordStatus.ENABLED as string,
 });
@@ -110,7 +110,7 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
   if (isEmpty(roomTypeRow)) {
     editingId.value = '';
     roomTypeForm.typeName = '';
-    roomTypeForm.description = '';
+    roomTypeForm.description.content = '';
     roomTypeForm.hourlyPrice = '';
     roomTypeForm.status = RecordStatus.ENABLED;
     imageGalleryRef.value?.clearImages();
@@ -118,7 +118,9 @@ function fillRoomTypeForm(roomTypeRow: RoomTypeRow | null): void {
   }
   editingId.value = roomTypeRow.id;
   roomTypeForm.typeName = roomTypeRow.typeName;
-  roomTypeForm.description = isEmpty(roomTypeRow.description) ? '' : roomTypeRow.description;
+  roomTypeForm.description.content = isEmpty(roomTypeRow.description) || isEmpty(roomTypeRow.description.content)
+    ? ''
+    : roomTypeRow.description.content;
   roomTypeForm.hourlyPrice = roomTypeRow.hourlyPrice;
   roomTypeForm.status = roomTypeRow.status;
   imageGalleryRef.value?.setImages(isEmpty(roomTypeRow.imageList) ? [] : roomTypeRow.imageList);
