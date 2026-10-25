@@ -3,6 +3,9 @@
   <el-card>
     <QueryBar @search="searchOrders" @reset="resetQuery">
       <el-form-item>
+        <el-input v-model="contactKeyword" v-place class="query-keyword" placeholder="联系方式" clearable />
+      </el-form-item>
+      <el-form-item>
         <el-button-group class="order-date-quick">
           <el-button @click="applyQuickDate('today')">今天</el-button>
           <el-button @click="applyQuickDate('last7')">近7天</el-button>
@@ -98,6 +101,7 @@ const orderList = ref<OrderRow[]>([]);
 const total = ref(0);
 const page = ref<number>(PageSetting.DEFAULT_PAGE);
 const pageSize = ref<number>(PageSetting.DEFAULT_PAGE_SIZE);
+const contactKeyword = ref('');
 const orderDateRange = ref<[string, string] | null>(null);
 const appliedStartDate = ref('');
 const appliedEndDate = ref('');
@@ -237,6 +241,7 @@ async function loadOrders(): Promise<void> {
     params: {
       page: page.value,
       pageSize: pageSize.value,
+      contact: contactKeyword.value,
       startDate: appliedStartDate.value,
       endDate: appliedEndDate.value,
     },
@@ -298,9 +303,10 @@ function searchOrders(): void {
 }
 
 /**
- * 清空时间筛选后重新查。
+ * 清空联系方式和时间筛选后重新查。
  */
 function resetQuery(): void {
+  contactKeyword.value = '';
   orderDateRange.value = null;
   appliedStartDate.value = '';
   appliedEndDate.value = '';

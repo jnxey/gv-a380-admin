@@ -3,6 +3,9 @@
   <el-card>
     <QueryBar @search="searchSales" @reset="resetQuery">
       <el-form-item>
+        <el-input v-model="contactKeyword" v-place class="query-keyword" placeholder="联系方式" clearable />
+      </el-form-item>
+      <el-form-item>
         <el-button-group class="order-date-quick">
           <el-button @click="applyQuickDate('today')">今天</el-button>
           <el-button @click="applyQuickDate('last7')">近7天</el-button>
@@ -23,7 +26,7 @@
     </QueryBar>
     <div v-if="isEmpty(saleList)" class="record-empty">暂无数据</div>
     <div v-else class="sale-list">
-      <article v-for="saleRow in saleList" :key="saleRow.saleId" class="sale-card">
+      <article v-for="saleRow in saleList" :key="saleRow.saleId" class="sale-card" @click="openSaleDetail(saleRow)">
         <div class="sale-top">
           <div>
             <div class="sale-no">{{ saleRow.saleNo }}</div>
@@ -39,17 +42,33 @@
         <div v-for="itemRow in saleRow.itemList" :key="`${saleRow.saleId}-${itemRow.productId}`" class="sale-item">
           {{ itemRow.productName }} × {{ itemRow.quantity }} · {{ itemRow.salePrice }} · {{ itemRow.lineAmount }}
         </div>
-        <div v-if="isEmpty(saleRow.receiverName) !== true" class="sale-meta">收货人 {{ saleRow.receiverName }}</div>
         <div v-if="isEmpty(saleRow.contact) !== true" class="sale-meta">联系方式 {{ saleRow.contact }}</div>
-        <div v-if="isEmpty(saleRow.deliveryAddress) !== true" class="sale-meta">收货地址 {{ saleRow.deliveryAddress }}</div>
-        <div v-if="isEmpty(saleRow.courierName) !== true" class="sale-meta">送货人 {{ saleRow.courierName }}</div>
-        <div v-if="isEmpty(saleRow.courierContact) !== true" class="sale-meta">送货联系方式 {{ saleRow.courierContact }}</div>
-        <div v-if="isEmpty(saleRow.deliveryNo) !== true" class="sale-meta">送货号 {{ saleRow.deliveryNo }}</div>
-        <div v-if="isEmpty(saleRow.deliveryRemark) !== true" class="sale-meta">送货备注 {{ saleRow.deliveryRemark }}</div>
-        <div v-if="isEmpty(saleRow.remark) !== true" class="sale-meta">备注 {{ saleRow.remark }}</div>
       </article>
     </div>
     <ListPager :total="total" :current-page="page" :page-size="pageSize" @current-change="onPageChange" />
+    <el-dialog v-model="saleDetailVisible" title="订单详情" width="520px">
+      <template v-if="isEmpty(selectedSale) !== true">
+        <div class="sale-no">{{ selectedSale.saleNo }}</div>
+        <div class="sale-meta">
+          {{ statusLabel(selectedSale.saleStatus) }}
+          · {{ statusLabel(selectedSale.payMethod) }}
+          <template v-if="isEmpty(selectedSale.username) !== true"> · {{ selectedSale.username }}</template>
+          · {{ formatLocalDateTime(selectedSale.createdAt) }}
+        </div>
+        <div class="sale-amount">{{ selectedSale.amount }}</div>
+        <div v-for="itemRow in selectedSale.itemList" :key="`${selectedSale.saleId}-${itemRow.productId}`" class="sale-item">
+          {{ itemRow.productName }} × {{ itemRow.quantity }} · {{ itemRow.salePrice }} · {{ itemRow.lineAmount }}
+        </div>
+        <div v-if="isEmpty(selectedSale.receiverName) !== true" class="sale-meta">收货人 {{ selectedSale.receiverName }}</div>
+        <div v-if="isEmpty(selectedSale.contact) !== true" class="sale-meta">联系方式 {{ selectedSale.contact }}</div>
+        <div v-if="isEmpty(selectedSale.deliveryAddress) !== true" class="sale-meta">收货地址 {{ selectedSale.deliveryAddress }}</div>
+        <div v-if="isEmpty(selectedSale.courierName) !== true" class="sale-meta">送货人 {{ selectedSale.courierName }}</div>
+        <div v-if="isEmpty(selectedSale.courierContact) !== true" class="sale-meta">送货联系方式 {{ selectedSale.courierContact }}</div>
+        <div v-if="isEmpty(selectedSale.deliveryNo) !== true" class="sale-meta">送货号 {{ selectedSale.deliveryNo }}</div>
+        <div v-if="isEmpty(selectedSale.deliveryRemark) !== true" class="sale-meta">送货备注 {{ selectedSale.deliveryRemark }}</div>
+        <div v-if="isEmpty(selectedSale.remark) !== true" class="sale-meta">备注 {{ selectedSale.remark }}</div>
+      </template>
+    </el-dialog>
   </el-card>
 </template>
 
@@ -91,9 +110,12 @@ interface SaleRow {
 }
 
 const saleList = ref<SaleRow[]>([]);
+const selectedSale = ref<SaleRow | null>(null);
+const saleDetailVisible = ref(false);
 const total = ref(0);
 const page = ref(PageSetting.DEFAULT_PAGE);
 const pageSize = ref(PageSetting.DEFAULT_PAGE_SIZE);
+const contactKeyword = ref('');
 const orderDateRange = ref<[string, string] | null>(null);
 const appliedStartDate = ref('');
 const appliedEndDate = ref('');
@@ -171,6 +193,14 @@ function applyQuickDate(quickDateKind: 'today' | 'last7' | 'month'): void {
 }
 
 /**
+ * 打开这一单的商品、收货和送货信息。
+ */
+function openSaleDetail(saleRow: SaleRow): void {
+  selectedSale.value = saleRow;
+  saleDetailVisible.value = true;
+}
+
+/**
  * 分页查询销售单。
  */
 async function loadSales(): Promise<void> {
@@ -178,6 +208,7 @@ async function loadSales(): Promise<void> {
     params: {
       page: page.value,
       pageSize: pageSize.value,
+      contact: contactKeyword.value,
       startDate: appliedStartDate.value,
       endDate: appliedEndDate.value,
     },
@@ -198,9 +229,10 @@ function searchSales(): void {
 }
 
 /**
- * 清空时间筛选后重新查。
+ * 清空联系方式和时间筛选后重新查。
  */
 function resetQuery(): void {
+  contactKeyword.value = '';
   orderDateRange.value = null;
   appliedStartDate.value = '';
   appliedEndDate.value = '';
@@ -237,6 +269,11 @@ onMounted(() => {
   border: 1px solid #e6e8ec;
   border-radius: 8px;
   background: #fff;
+  cursor: pointer;
+}
+
+.sale-card:hover {
+  border-color: #2563eb;
 }
 
 .sale-top {

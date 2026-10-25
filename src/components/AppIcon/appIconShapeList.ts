@@ -117,6 +117,19 @@ export const menuIconShapeListByName: Record<string, MenuIconShape[]> = {
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M11 12h9' },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M17 12v2.4M20 12v2' },
   ],
+  [MenuIconName.ORDER]: [
+    { shapeKind: MenuIconShapeKind.RECT, offsetX: 6.5, offsetY: 3.5, width: 11, height: 17, cornerRadius: 1.5 },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M9.2 8.5h5.6' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M9.2 12h5.6' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M9.2 15.5h3.6' },
+  ],
+  [MenuIconName.SALE]: [
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M6.5 8.5h11l-1.1 11.2H7.6z' },
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M9.2 8.5V7a2.8 2.8 0 0 1 5.6 0v1.5' },
+  ],
+  [MenuIconName.REVIEW]: [
+    { shapeKind: MenuIconShapeKind.PATH, pathData: 'M12 4 14.5 9.2 19.5 9.5 15.6 13.2 17 18.5 12 15.6 7 18.5 8.4 13.2 4.5 9.5 9.5 9.2z' },
+  ],
   [MenuIconName.SYSTEM]: [
     { shapeKind: MenuIconShapeKind.CIRCLE, centerX: 12, centerY: 12, radius: 3 },
     { shapeKind: MenuIconShapeKind.PATH, pathData: 'M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2' },

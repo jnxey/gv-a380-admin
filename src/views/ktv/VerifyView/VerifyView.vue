@@ -3,7 +3,7 @@
   <el-card>
     <QueryBar @search="searchOrders" @reset="resetQuery">
       <el-form-item>
-        <el-input v-model="verifyCode" v-place class="query-keyword" placeholder="核销码" clearable />
+        <el-input v-model="contactKeyword" v-place class="query-keyword" placeholder="联系方式" clearable />
       </el-form-item>
       <el-form-item>
         <el-button-group class="order-date-quick">
@@ -29,6 +29,7 @@
       <RecordCard v-for="orderRow in orderList" :key="orderRow.bookingOrderId">
         <RecordField label="订单号">{{ orderRow.orderNo }}</RecordField>
         <RecordField label="账号">{{ orderRow.username }}</RecordField>
+        <RecordField label="联系方式">{{ orderRow.contact }}</RecordField>
         <RecordField label="类型">{{ orderRow.roomTypeName }}</RecordField>
         <RecordField label="包厢">{{ orderRow.roomName }}</RecordField>
         <RecordField label="日期">{{ formatLocalDateTime(orderRow.bookingDate) }}</RecordField>
@@ -100,6 +101,7 @@ interface OrderRow {
   bookingOrderId: string;
   orderNo: string;
   username: string;
+  contact: string;
   roomTypeName: string;
   roomName: string;
   bookingDate: string;
@@ -114,7 +116,7 @@ interface OrderRow {
 const sessionStore = useSessionStore();
 const canVerify = sessionStore.hasPermission(PermissionCode.KTV_ORDER_VERIFY);
 const canCancel = sessionStore.hasPermission(PermissionCode.KTV_ORDER_CANCEL);
-const verifyCode = ref('');
+const contactKeyword = ref('');
 const orderDateRange = ref<[string, string] | null>(null);
 const appliedStartDate = ref('');
 const appliedEndDate = ref('');
@@ -216,7 +218,7 @@ function applyQuickDate(quickDateKind: 'today' | 'last7' | 'month'): void {
 async function loadOrders(): Promise<void> {
   const pageResult = (await http.get(KtvApi.BOOKING_ORDERS, {
     params: {
-      verifyCode: verifyCode.value,
+      contact: contactKeyword.value,
       page: page.value,
       pageSize: pageSize.value,
       startDate: appliedStartDate.value,
@@ -278,10 +280,10 @@ function searchOrders(): void {
 }
 
 /**
- * 清空核销码和时间筛选，并回到第一页。
+ * 清空联系方式和时间筛选，并回到第一页。
  */
 function resetQuery(): void {
-  verifyCode.value = '';
+  contactKeyword.value = '';
   orderDateRange.value = null;
   appliedStartDate.value = '';
   appliedEndDate.value = '';
