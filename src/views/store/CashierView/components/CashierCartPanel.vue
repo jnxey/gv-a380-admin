@@ -103,6 +103,11 @@ function changeCartLineQuantity(productId: string, quantity: number | null | und
 
 <style scoped>
 .cashier-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   padding: 16px;
   border: 1px solid #e6e8ec;
   border-radius: 10px;
@@ -110,6 +115,7 @@ function changeCartLineQuantity(productId: string, quantity: number | null | und
 }
 
 .cashier-title {
+  flex: none;
   margin-bottom: 12px;
   font-size: 16px;
   font-weight: 600;
@@ -117,6 +123,8 @@ function changeCartLineQuantity(productId: string, quantity: number | null | und
 }
 
 .cart-empty {
+  flex: 1;
+  min-height: 0;
   padding: 36px 12px;
   text-align: center;
   color: #98a2b3;
@@ -125,9 +133,10 @@ function changeCartLineQuantity(productId: string, quantity: number | null | und
 
 .cart-list {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 10px;
-  max-height: 320px;
+  min-height: 0;
   margin-bottom: 12px;
   overflow: auto;
 }
@@ -195,12 +204,14 @@ function changeCartLineQuantity(productId: string, quantity: number | null | und
 }
 
 .point-deduct {
+  flex: none;
   margin: 0 2px 14px;
   white-space: normal;
   height: auto;
 }
 
 .cart-total {
+  flex: none;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -227,6 +238,7 @@ function changeCartLineQuantity(productId: string, quantity: number | null | und
 
 .checkout-actions {
   display: flex;
+  flex: none;
   flex-direction: column;
   gap: 10px;
 }
@@ -238,5 +250,23 @@ function changeCartLineQuantity(productId: string, quantity: number | null | und
   border-radius: 10px;
   font-size: 16px;
   font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .cashier-panel {
+    display: block;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .cart-empty,
+  .cart-list {
+    flex: none;
+    min-height: auto;
+  }
+
+  .cart-list {
+    max-height: 320px;
+  }
 }
 </style>

@@ -496,6 +496,11 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .cashier-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   padding: 16px;
   border: 1px solid #e6e8ec;
   border-radius: 10px;
@@ -503,6 +508,7 @@ onBeforeUnmount(() => {
 }
 
 .cashier-title {
+  flex: none;
   margin-bottom: 12px;
   font-size: 16px;
   font-weight: 600;
@@ -510,6 +516,8 @@ onBeforeUnmount(() => {
 }
 
 .cart-empty {
+  flex: 1;
+  min-height: 0;
   padding: 36px 12px;
   text-align: center;
   color: #98a2b3;
@@ -576,9 +584,10 @@ onBeforeUnmount(() => {
 
 .pending-list {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 10px;
-  max-height: calc(100vh - 220px);
+  min-height: 0;
   overflow: auto;
 }
 
@@ -612,5 +621,20 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
   margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .cashier-panel {
+    display: block;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .cart-empty,
+  .pending-list {
+    flex: none;
+    min-height: auto;
+    overflow: visible;
+  }
 }
 </style>

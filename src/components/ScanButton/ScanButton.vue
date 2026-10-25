@@ -1,5 +1,5 @@
 <template>
-  <el-button :disabled="disabled === true || scanning === true" @click="scanOnce">
+  <el-button :disabled="disabled === true || scanning === true" type="warning" @click="scanOnce">
     <slot>扫码</slot>
   </el-button>
 </template>
@@ -14,8 +14,8 @@ const props = withDefaults(
     disabled?: boolean;
   }>(),
   {
-    disabled: false,
-  },
+    disabled: false
+  }
 );
 
 const emit = defineEmits<{

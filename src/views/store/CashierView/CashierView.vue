@@ -1,6 +1,7 @@
 <template>
-  <ShopSwitcher />
-  <el-card>
+  <div class="cashier-page">
+    <ShopSwitcher />
+    <el-card class="cashier-main">
     <div class="cashier-layout">
       <CashierProductPanel
         ref="productPanelRef"
@@ -32,7 +33,8 @@
         @stock-changed="loadProducts"
       />
     </div>
-  </el-card>
+    </el-card>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -423,16 +425,62 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.cashier-page {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: calc(100vh - 56px - 24px);
+  overflow: hidden;
+}
+
+.cashier-page :deep(.shop-switcher-card) {
+  flex: none;
+}
+
+.cashier-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cashier-main :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .cashier-layout {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: minmax(0, 1fr);
   gap: 16px;
-  align-items: start;
+  flex: 1;
+  min-height: 0;
 }
 
 @media (max-width: 900px) {
+  .cashier-page {
+    height: auto;
+    overflow: visible;
+  }
+
+  .cashier-page,
+  .cashier-main,
+  .cashier-main :deep(.el-card__body) {
+    min-height: auto;
+  }
+
+  .cashier-main {
+    flex: none;
+    display: block;
+  }
+
   .cashier-layout {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    flex: none;
   }
 }
 </style>

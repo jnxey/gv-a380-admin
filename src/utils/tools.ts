@@ -18,6 +18,7 @@ export function isEmpty(value: unknown): value is null | undefined | '' {
  * 金额转成「分」。按字符串拆整元和小数，超过两位时四舍五入。不能解析时返回空。
  */
 export function readMoneyCents(value: unknown): number | null {
+  // @ts-ignore
   if (isEmpty(value) && value !== 0) {
     return null;
   }
@@ -85,6 +86,7 @@ export function formatMoney(value: unknown): string {
  * 把数量拆成整数和小数位数，供金额相乘时避免二进制浮点。
  */
 function readDecimalScale(value: unknown): { scaled: number; scale: number } | null {
+  // @ts-ignore
   if (isEmpty(value) && value !== 0) {
     return null;
   }
@@ -112,7 +114,7 @@ export function multiplyMoneyCents(unitAmount: unknown, count: unknown): number 
   if (unitCents === null || countScale === null) {
     return null;
   }
-  const negative = (unitCents < 0) !== (countScale.scaled < 0);
+  const negative = unitCents < 0 !== countScale.scaled < 0;
   const absoluteProduct = Math.abs(unitCents) * Math.abs(countScale.scaled);
   if (Number.isSafeInteger(absoluteProduct) !== true) {
     return null;

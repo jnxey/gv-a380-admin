@@ -217,6 +217,11 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .cashier-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   padding: 16px;
   border: 1px solid #e6e8ec;
   border-radius: 10px;
@@ -224,6 +229,7 @@ onBeforeUnmount(() => {
 }
 
 .cashier-title {
+  flex: none;
   margin-bottom: 12px;
   font-size: 16px;
   font-weight: 600;
@@ -232,11 +238,14 @@ onBeforeUnmount(() => {
 
 .product-card-area {
   position: relative;
-  min-height: 120px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .cashier-search {
   display: flex;
+  flex: none;
   align-items: stretch;
   gap: 10px;
   width: 100%;
@@ -337,5 +346,19 @@ onBeforeUnmount(() => {
   text-align: center;
   color: #98a2b3;
   font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .cashier-panel {
+    display: block;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .product-card-area {
+    flex: none;
+    min-height: 120px;
+    overflow: visible;
+  }
 }
 </style>
