@@ -1,6 +1,26 @@
 <template>
   <ShopSwitcher />
   <el-card>
+    <QueryBar @search="searchReviews" @reset="resetQuery">
+      <el-form-item>
+        <el-button-group class="review-date-quick">
+          <el-button @click="applyQuickDate('today')">今天</el-button>
+          <el-button @click="applyQuickDate('last7')">近7天</el-button>
+          <el-button @click="applyQuickDate('month')">本月</el-button>
+        </el-button-group>
+      </el-form-item>
+      <el-form-item>
+        <el-date-picker
+          v-model="reviewDateRange"
+          class="review-date-range"
+          type="daterange"
+          value-format="YYYY-MM-DD"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          single-panel
+        />
+      </el-form-item>
+    </QueryBar>
     <div v-if="isEmpty(reviewList)" class="record-empty">暂无数据</div>
     <div v-else class="review-list">
       <article v-for="reviewRow in reviewList" :key="reviewRow.reviewId" class="review-card">
@@ -25,6 +45,7 @@
 import { KtvApi } from '../../../api/ktv';
 import { onMounted, ref } from 'vue';
 import ListPager from '../../../components/ListPager/ListPager.vue';
+import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { PageSetting } from '../../../utils/constants';
 import { formatLocalDateTime, isEmpty } from '../../../utils/tools';
@@ -43,6 +64,9 @@ const reviewList = ref<ReviewRow[]>([]);
 const total = ref(0);
 const page = ref(PageSetting.DEFAULT_PAGE);
 const pageSize = ref(PageSetting.DEFAULT_PAGE_SIZE);
+const reviewDateRange = ref<[string, string] | null>(null);
+const appliedStartDate = ref('');
+const appliedEndDate = ref('');
 
 /**
  * 空文本显示成横线。
@@ -65,14 +89,113 @@ function starText(starRating: number): string {
 }
 
 /**
+ * 日期数字补成两位。
+ */
+function padDatePart(datePart: number): string {
+  return String(datePart).padStart(2, '0');
+}
+
+/**
+ * 把本地日期格式化成 YYYY-MM-DD。
+ */
+function formatLocalDateText(dateValue: Date): string {
+  const yearText = String(dateValue.getFullYear());
+  const monthText = padDatePart(dateValue.getMonth() + 1);
+  const dayText = padDatePart(dateValue.getDate());
+  return `${yearText}-${monthText}-${dayText}`;
+}
+
+/**
+ * 今天到今天。
+ */
+function todayDateRange(): [string, string] {
+  const todayText = formatLocalDateText(new Date());
+  return [todayText, todayText];
+}
+
+/**
+ * 近 7 天（含今天）到今天。
+ */
+function last7DaysDateRange(): [string, string] {
+  const today = new Date();
+  const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
+  return [formatLocalDateText(startDate), formatLocalDateText(today)];
+}
+
+/**
+ * 本月 1 日到今天。
+ */
+function currentMonthDateRange(): [string, string] {
+  const today = new Date();
+  const yearText = String(today.getFullYear());
+  const monthText = padDatePart(today.getMonth() + 1);
+  const dayText = padDatePart(today.getDate());
+  return [`${yearText}-${monthText}-01`, `${yearText}-${monthText}-${dayText}`];
+}
+
+/**
+ * 取出查询栏里的开始和结束日期。没选时两端都为空。
+ */
+function readReviewDateQuery(): { startDate: string; endDate: string } {
+  if (isEmpty(reviewDateRange.value)) {
+    return { startDate: '', endDate: '' };
+  }
+  return {
+    startDate: reviewDateRange.value[0],
+    endDate: reviewDateRange.value[1],
+  };
+}
+
+/**
+ * 点快捷日期后立刻按新范围查询。
+ */
+function applyQuickDate(quickDateKind: 'today' | 'last7' | 'month'): void {
+  if (quickDateKind === 'today') {
+    reviewDateRange.value = todayDateRange();
+  } else if (quickDateKind === 'last7') {
+    reviewDateRange.value = last7DaysDateRange();
+  } else {
+    reviewDateRange.value = currentMonthDateRange();
+  }
+  searchReviews();
+}
+
+/**
  * 分页查询当前门店评价。
  */
 async function loadReviews(): Promise<void> {
   const pageResult = (await http.get(KtvApi.REVIEWS, {
-    params: { page: page.value, pageSize: pageSize.value },
+    params: {
+      page: page.value,
+      pageSize: pageSize.value,
+      startDate: appliedStartDate.value,
+      endDate: appliedEndDate.value,
+    },
   })) as { list: ReviewRow[]; total: number };
   reviewList.value = pageResult.list;
   total.value = pageResult.total;
+}
+
+/**
+ * 应用时间筛选后从第 1 页查。
+ */
+function searchReviews(): void {
+  const reviewDateQuery = readReviewDateQuery();
+  appliedStartDate.value = reviewDateQuery.startDate;
+  appliedEndDate.value = reviewDateQuery.endDate;
+  page.value = PageSetting.DEFAULT_PAGE;
+  void loadReviews();
+}
+
+/**
+ * 清空时间筛选后重新查。
+ */
+function resetQuery(): void {
+  reviewDateRange.value = null;
+  appliedStartDate.value = '';
+  appliedEndDate.value = '';
+  page.value = PageSetting.DEFAULT_PAGE;
+  void loadReviews();
 }
 
 /**
@@ -89,6 +212,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.review-date-range {
+  --el-date-editor-daterange-width: 260px;
+}
+
 .review-list {
   display: flex;
   flex-direction: column;
