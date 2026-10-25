@@ -30,10 +30,10 @@
           <el-col :span="12">
             <el-form-item label="售价"><el-input v-model="productForm.salePrice" /></el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="进价"><el-input v-model="productForm.costPrice" /></el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="快捷商品">
               <el-radio-group v-model="productForm.quickProduct">
                 <el-radio :value="true">是</el-radio>
@@ -41,7 +41,7 @@
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="状态">
               <el-radio-group v-model="productForm.status">
                 <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
@@ -73,7 +73,7 @@
           <el-input
             v-model="productForm.description.content"
             type="textarea"
-            :rows="3"
+            :rows="2"
             :maxlength="DetailDescriptionLimit.MAX_LENGTH"
             show-word-limit
             placeholder="选填"
@@ -356,8 +356,8 @@ async function saveProduct(): Promise<void> {
 }
 
 .dialog-section {
-  margin-bottom: 12px;
-  padding: 14px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
   border: 1px solid #e6e8ec;
   border-radius: 10px;
   background: #f8fafc;
@@ -368,7 +368,7 @@ async function saveProduct(): Promise<void> {
 }
 
 .dialog-section-title {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #667085;
   font-size: 13px;
   font-weight: 600;
@@ -380,7 +380,7 @@ async function saveProduct(): Promise<void> {
 }
 
 .dialog-section :deep(.el-row) {
-  row-gap: 12px;
+  row-gap: 8px;
 }
 
 .field-hint {

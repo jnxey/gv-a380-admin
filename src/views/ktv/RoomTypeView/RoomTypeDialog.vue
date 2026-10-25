@@ -4,13 +4,13 @@
       <div class="dialog-section">
         <div class="dialog-section-title">基本信息</div>
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="每小时价格"><el-input v-model="roomTypeForm.hourlyPrice" /></el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="状态">
               <el-radio-group v-model="roomTypeForm.status">
                 <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
@@ -39,36 +39,36 @@
       <div class="dialog-section">
         <div class="dialog-section-title">预订说明</div>
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="预订简述">
               <el-input
                 v-model="roomTypeForm.description.bookingSummary"
                 type="textarea"
-                :rows="3"
+                :rows="2"
                 :maxlength="DetailDescriptionLimit.MAX_LENGTH"
                 show-word-limit
                 placeholder="选填"
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="退订规则">
               <el-input
                 v-model="roomTypeForm.description.cancelRule"
                 type="textarea"
-                :rows="3"
+                :rows="2"
                 :maxlength="DetailDescriptionLimit.MAX_LENGTH"
                 show-word-limit
                 placeholder="选填"
               />
             </el-form-item>
           </el-col>
-          <el-col :span="24">
+          <el-col :span="8">
             <el-form-item label="预订须知">
               <el-input
                 v-model="roomTypeForm.description.bookingNotice"
                 type="textarea"
-                :rows="3"
+                :rows="2"
                 :maxlength="DetailDescriptionLimit.MAX_LENGTH"
                 show-word-limit
                 placeholder="选填"
@@ -287,8 +287,8 @@ async function saveRoomType(): Promise<void> {
 
 <style scoped>
 .dialog-section {
-  margin-bottom: 12px;
-  padding: 14px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
   border: 1px solid #e6e8ec;
   border-radius: 10px;
   background: #f8fafc;
@@ -299,7 +299,7 @@ async function saveRoomType(): Promise<void> {
 }
 
 .dialog-section-title {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #667085;
   font-size: 13px;
   font-weight: 600;
@@ -311,7 +311,7 @@ async function saveRoomType(): Promise<void> {
 }
 
 .dialog-section :deep(.el-row) {
-  row-gap: 12px;
+  row-gap: 8px;
 }
 
 .field-hint {

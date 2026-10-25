@@ -4,13 +4,13 @@
       <div class="dialog-section">
         <div class="dialog-section-title">基本信息</div>
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="名称"><el-input v-model="roomTypeForm.typeName" /></el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="每晚价格"><el-input v-model="roomTypeForm.price" /></el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="状态">
               <el-radio-group v-model="roomTypeForm.status">
                 <el-radio :value="RecordStatus.ENABLED">启用</el-radio>
@@ -39,32 +39,32 @@
       <div class="dialog-section">
         <div class="dialog-section-title">房间信息</div>
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="床型">
               <el-input v-model="roomTypeForm.description.bedType" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="大小">
               <el-input v-model="roomTypeForm.description.roomSize" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="楼层">
               <el-input v-model="roomTypeForm.description.floorText" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="人数">
               <el-input v-model="roomTypeForm.description.guestCount" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="早餐">
               <el-input v-model="roomTypeForm.description.breakfast" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="免费停车">
               <el-input v-model="roomTypeForm.description.freeParking" :maxlength="DetailDescriptionLimit.SHORT_MAX_LENGTH" placeholder="选填" />
             </el-form-item>
@@ -77,7 +77,7 @@
           <el-input
             v-model="roomTypeForm.description.bookingNotice"
             type="textarea"
-            :rows="4"
+            :rows="2"
             :maxlength="DetailDescriptionLimit.MAX_LENGTH"
             show-word-limit
             placeholder="选填"
@@ -306,8 +306,8 @@ async function saveRoomType(): Promise<void> {
 
 <style scoped>
 .dialog-section {
-  margin-bottom: 12px;
-  padding: 14px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
   border: 1px solid #e6e8ec;
   border-radius: 10px;
   background: #f8fafc;
@@ -318,7 +318,7 @@ async function saveRoomType(): Promise<void> {
 }
 
 .dialog-section-title {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #667085;
   font-size: 13px;
   font-weight: 600;
@@ -330,7 +330,7 @@ async function saveRoomType(): Promise<void> {
 }
 
 .dialog-section :deep(.el-row) {
-  row-gap: 12px;
+  row-gap: 8px;
 }
 
 .field-hint {
