@@ -5,15 +5,16 @@
       <el-form-item>
         <el-input v-model="keyword" v-place class="query-keyword" placeholder="条码/名称" clearable />
       </el-form-item>
+      <template #append>
+        <el-form-item>
+          <ScanButton type="warning" @scanned="onBarcodeScanned">扫条码</ScanButton>
+        </el-form-item>
+      </template>
     </QueryBar>
     <div class="product-toolbar">
       <el-button v-if="canSave" type="primary" :disabled="isEmpty(filterCategoryId)" @click="openCreate">新建商品</el-button>
       <el-radio-group v-model="filterCategoryId" class="product-category-radio" @change="onCategoryChange">
-        <el-radio-button
-          v-for="categoryRow in categoryList"
-          :key="categoryRow.categoryId"
-          :value="categoryRow.categoryId"
-        >
+        <el-radio-button v-for="categoryRow in categoryList" :key="categoryRow.categoryId" :value="categoryRow.categoryId">
           {{ categoryRow.categoryName }}
         </el-radio-button>
       </el-radio-group>
@@ -70,6 +71,7 @@ import QueryBar from '../../../components/QueryBar/QueryBar.vue';
 import RecordCard from '../../../components/RecordCard/RecordCard.vue';
 import RecordField from '../../../components/RecordField/RecordField.vue';
 import RecordTableHead from '../../../components/RecordTableHead/RecordTableHead.vue';
+import ScanButton from '../../../components/ScanButton/ScanButton.vue';
 import ShopSwitcher from '../../../components/ShopSwitcher/ShopSwitcher.vue';
 import { useDragSort } from '../../../hooks/drag-sort';
 import { PageSetting, PermissionCode, RecordStatus, statusLabel } from '../../../utils/constants';
@@ -101,7 +103,7 @@ const canDragSort = computed(() => {
 const { initDragSort } = useDragSort(
   () => sortListRef.value,
   () => canDragSort.value === true,
-  saveProductSort,
+  saveProductSort
 );
 
 /**
@@ -142,8 +144,8 @@ async function loadProducts(): Promise<void> {
       keyword: appliedKeyword.value,
       categoryId: filterCategoryId.value,
       page: PageSetting.DEFAULT_PAGE,
-      pageSize: productListPageSize,
-    },
+      pageSize: productListPageSize
+    }
   })) as { list: ProductRow[]; total: number };
   productList.value = pageResult.list;
   await initDragSort();
@@ -162,6 +164,14 @@ function onCategoryChange(): void {
 function searchProducts(): void {
   appliedKeyword.value = keyword.value.trim();
   void loadProducts();
+}
+
+/**
+ * 扫码结果写入关键字并立即查询。
+ */
+function onBarcodeScanned(scanText: string): void {
+  keyword.value = scanText;
+  searchProducts();
 }
 
 /**
