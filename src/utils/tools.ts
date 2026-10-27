@@ -1,3 +1,5 @@
+import { A380H5PagePath } from './constants';
+
 /**
  * 判断值是否为空。
  */
@@ -194,6 +196,14 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
     }
   }
   return writeClipboardTextByInput(text);
+}
+
+/**
+ * 拼出门店 H5 链接。用当前域名、线上应用前缀，哈希后面是页面路径和门店编码。
+ */
+export function buildA380H5ShopLink(pagePath: string, shopCode: string): string {
+  const encodedShopCode = encodeURIComponent(shopCode);
+  return `${window.location.origin}${A380H5PagePath.APP_PREFIX}${pagePath}/${encodedShopCode}`;
 }
 
 /**

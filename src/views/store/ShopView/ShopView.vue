@@ -27,6 +27,7 @@
             </el-tag>
             <div class="shop-actions">
               <el-button link type="primary" @click="openPayQr(shopRow)">收款码</el-button>
+              <el-button link type="primary" @click="copyShopH5Link(shopRow)">H5链接</el-button>
               <el-button v-if="canSave" link type="primary" @click="openEdit(shopRow)">编辑</el-button>
             </div>
           </div>
@@ -59,8 +60,8 @@ import { ElMessage } from 'element-plus';
 import QRCode from 'qrcode';
 import ShopSearchBar from '../../../components/ShopSearchBar/ShopSearchBar.vue';
 import { useShopKeywordFilter } from '../../../hooks/shop-keyword-filter';
-import { PermissionCode, RecordStatus, ShopPayQr, timeZoneLabel } from '../../../utils/constants';
-import { isEmpty } from '../../../utils/tools';
+import { A380H5PagePath, PermissionCode, RecordStatus, ShopPayQr, timeZoneLabel } from '../../../utils/constants';
+import { buildA380H5ShopLink, copyTextToClipboard, isEmpty } from '../../../utils/tools';
 import { useSessionStore } from '../../../stores/session';
 import http from '../../../utils/request';
 import ShopDialog, { type ShopRow } from './ShopDialog.vue';
@@ -149,6 +150,23 @@ async function openPayQr(shopRow: ShopRow): Promise<void> {
   payQrImageUrl.value = payQrDataUrl;
   payQrFileName.value = payQrContent;
   payQrVisible.value = true;
+}
+
+/**
+ * 复制这家店的 H5 链接。门店编码为空时只提示。
+ */
+async function copyShopH5Link(shopRow: ShopRow): Promise<void> {
+  const shopCode = shopRow.shopCode.trim();
+  if (isEmpty(shopCode)) {
+    ElMessage.warning('请填写门店编码');
+    return;
+  }
+  const shopLinkCopied = await copyTextToClipboard(buildA380H5ShopLink(A380H5PagePath.STORE_SHOP, shopCode));
+  if (shopLinkCopied === true) {
+    ElMessage.success('链接已复制');
+    return;
+  }
+  ElMessage.error('复制失败');
 }
 
 /**

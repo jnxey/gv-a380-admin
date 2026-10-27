@@ -86,6 +86,16 @@ export const ShopPayQr = {
 } as const;
 
 /**
+ * 门店 H5 页面。前缀是线上应用路径加哈希，后面跟页面路径和门店编码。
+ */
+export const A380H5PagePath = {
+  APP_PREFIX: '/a380/app/#',
+  KTV_BOOKING: '/pages/ktv/booking',
+  HOTEL_BOOKING: '/pages/hotel/booking',
+  STORE_SHOP: '/pages/store/shop',
+} as const;
+
+/**
  * 图片数量、文件大小和宽度上限。数量和大小与服务端一致，宽度在上传前压缩。
  */
 export const ShopImageLimit = {
