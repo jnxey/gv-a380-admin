@@ -89,7 +89,7 @@ export const ShopPayQr = {
  * 门店 H5 页面。前缀是线上应用路径加哈希，后面跟页面路径和门店编码。
  */
 export const A380H5PagePath = {
-  APP_PREFIX: '/a380-app/#',
+  APP_PREFIX: '/a380-H5/#',
   KTV_BOOKING: '/pages/ktv/booking',
   HOTEL_BOOKING: '/pages/hotel/booking',
   STORE_SHOP: '/pages/store/shop'
