@@ -144,7 +144,11 @@ async function openPayQr(shopRow: ShopRow): Promise<void> {
     return;
   }
   const payQrContent = buildShopPayQrText(shopCode);
-  const payQrDataUrl = await QRCode.toDataURL(payQrContent, { width: ShopPayQr.IMAGE_WIDTH, margin: ShopPayQr.MARGIN, errorCorrectionLevel: ShopPayQr.ERROR_CORRECTION_LEVEL });
+  const payQrDataUrl = await QRCode.toDataURL(payQrContent, {
+    width: ShopPayQr.IMAGE_WIDTH,
+    margin: ShopPayQr.MARGIN,
+    errorCorrectionLevel: ShopPayQr.ERROR_CORRECTION_LEVEL
+  });
   payQrShopName.value = shopRow.shopName;
   payQrImageUrl.value = payQrDataUrl;
   payQrFileName.value = payQrContent;
@@ -374,7 +378,6 @@ onMounted(() => {
 .shop-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
 .shop-pay-qr {
