@@ -2,30 +2,30 @@
  * 与后端保持一致的常量。
  */
 export const ResponseCode = {
-  SUCCESS: 0,
+  SUCCESS: 0
 } as const;
 
 export const HttpStatusCode = {
-  UNAUTHORIZED: 401,
+  UNAUTHORIZED: 401
 } as const;
 
 export const ModuleCode = {
   CORE: 'CORE',
   KTV: 'KTV',
   HOTEL: 'HOTEL',
-  STORE: 'STORE',
+  STORE: 'STORE'
 } as const;
 
 export const ShopType = {
   A380: 'A380',
   KTV: 'KTV',
   HOTEL: 'HOTEL',
-  STORE: 'STORE',
+  STORE: 'STORE'
 } as const;
 
 export const StorePayMethod = {
   MEMBER: 'MEMBER',
-  CASH: 'CASH',
+  CASH: 'CASH'
 } as const;
 
 export const StoreSaleStatus = {
@@ -35,7 +35,7 @@ export const StoreSaleStatus = {
   PENDING_REVIEW: 'PENDING_REVIEW',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
-  REFUNDED: 'REFUNDED',
+  REFUNDED: 'REFUNDED'
 } as const;
 
 /**
@@ -45,28 +45,28 @@ export const StoreDeliveryField = {
   COURIER_NAME_MAX_LENGTH: 64,
   COURIER_CONTACT_MAX_LENGTH: 64,
   DELIVERY_NO_MAX_LENGTH: 64,
-  REMARK_MAX_LENGTH: 128,
+  REMARK_MAX_LENGTH: 128
 } as const;
 
 /**
  * 商品条码最长长度，与库字段一致。听枪用它和付款码区分。
  */
 export const StoreProductBarcode = {
-  MAX_LENGTH: 32,
+  MAX_LENGTH: 32
 } as const;
 
 /**
  * 收银台无筛选时只查快捷商品。和商品列表查询参数一致。
  */
 export const QuickProductQuery = {
-  ONLY: '1',
+  ONLY: '1'
 } as const;
 
 /**
  * 付款/充值二维码是 AES-GCM 的 Base64，比商品条码长。听枪只认字符集，不在前端解密。
  */
 export const PayRechargeQrText = {
-  PATTERN: /^[A-Za-z0-9+/]+=*$/,
+  PATTERN: /^[A-Za-z0-9+/]+=*$/
 } as const;
 
 /**
@@ -82,17 +82,17 @@ export const ShopPayQr = {
   LOGO_URL: './wv-chat-logo.png',
   LOGO_SIZE: 48,
   POSTER_SCALE: 2,
-  FILE_EXTENSION: '.png',
+  FILE_EXTENSION: '.png'
 } as const;
 
 /**
  * 门店 H5 页面。前缀是线上应用路径加哈希，后面跟页面路径和门店编码。
  */
 export const A380H5PagePath = {
-  APP_PREFIX: '/a380/app/#',
+  APP_PREFIX: '/a380-app/#',
   KTV_BOOKING: '/pages/ktv/booking',
   HOTEL_BOOKING: '/pages/hotel/booking',
-  STORE_SHOP: '/pages/store/shop',
+  STORE_SHOP: '/pages/store/shop'
 } as const;
 
 /**
@@ -101,7 +101,7 @@ export const A380H5PagePath = {
 export const ShopImageLimit = {
   MAX_COUNT: 6,
   MAX_BYTES: 5 * 1024 * 1024,
-  MAX_WIDTH: 750,
+  MAX_WIDTH: 750
 } as const;
 
 /**
@@ -109,7 +109,7 @@ export const ShopImageLimit = {
  */
 export const DetailDescriptionLimit = {
   MAX_LENGTH: 500,
-  SHORT_MAX_LENGTH: 64,
+  SHORT_MAX_LENGTH: 64
 } as const;
 
 /**
@@ -118,7 +118,7 @@ export const DetailDescriptionLimit = {
 export const ShopImageMime = {
   JPEG: 'image/jpeg',
   PNG: 'image/png',
-  WEBP: 'image/webp',
+  WEBP: 'image/webp'
 } as const;
 
 export const PermissionCode = {
@@ -147,14 +147,14 @@ export const PermissionCode = {
   SYSTEM_USER_QUERY: 'system:user:query',
   SYSTEM_USER_SAVE: 'system:user:save',
   SYSTEM_ROLE_QUERY: 'system:role:query',
-  SYSTEM_ROLE_SAVE: 'system:role:save',
+  SYSTEM_ROLE_SAVE: 'system:role:save'
 } as const;
 
 /**
  * 菜单根节点父级 ID，与后端一致。
  */
 export const MenuRoot = {
-  PARENT_ID: '0',
+  PARENT_ID: '0'
 } as const;
 
 /**
@@ -162,16 +162,16 @@ export const MenuRoot = {
  */
 export const AssignTreeNodeKind = {
   MENU: 'menu',
-  PERMISSION: 'permission',
+  PERMISSION: 'permission'
 } as const;
 
 export const AssignTreeNodeKey = {
-  SEPARATOR: ':',
+  SEPARATOR: ':'
 } as const;
 
 export const RecordStatus = {
   ENABLED: 'ENABLED',
-  DISABLED: 'DISABLED',
+  DISABLED: 'DISABLED'
 } as const;
 
 export const KtvOrderStatus = {
@@ -181,7 +181,7 @@ export const KtvOrderStatus = {
   PENDING_REVIEW: 'PENDING_REVIEW',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
-  REFUNDED: 'REFUNDED',
+  REFUNDED: 'REFUNDED'
 } as const;
 
 export const HotelOrderStatus = {
@@ -191,14 +191,14 @@ export const HotelOrderStatus = {
   PENDING_REVIEW: 'PENDING_REVIEW',
   CHECKED_OUT: 'CHECKED_OUT',
   CANCELLED: 'CANCELLED',
-  REFUNDED: 'REFUNDED',
+  REFUNDED: 'REFUNDED'
 } as const;
 
 export const HotelRoomStatus = {
   IDLE: 'IDLE',
   OCCUPIED: 'OCCUPIED',
   CLEANING: 'CLEANING',
-  MAINTENANCE: 'MAINTENANCE',
+  MAINTENANCE: 'MAINTENANCE'
 } as const;
 
 /**
@@ -209,7 +209,7 @@ export const HotelBusinessDay = {
   DEFAULT_TIME_ZONE_OFFSET: '+08:00',
   DEFAULT_OFFSET_MINUTES: 480,
   MILLISECONDS_PER_MINUTE: 60000,
-  MILLISECONDS_PER_DAY: 86400000,
+  MILLISECONDS_PER_DAY: 86400000
 } as const;
 
 /**
@@ -219,7 +219,7 @@ export const HotelWalkInNight = {
   MIN_COUNT: 1,
   MAX_COUNT: 30,
   PRESET_COUNT_LIST: [1, 2, 3, 4, 5],
-  CUSTOM: 'CUSTOM',
+  CUSTOM: 'CUSTOM'
 } as const;
 
 /**
@@ -230,7 +230,7 @@ export const KtvRoomStatus = {
   IN_USE: 'IN_USE',
   CLEANING: 'CLEANING',
   MAINTENANCE: 'MAINTENANCE',
-  CLOSED: 'CLOSED',
+  CLOSED: 'CLOSED'
 } as const;
 
 /**
@@ -238,14 +238,14 @@ export const KtvRoomStatus = {
  */
 export const KtvOccupyDuration = {
   HOUR_LIST: [2, 3, 4, 5, 6],
-  EXTEND_HOURS: 1,
+  EXTEND_HOURS: 1
 } as const;
 
 /**
  * 包厢状态页待核销查询的开唱时间窗口，现在往前和往后各这么多小时。
  */
 export const KtvPendingVerifyWindow = {
-  HOURS: 4,
+  HOURS: 4
 } as const;
 
 /**
@@ -253,7 +253,7 @@ export const KtvPendingVerifyWindow = {
  */
 export const KtvOccupyRemind = {
   LEAD_MINUTES: 30,
-  MINUTE_MILLISECONDS: 60 * 1000,
+  MINUTE_MILLISECONDS: 60 * 1000
 } as const;
 
 export const FinanceBizType = {
@@ -264,7 +264,7 @@ export const FinanceBizType = {
   HOTEL_ROOM_FEE: 'HOTEL_ROOM_FEE',
   HOTEL_IN_STORE: 'HOTEL_IN_STORE',
   SHOP_SCAN_PAY: 'SHOP_SCAN_PAY',
-  STORE_SALE: 'STORE_SALE',
+  STORE_SALE: 'STORE_SALE'
 } as const;
 
 /**
@@ -272,14 +272,14 @@ export const FinanceBizType = {
  */
 export const FinanceDirection = {
   IN: 'IN',
-  OUT: 'OUT',
+  OUT: 'OUT'
 } as const;
 
 export const PageSetting = {
   DEFAULT_PAGE: 1,
   DEFAULT_PAGE_SIZE: 10,
   PAGE_SIZE_OPTIONS: [10, 20, 50, 100],
-  ROOM_LOOKUP_PAGE_SIZE: 100,
+  ROOM_LOOKUP_PAGE_SIZE: 100
 } as const;
 
 /** 列表里代替真实核销码的展示文字。 */
@@ -326,7 +326,7 @@ export const TimeZoneOptionList = [
   { offset: '+12:00', name: '奥克兰' },
   { offset: '+12:45', name: '查塔姆' },
   { offset: '+13:00', name: '努库阿洛法' },
-  { offset: '+14:00', name: '基里巴斯' },
+  { offset: '+14:00', name: '基里巴斯' }
 ] as const;
 
 /**
@@ -350,31 +350,31 @@ export const BusinessHourList = Array.from({ length: 48 }, (_, slotIndex) => {
 /** 没有坐标时，地图默认居中北京。 */
 export const BeijingLocation = {
   LONGITUDE: 116.4074,
-  LATITUDE: 39.9042,
+  LATITUDE: 39.9042
 } as const;
 
 export const StorageKey = {
   ACCESS_TOKEN: 'gv_a380_admin_access_token',
   CURRENT_SHOP_ID: 'gv_a380_admin_current_shop_id',
-  CASHIER_RECENT_COURIERS: 'gv_a380_admin_cashier_recent_couriers',
+  CASHIER_RECENT_COURIERS: 'gv_a380_admin_cashier_recent_couriers'
 } as const;
 
 /** 后台令牌剩余不超过 30 分钟时再换一张。 */
 export const AccessTokenLifetime = {
   REFRESH_BEFORE_SECONDS: 30 * 60,
-  MILLISECONDS_PER_SECOND: 1000,
+  MILLISECONDS_PER_SECOND: 1000
 } as const;
 
 export const AccountCenter = {
   PATH: '/account',
   TITLE: '个人中心',
-  ROUTE_NAME: 'account-center',
+  ROUTE_NAME: 'account-center'
 } as const;
 
 export const Home = {
   PATH: '/',
   TITLE: '首页',
-  ROUTE_NAME: 'home',
+  ROUTE_NAME: 'home'
 } as const;
 
 export const MenuIconName = {
@@ -413,7 +413,7 @@ export const MenuIconName = {
   FULLSCREEN_EXIT: 'FULLSCREEN_EXIT',
   SCAN_QR: 'SCAN_QR',
   DELETE: 'DELETE',
-  MORE: 'MORE',
+  MORE: 'MORE'
 } as const;
 
 export const menuIconNameByPath: Record<string, string> = {
@@ -453,7 +453,7 @@ export const menuIconNameByPath: Record<string, string> = {
   '/store/review': MenuIconName.REVIEW,
   '/system': MenuIconName.SYSTEM,
   '/system/user': MenuIconName.SYSTEM_USER,
-  '/system/role': MenuIconName.SYSTEM_ROLE,
+  '/system/role': MenuIconName.SYSTEM_ROLE
 };
 
 export const statusLabelMap: Record<string, string> = {
@@ -496,7 +496,7 @@ export const statusLabelMap: Record<string, string> = {
   STORE: '商铺',
   GROUP: '集团',
   active: '正常',
-  disabled: '禁用',
+  disabled: '禁用'
 };
 
 /**
